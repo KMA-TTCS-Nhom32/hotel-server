@@ -1,0 +1,18 @@
+# Ignore build directories
+node_modules
+dist
+
+# Ignore the .git directory
+.git
+.gitignore
+.github
+
+# Ignore environment files
+.env
+.env.*
+
+*.md
+.prettierrc
+.eslintrc.js
+Readme.md
+prisma

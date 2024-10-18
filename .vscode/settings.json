@@ -1,0 +1,19 @@
+{
+  "conventionalCommits.scopes": [
+    "deps",
+    "utils",
+    "setting",
+    "hooks",
+    "app",
+    "actions",
+    "utils",
+    "deps",
+    "components",
+    "type",
+    "typo/spell",
+    "seo",
+    "images",
+    "scripts",
+    "auth"
+  ]
+}
