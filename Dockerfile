@@ -1,25 +1,26 @@
-FROM node:20 AS base
+# Dockerfile
+FROM node:18-alpine
 
-RUN npm i -g pnpm
-
-FROM base AS dependencies
-
+# Set working directory
 WORKDIR /app
+
+# Copy package files
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install
 
-FROM base AS build 
+# Install dependencies
+RUN npm install -g pnpm && pnpm install
 
-WORKDIR /app
+# Copy application files
 COPY . .
-COPY --from=dependencies /app/node_modules ./node_modules
-RUN pnpm build
-RUN pnpm prune --prod
 
-FROM base AS deploy
+# Generate Prisma client before building the app
+RUN pnpx prisma generate
 
-WORKDIR /app
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
+# Build the app
+RUN pnpm run build
 
-CMD ["node", "dist/main.js"]
+# Expose the application port
+EXPOSE 4005
+
+# Start the app
+CMD ["pnpm", "run", "start:dev"]
