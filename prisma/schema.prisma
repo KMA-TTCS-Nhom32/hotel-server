@@ -15,20 +15,24 @@ datasource db {
 }
 
 model User {
-    id             String    @id @default(cuid())
-    email          String    @unique
-    phone          String    @unique
+    id             String      @id @default(cuid())
+    email          String?      @unique
+    phone          String?      @unique
     name           String
     avatar         Json?
-    role           UserRole  @default(USER)
-    birthDate      DateTime?
+    role           UserRole    @default(USER)
+    birth_date     DateTime?
     gender         UserGender?
-    verified_email Boolean   @default(false)
-    verified_phone Boolean   @default(false)
+    verified_email Boolean     @default(false)
+    verified_phone Boolean     @default(false)
     password       String
-    is_blocked     Boolean   @default(false)
-    createdAt      DateTime  @default(now())
-    updatedAt      DateTime  @updatedAt
+    is_blocked     Boolean     @default(false)
+    reviews        Review[]
+    bookings       Booking[]
+    createdAt      DateTime    @default(now())
+    updatedAt      DateTime    @updatedAt
+
+    @@unique([email, phone])
 }
 
 enum UserRole {
@@ -40,4 +44,114 @@ enum UserRole {
 enum UserGender {
     MALE
     FEMALE
+}
+
+model HotelBranch {
+    id          String      @id @default(cuid())
+    name        String
+    description String
+    phone       String
+    is_active   Boolean     @default(true)
+    address     String
+    // location include latitude and longitude
+    location    Json
+    rooms       HotelRoom[]
+    rating      Float?
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+}
+
+model HotelRoom {
+    id                      String           @id @default(cuid())
+    name                    String
+    description             String
+    room_type               HotelRoomType
+    bed_type                HotelRoomBedType
+    services                String[]
+    status                  HotelRoomStatus
+    base_price_per_hour     Float
+    special_price_per_hour  Float?
+    base_price_per_night    Float
+    special_price_per_night Float?
+    branchId                String
+    branch                  HotelBranch      @relation(fields: [branchId], references: [id])
+    bookings                Booking[]
+    reviews                 Review[]
+    createdAt               DateTime         @default(now())
+    updatedAt               DateTime         @updatedAt
+}
+
+enum HotelRoomBedType {
+    SINGLE
+    DOUBLE
+    QUEEN
+    KING
+}
+
+enum HotelRoomType {
+    STANDARD
+    SUPERIOR
+    DELUXE
+}
+
+enum HotelRoomStatus {
+    AVAILABLE
+    BOOKED
+    OCCUPIED
+    MAINTENANCE
+}
+
+model Booking {
+    id             String         @id @default(cuid())
+    type           BookingType
+    start_date     DateTime
+    end_date       DateTime
+    start_time     DateTime?
+    end_time       DateTime?
+    roomId         String
+    room           HotelRoom      @relation(fields: [roomId], references: [id])
+    total_amount   Float
+    status         BookingStatus  @default(PENDING)
+    cancel_reason  String?
+    payment_method PaymentMethod?
+    userId         String
+    user           User           @relation(fields: [userId], references: [id])
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
+}
+
+enum BookingType {
+    HOURLY
+    NIGHTLY
+}
+
+model Review {
+    id                  String    @id @default(cuid())
+    rating_services     Int       @default(0)
+    rating_cleanliness  Int       @default(0)
+    rating_comfort      Int       @default(0)
+    is_anonymous_review Boolean   @default(false)
+    comment             String?
+    roomId              String
+    room                HotelRoom @relation(fields: [roomId], references: [id])
+    userId              String
+    user                User      @relation(fields: [userId], references: [id])
+    createdAt           DateTime  @default(now())
+}
+
+enum BookingStatus {
+    PENDING
+    PAID
+    WAITING_FOR_REFUND
+    REFUNDED
+    COMPLETED
+    CANCELLED
+}
+
+enum PaymentMethod {
+    CASH
+    BANKING
+    ZALOPAY
+    MOMO
+    VN_PAY
 }

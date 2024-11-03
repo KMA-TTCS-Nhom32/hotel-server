@@ -10,10 +10,15 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-    whitelist: true,
-  }));
+  app.setGlobalPrefix(configService.getOrThrow('API_PREFIX'), {
+    exclude: ['/'],
+  });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
 
   const documentConfig = new DocumentBuilder()
     .setTitle('ExHotel documentation')
@@ -23,7 +28,7 @@ async function bootstrap() {
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, documentConfig);
-  SwaggerModule.setup('api', app, documentFactory);
+  SwaggerModule.setup('docs', app, documentFactory);
 
   const port = configService.get('PORT');
 

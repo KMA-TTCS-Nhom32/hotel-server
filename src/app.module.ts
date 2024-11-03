@@ -9,9 +9,10 @@ import { UsersModule } from './users/users.module';
 
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
+import { BranchModule } from './branch/branch.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), UsersModule, DatabaseModule, AuthModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), UsersModule, DatabaseModule, AuthModule, BranchModule],
   controllers: [AppController],
   providers: [
     {

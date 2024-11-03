@@ -43,7 +43,7 @@ export class UpdateUserDto {
   // })
   // @IsOptional()
   // @IsDateString()
-  // birthDate?: string;
+  // birth_date?: string;
 
   @ApiProperty({
     description: "The user's birth date. Not less than 1900.",
@@ -62,7 +62,7 @@ export class UpdateUserDto {
       message: 'Birth date year must not be less than 1900',
     },
   )
-  birthDate?: string;
+  birth_date?: string;
 }
 
 export class AdminUpdateUserDto {

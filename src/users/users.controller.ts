@@ -26,16 +26,16 @@ export class UsersController {
   @ApiOkResponse({
     type: User,
   })
-  async create(@Body() createUserDto: CreateUserDto) {
+  async create(@Body() createUserDto: Omit<CreateUserDto, 'role'>) {
     return this.usersService.create(createUserDto);
   }
 
-//   @Post('/update')
-//   @HttpCode(HttpStatus.OK)
-//   @ApiOkResponse({
-//     type: User,
-//   })
-//   async update(@Body() updateUserDto: UpdateUserDto) {
-//     return this.usersService.update(updateUserDto);
-//   }
+  //   @Post('/update')
+  //   @HttpCode(HttpStatus.OK)
+  //   @ApiOkResponse({
+  //     type: User,
+  //   })
+  //   async update(@Body() updateUserDto: UpdateUserDto) {
+  //     return this.usersService.update(updateUserDto);
+  //   }
 }

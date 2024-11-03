@@ -51,7 +51,7 @@ export class QueryUsersDto {
   @Transform(({ value }) => (value ? Number(value) : 10))
   @IsNumber()
   @IsOptional()
-  limit?: number;
+  pageSize?: number;
 
   @ApiPropertyOptional({ type: String, description: `JSON string of ${FilterUserDto.name}` })
   @IsOptional()

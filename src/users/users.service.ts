@@ -1,52 +1,67 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import { genSalt, hash } from 'bcrypt';
 
-import { DatabaseService } from 'src/database/database.service';
+import { DatabaseService } from '@/database/database.service';
 
 import { User } from './models';
-
 import { CreateUserDto } from './dtos';
 import { AdminUpdateUserDto, UpdateUserDto } from './dtos/update-user.dto';
+
+import { ErrorMessagesEnum } from 'libs/common/enums';
+import { hashPassword } from 'libs/common/utils/funcs';
+import {
+  createPaginatedResponse,
+  getPaginationParams,
+  PaginationParams,
+} from 'libs/common/utils/pagination';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  isUserExisted = async (email: string, phone: string) => {
+    if (!email && !phone) {
+      return false;
+    }
+
     const existedUser = await this.databaseService.user.findFirst({
       where: {
         OR: [
           {
-            email: createUserDto.email,
+            email,
           },
           {
-            phone: createUserDto.phone,
+            phone,
           },
         ],
       },
     });
 
     if (existedUser) {
-      const errors =
-        existedUser.email === createUserDto.email
-          ? { email: 'emailExisted' }
-          : { phone: 'phoneExisted' };
+      return true;
+    }
 
+    return false;
+  };
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    if (!createUserDto.phone && !createUserDto.email) {
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors,
+          message: ErrorMessagesEnum.EitherPhoneOrEmailIsRequired,
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
 
-    if (createUserDto.role === UserRole.ADMIN || createUserDto.role === UserRole.USER) {
-      const errors =
-        createUserDto.role === UserRole.ADMIN
-          ? { role: 'cannotBeAdmin' }
-          : { role: 'cannotBeCustomer' };
+    const existedUser = await this.isUserExisted(createUserDto.email, createUserDto.phone);
+
+    if (existedUser) {
+      const errors = createUserDto.email
+        ? { email: ErrorMessagesEnum.EmailExisted }
+        : { phone: ErrorMessagesEnum.PhoneExisted };
+
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -57,13 +72,10 @@ export class UsersService {
     }
 
     const clonedPayload = {
-      verified_email: false,
-      verified_phone: false,
       ...createUserDto,
     };
 
-    const salt = await genSalt();
-    clonedPayload.password = await hash(clonedPayload.password, salt);
+    clonedPayload.password = await hashPassword(createUserDto.password);
 
     const createdUser = await this.databaseService.user.create({
       data: createUserDto,
@@ -75,15 +87,23 @@ export class UsersService {
     return createdUser;
   }
 
-  async findMany(role?: UserRole) {
-    if (role) {
-      return this.databaseService.user.findMany({
-        where: {
-          role,
-        },
-      });
-    }
-    return this.databaseService.user.findMany();
+  async findMany(params: PaginationParams, role?: UserRole) {
+    const { skip, take, page, pageSize } = getPaginationParams(params);
+
+    const where = role ? { role } : {};
+
+    const [users, total] = await this.databaseService.$transaction([
+      this.databaseService.user.findMany({
+        where,
+        skip,
+        take,
+      }),
+      this.databaseService.user.count({
+        where,
+      }),
+    ]);
+
+    return createPaginatedResponse(users, total, page, pageSize);
   }
 
   async findOne(uniqueField: string, type: 'email' | 'id' | 'phone'): Promise<User | null> {
@@ -121,7 +141,7 @@ export class UsersService {
       throw new HttpException(
         {
           status: HttpStatus.NOT_FOUND,
-          message: 'User not found',
+          message: ErrorMessagesEnum.UserNotFound,
         },
         HttpStatus.NOT_FOUND,
       );
@@ -149,7 +169,7 @@ export class UsersService {
       throw new HttpException(
         {
           status: HttpStatus.NOT_FOUND,
-          message: 'User not found',
+          message: ErrorMessagesEnum.UserNotFound,
         },
         HttpStatus.NOT_FOUND,
       );
@@ -158,8 +178,8 @@ export class UsersService {
     if (updateUserDto.role === UserRole.STAFF || updateUserDto.role === UserRole.USER) {
       const errors =
         updateUserDto.role === UserRole.STAFF
-          ? { role: 'cannotBeStaff' }
-          : { role: 'cannotBeCustomer' };
+          ? { role: ErrorMessagesEnum.CannotBeStaff }
+          : { role: ErrorMessagesEnum.CannotBeCustomer };
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
