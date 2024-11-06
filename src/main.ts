@@ -21,10 +21,10 @@ async function bootstrap() {
   );
 
   const documentConfig = new DocumentBuilder()
-    .setTitle('ExHotel documentation')
-    .setDescription("This is exhotel's APIs description")
+    .setTitle('VVintage documentation')
+    .setDescription("This is VVintage's APIs description")
     .setVersion('1.0')
-    .addTag('exhotel')
+    .addTag('VVintage')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, documentConfig);

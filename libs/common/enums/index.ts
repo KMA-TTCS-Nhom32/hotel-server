@@ -3,12 +3,30 @@ export enum SortCaseEnum {
   Desc = 'desc',
 }
 
-export enum ErrorMessagesEnum {
-    EitherPhoneOrEmailIsRequired = 'eitherPhoneOrEmailIsRequired',
-    EmailExisted = 'emailExisted',
-    PhoneExisted = 'phoneExisted',
-    CannotBeAdmin = 'cannotBeAdmin',
-    CannotBeStaff = 'cannotBeStaff',
-    CannotBeCustomer = 'cannotBeCustomer',
-    UserNotFound = 'userNotFound',
+// use in multi language support
+export enum CommonErrorMessagesEnum {
+  NotFound = 'notFound',
+  EitherPhoneOrEmailIsRequired = 'eitherPhoneOrEmailIsRequired',
+  EmailExisted = 'emailExisted',
+  PhoneExisted = 'phoneExisted',
+  UserNotFound = 'userNotFound',
+  PhoneLengthError = 'phoneLengthError',
+  InvalidPhoneFormat = 'invalidPhoneFormat',
+  NameTooShort = 'nameTooShort',
+  NameTooLong = 'nameTooLong',
+  InvalidAvatarUrl = 'invalidAvatarUrl',
+  EmptyUpdatePayload = 'emptyUpdatePayload',
+  UserHasActiveBookings = 'userHasActiveBookings',
+}
+
+export enum RoleErrorMessagesEnum {
+  RoleNotFound = 'roleNotFound',
+  CannotBeAdmin = 'cannotBeAdmin',
+  CannotBeStaff = 'cannotBeStaff',
+  CannotBeCustomer = 'cannotBeCustomer',
+}
+
+export enum AuthErrorMessageEnum {
+  InvalidEmailOrPhone = 'invalidEmailOrPhone',
+  WrongUsernameOrPassword = 'wrongUsernameOrPassword',
 }
