@@ -1,32 +1,76 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole, UserGender } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsString, IsOptional, IsDateString, Validate } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsDateString,
+  Validate,
+  IsEmail,
+  MinLength,
+  MaxLength,
+  Matches,
+} from 'class-validator';
+import { CommonErrorMessagesEnum } from 'libs/common/enums';
 
 export class UpdateUserDto {
   @ApiProperty({
-    example: 'Nam Son',
-    description: "The user's name.",
-    required: true,
+    example: 'sondoannam202@gmail.com',
+    description: "The user's email address.",
     type: String,
   })
-  @IsNotEmpty()
-  @IsString()
-  name: string;
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @ApiProperty({
-    description: "The user's role.",
-    required: true,
-    enum: UserRole,
-    example: UserRole.USER,
+    example: '0123456789',
+    description: "The user's phone number.",
     type: String,
   })
-  @IsNotEmpty()
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsOptional()
+  @IsString()
+  @MinLength(10, {
+    message: CommonErrorMessagesEnum.PhoneLengthError,
+  })
+  @MaxLength(12, {
+    message: CommonErrorMessagesEnum.PhoneLengthError,
+  })
+  @Matches(/^[0-9]+$/, {
+    message: CommonErrorMessagesEnum.InvalidPhoneFormat,
+  })
+  phone?: string;
+
+  @ApiProperty({
+    example: 'Nam Son',
+    description: "The user's name.",
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(2, {
+    message: CommonErrorMessagesEnum.NameTooShort,
+  })
+  @MaxLength(50, {
+    message: CommonErrorMessagesEnum.NameTooLong,
+  })
+  name?: string;
+
+  @ApiProperty({
+    description: "The user's avatar URL.",
+    type: String,
+    example: 'https://example.com/avatar.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^https?:\/\/.+/, {
+    message: CommonErrorMessagesEnum.InvalidAvatarUrl,
+  })
+  avatar_url?: string;
 
   @ApiProperty({
     description: "The user's gender.",
-    required: false,
     enum: UserGender,
     example: UserGender.MALE,
     type: String,
@@ -35,19 +79,8 @@ export class UpdateUserDto {
   @IsEnum(UserGender)
   gender?: UserGender;
 
-  // @ApiProperty({
-  //     description: "The user's birth date.",
-  //     required: false,
-  //     type: String,
-  //     example: '2002-05-20',
-  // })
-  // @IsOptional()
-  // @IsDateString()
-  // birth_date?: string;
-
   @ApiProperty({
     description: "The user's birth date. Not less than 1900.",
-    required: false,
     type: String,
     example: '2002-05-20',
   })

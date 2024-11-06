@@ -1,13 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { BookingStatus, UserRole } from '@prisma/client';
 
 import { DatabaseService } from '@/database/database.service';
 
 import { User } from './models';
-import { CreateUserDto } from './dtos';
+import { CreateUserDto, FilterUserDto, SortUserDto } from './dtos';
 import { AdminUpdateUserDto, UpdateUserDto } from './dtos/update-user.dto';
 
-import { ErrorMessagesEnum } from 'libs/common/enums';
+import { CommonErrorMessagesEnum, RoleErrorMessagesEnum } from 'libs/common/enums';
 import { hashPassword } from 'libs/common/utils/funcs';
 import {
   createPaginatedResponse,
@@ -49,7 +49,7 @@ export class UsersService {
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          message: ErrorMessagesEnum.EitherPhoneOrEmailIsRequired,
+          message: CommonErrorMessagesEnum.EitherPhoneOrEmailIsRequired,
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
@@ -58,14 +58,17 @@ export class UsersService {
     const existedUser = await this.isUserExisted(createUserDto.email, createUserDto.phone);
 
     if (existedUser) {
-      const errors = createUserDto.email
-        ? { email: ErrorMessagesEnum.EmailExisted }
-        : { phone: ErrorMessagesEnum.PhoneExisted };
+      const message = createUserDto.email
+        ? CommonErrorMessagesEnum.EmailExisted
+        : CommonErrorMessagesEnum.PhoneExisted;
 
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors,
+          message,
+          errors: {
+            [createUserDto.email ? 'email' : 'phone']: message,
+          },
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
@@ -87,16 +90,34 @@ export class UsersService {
     return createdUser;
   }
 
-  async findMany(params: PaginationParams, role?: UserRole) {
-    const { skip, take, page, pageSize } = getPaginationParams(params);
+  async findMany(
+    paginationOptions: PaginationParams,
+    filterOptions?: FilterUserDto,
+    sortOptions?: SortUserDto[],
+  ) {
+    const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-    const where = role ? { role } : {};
+    const where = {
+      ...(filterOptions?.roles ? { role: { in: filterOptions.roles } } : {}),
+    };
+
+    const orderBy = sortOptions?.reduce(
+      (acc, { orderBy, order }) => ({
+        ...acc,
+        [orderBy]: order.toLowerCase(),
+      }),
+      {},
+    );
 
     const [users, total] = await this.databaseService.$transaction([
       this.databaseService.user.findMany({
         where,
         skip,
         take,
+        orderBy,
+        omit: {
+          password: true,
+        },
       }),
       this.databaseService.user.count({
         where,
@@ -106,7 +127,7 @@ export class UsersService {
     return createPaginatedResponse(users, total, page, pageSize);
   }
 
-  async findOne(uniqueField: string, type: 'email' | 'id' | 'phone'): Promise<User | null> {
+  async findOne(uniqueField: string, type: 'email' | 'phone') {
     if (type === 'email') {
       return this.databaseService.user.findUnique({
         where: {
@@ -115,22 +136,32 @@ export class UsersService {
       });
     }
 
-    if (type === 'phone') {
-      return this.databaseService.user.findUnique({
-        where: {
-          phone: uniqueField,
-        },
-      });
-    }
-
     return this.databaseService.user.findUnique({
       where: {
-        id: uniqueField,
+        phone: uniqueField,
+      },
+    });
+  }
+
+  async findById(id: string) {
+    return this.databaseService.user.findUnique({
+      where: {
+        id,
       },
     });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    if (Object.keys(updateUserDto).length === 0) {
+      throw new HttpException(
+        {
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          message: CommonErrorMessagesEnum.EmptyUpdatePayload,
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
     const user = await this.databaseService.user.findUnique({
       where: {
         id,
@@ -141,7 +172,7 @@ export class UsersService {
       throw new HttpException(
         {
           status: HttpStatus.NOT_FOUND,
-          message: ErrorMessagesEnum.UserNotFound,
+          message: CommonErrorMessagesEnum.UserNotFound,
         },
         HttpStatus.NOT_FOUND,
       );
@@ -169,21 +200,25 @@ export class UsersService {
       throw new HttpException(
         {
           status: HttpStatus.NOT_FOUND,
-          message: ErrorMessagesEnum.UserNotFound,
+          message: CommonErrorMessagesEnum.UserNotFound,
         },
         HttpStatus.NOT_FOUND,
       );
     }
 
     if (updateUserDto.role === UserRole.STAFF || updateUserDto.role === UserRole.USER) {
-      const errors =
+      const message =
         updateUserDto.role === UserRole.STAFF
-          ? { role: ErrorMessagesEnum.CannotBeStaff }
-          : { role: ErrorMessagesEnum.CannotBeCustomer };
+          ? RoleErrorMessagesEnum.CannotBeStaff
+          : RoleErrorMessagesEnum.CannotBeCustomer;
+
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors,
+          message,
+          errors: {
+            role: message,
+          },
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
@@ -198,5 +233,87 @@ export class UsersService {
         password: true,
       },
     });
+  }
+
+  async softDelete(id: string, reason?: string) {
+    const user = await this.databaseService.user.findUnique({
+      where: { id },
+      include: {
+        bookings: {
+          where: {
+            status: {
+              in: [BookingStatus.PENDING, BookingStatus.PAID, BookingStatus.WAITING_FOR_REFUND],
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: CommonErrorMessagesEnum.UserNotFound,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check for active bookings
+    if (user.bookings.length > 0) {
+      throw new HttpException(
+        {
+          status: HttpStatus.CONFLICT,
+          message: CommonErrorMessagesEnum.UserHasActiveBookings,
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    // Perform soft delete
+    return this.databaseService.user.update({
+      where: { id },
+      data: {
+        is_active: false,
+        deleted_at: new Date(),
+        deleted_reason: reason,
+        // Optionally anonymize sensitive data
+        email: null,
+        phone: null,
+        name: `Deleted User ${id.slice(-6)}`,
+      },
+    });
+  }
+
+  // Method to handle data retention policy
+  async cleanupDeletedUsers(retentionPeriodMonths: number = 84) {
+    // 7 years by default
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - retentionPeriodMonths);
+
+    const deletedUsers = await this.databaseService.user.findMany({
+      where: {
+        deleted_at: {
+          not: null,
+          lt: cutoffDate,
+        },
+      },
+    });
+
+    for (const user of deletedUsers) {
+      // Archive important data if needed
+      await this.archiveUserData(user);
+
+      await this.databaseService.user.delete({
+        where: { id: user.id },
+      });
+    }
+  }
+
+  private async archiveUserData(user: User) {
+    // Implement archiving logic (e.g., store in separate archive table or external storage)
+    // This is important for audit trails and legal compliance
+    // Just do a console log for now
+    console.log(`Archiving user data for user: ${JSON.stringify(user)}`);
   }
 }

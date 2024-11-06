@@ -1,12 +1,14 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiOkResponse, ApiCreatedResponse } from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
 
-import { CreateUserDto, UpdateUserDto } from './dtos';
+import { CreateUserDto, QueryUsersDto, UpdateUserDto } from './dtos';
 
 import { User } from './models';
+import { DEFAULT_PAGESIZE } from 'libs/common/constants';
+import { PaginatedResponse } from 'libs/common/utils/pagination';
+import { UsersPaginationResultDto } from './dtos/users-pagination-result.dto';
 
 @Controller('users')
 export class UsersController {
@@ -14,19 +16,24 @@ export class UsersController {
 
   @Get('/')
   @HttpCode(HttpStatus.OK)
-  // @ApiOkResponse({
-  //     type: UserInfinityPaginationResult,
-  // })
-  async findMany(@Query('role') role?: UserRole) {
-    return this.usersService.findMany(role);
+  @ApiOkResponse({
+    description: 'Get users list successfully',
+    type: UsersPaginationResultDto,
+  })
+  async getUsers(@Query() query: QueryUsersDto): Promise<PaginatedResponse<User>> {
+    const page = query?.page ?? 1;
+    const pageSize = query?.pageSize ?? DEFAULT_PAGESIZE;
+
+    return this.usersService.findMany({ page, pageSize }, query.filters, query.sort);
   }
 
   @Post('/')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOkResponse({
+  @ApiCreatedResponse({
+    description: 'User created successfully',
     type: User,
   })
-  async create(@Body() createUserDto: Omit<CreateUserDto, 'role'>) {
+  async createUser(@Body() createUserDto: Omit<CreateUserDto, 'role'>) {
     return this.usersService.create(createUserDto);
   }
 
