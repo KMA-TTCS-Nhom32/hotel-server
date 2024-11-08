@@ -79,9 +79,9 @@ export class UsersService {
     };
 
     clonedPayload.password = await hashPassword(createUserDto.password);
-
+    
     const createdUser = await this.databaseService.user.create({
-      data: createUserDto,
+      data: clonedPayload,
       omit: {
         password: true,
       },

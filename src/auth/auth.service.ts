@@ -1,35 +1,28 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '@/users/users.service';
+import { TokenService } from './services/token.service';
+import { LoginService } from './services/login.service';
+import { RefreshTokenService } from './services/refresh-token.service';
+import { LoginDto } from './dtos';
+import { TokenResponse } from './types';
 import { AuthErrorMessageEnum } from 'libs/common/enums';
-import { compare } from 'bcrypt';
-import { LoginDto } from './dtos/login.dto';
-import { User } from '@prisma/client';
-import { JwtPayload } from './types/auth.types';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly loginService: LoginService,
+    private readonly tokenService: TokenService,
+    private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
-  comparePassword = async (password: string, hashPassword: string) => {
-    return await compare(password, hashPassword);
-  };
+  async authenticate(loginDto: LoginDto, ip?: string, device?: string) {
+    const user = await this.loginService.validateLogin(loginDto.emailOrPhone, loginDto.password);
 
-  async authenticate(loginDto: LoginDto) {
-    const { emailOrPhone, password } = loginDto;
-    const user = await this.validateLogin(emailOrPhone, password);
-    
     const [accessToken, refreshToken] = await Promise.all([
-      this.generateAccessToken(user),
-      this.generateRefreshToken(user),
+      this.tokenService.generateAccessToken(user),
+      this.refreshTokenService.createRefreshToken(user.id, ip, device),
     ]);
 
-    const accessTokenExpires = this.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED');
+    const accessTokenExpires = this.tokenService.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED');
 
     return {
       accessToken,
@@ -38,68 +31,47 @@ export class AuthService {
     };
   }
 
-  private async generateAccessToken(user: Omit<User, 'password'>) {
-    const payload: JwtPayload = {
-      sub: user.id,
-      role: user.role,
-      identifierType: user.identifier_type,
-      identifier: user[user.identifier_type.toLowerCase()], // EMAIL -> email, PHONE -> phone
-    };
-    return this.jwtService.sign(payload);
-  }
+  async refreshTokens(refreshToken: string): Promise<TokenResponse> {
+    const payload = this.tokenService.verifyRefreshToken(refreshToken);
+    const token = await this.refreshTokenService.validateRefreshToken(payload.jti);
 
-  private async generateRefreshToken(user: Omit<User, 'password'>) {
-    const payload: JwtPayload = { 
-      sub: user.id,
-      role: user.role,
-      identifierType: user.identifier_type,
-      identifier: user[user.identifier_type.toLowerCase()],
-    };
-    return this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
-    });
-  }
-
-  private getTokenExpiration(configKey: string): number {
-    const expiration = this.configService.get<string>(configKey) || '5m';
-    const milliseconds = expiration.includes('m') 
-      ? parseInt(expiration) * 60 * 1000 
-      : parseInt(expiration) * 1000;
-    return Date.now() + milliseconds;
-  }
-
-  private async validateLogin(emailOrPhone: string, password: string) {
-    const fieldInput = this.getLoginFieldType(emailOrPhone);
-    const user = await this.usersService.findOne(emailOrPhone, fieldInput);
-
-    if (!user?.[fieldInput]) {
+    if (!token || token.isRevoked || token.expiresAt < new Date()) {
       throw new HttpException(
         {
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          message: AuthErrorMessageEnum.WrongUsernameOrPassword,
+          status: HttpStatus.UNAUTHORIZED,
+          message: AuthErrorMessageEnum.InvalidRefreshToken,
         },
-        HttpStatus.UNPROCESSABLE_ENTITY,
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
-    const isPasswordMatched = await this.comparePassword(password, user.password);
+    await this.refreshTokenService.revokeRefreshToken(token.userId, token.id);
 
-    if (!isPasswordMatched) {
-      throw new HttpException(
-        {
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          message: AuthErrorMessageEnum.WrongUsernameOrPassword,
-        },
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
-    }
+    const [newAccessToken, newRefreshToken] = await Promise.all([
+      this.tokenService.generateAccessToken(token.user),
+      this.refreshTokenService.createRefreshToken(token.userId, token.ip, token.device),
+    ]);
 
-    const { password: _, ...result } = user;
-
-    return result;
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      accessTokenExpires: this.tokenService.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED'),
+    };
   }
 
-  private getLoginFieldType(input: string): keyof Pick<User, 'email' | 'phone'> {
-    return input.includes('@') ? 'email' : 'phone';
+  async revokeRefreshToken(userId: string, tokenId?: string) {
+    await this.refreshTokenService.revokeRefreshToken(userId, tokenId);
+  }
+
+  async getUserActiveSessions(userId: string) {
+    return this.refreshTokenService.getUserActiveSessions(userId);
+  }
+
+  async getSessionAnalytics(userId: string) {
+    return this.refreshTokenService.getSessionAnalytics(userId);
+  }
+
+  async getSuspiciousActivities(userId: string) {
+    return this.refreshTokenService.getSuspiciousActivities(userId);
   }
 }

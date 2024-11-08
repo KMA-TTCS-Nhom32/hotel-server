@@ -33,6 +33,7 @@ model User {
     is_active       Boolean           @default(true)
     reviews         Review[]
     bookings        Booking[]
+    refreshTokens   RefreshToken[]
     createdAt       DateTime          @default(now())
     updatedAt       DateTime          @updatedAt
 
@@ -163,4 +164,22 @@ enum PaymentMethod {
     ZALOPAY
     MOMO
     VN_PAY
+}
+
+model RefreshToken {
+    id            String    @id @default(cuid())
+    token         String    @unique
+    userId        String
+    user          User      @relation(fields: [userId], references: [id])
+    device        String?   // Store device info
+    ip            String?   // Store IP address
+    isRevoked     Boolean   @default(false)
+    expiresAt     DateTime
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+
+    @@index([userId])
+    @@index([expiresAt])
+    @@index([isRevoked])
+    @@index([createdAt])
 }

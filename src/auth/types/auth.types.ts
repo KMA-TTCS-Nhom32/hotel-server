@@ -13,3 +13,23 @@ export type JwtUser = {
   identifierType: AccountIdentifier;
   identifier: string;
 };
+
+export type RefreshTokenPayload = {
+  jti: string;  // Token ID
+  sub: string;  // User ID
+};
+
+export type TokenResponse = {
+  accessToken: string;
+  accessTokenExpires: number;
+  refreshToken: string;
+};
+
+export type ActiveSession = {
+  id: string;
+  device: string | null;
+  ip: string | null;
+  lastUsed: Date;
+  expiresAt: Date;
+  isCurrentSession?: boolean;
+};

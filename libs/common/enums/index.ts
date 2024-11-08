@@ -29,4 +29,5 @@ export enum RoleErrorMessagesEnum {
 export enum AuthErrorMessageEnum {
   InvalidEmailOrPhone = 'invalidEmailOrPhone',
   WrongUsernameOrPassword = 'wrongUsernameOrPassword',
+  InvalidRefreshToken = 'invalidRefreshToken',
 }
