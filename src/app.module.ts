@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
 import { BranchModule } from './modules/branch/branch.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ImagesModule } from './modules/images/images.module';
+import { AmenitiesModule } from './modules/amenities/amenities.module';
 
 import { CloudinaryModule } from './third-party/cloudinary/cloudinary.module';
 
@@ -33,6 +34,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     CloudinaryModule,
     AuthModule,
     UsersModule,
+    AmenitiesModule,
     BranchModule,
     ImagesModule,
   ],

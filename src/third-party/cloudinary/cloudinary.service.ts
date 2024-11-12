@@ -3,20 +3,35 @@ import { v2 as cloudinary, UploadApiOptions } from 'cloudinary';
 import { Readable } from 'stream';
 
 import { CloudinaryResponse } from './cloudinary-response';
-import { CLOUDINARY_ALLOW_IMAGE_FORMATS, CLOUDINARY_ROOT_FOLDER_NAME } from './cloudinary.constant';
+import {
+  CLOUDINARY_ALLOW_IMAGE_FORMATS,
+  CLOUDINARY_AMENITY_ICONS_FOLDER,
+  CLOUDINARY_ROOT_FOLDER_NAME,
+} from './cloudinary.constant';
 
 @Injectable()
 export class CloudinaryService {
-  async uploadImage(file: Express.Multer.File): Promise<CloudinaryResponse> {
+  async uploadImage(
+    file: Express.Multer.File,
+    isUploadingIcon: boolean = false,
+  ): Promise<CloudinaryResponse> {
     const options: UploadApiOptions = {
-      folder: CLOUDINARY_ROOT_FOLDER_NAME,
+      folder: isUploadingIcon ? CLOUDINARY_AMENITY_ICONS_FOLDER : CLOUDINARY_ROOT_FOLDER_NAME,
       allowedFormats: CLOUDINARY_ALLOW_IMAGE_FORMATS,
-      transformation: {
-        format: 'auto',
-        quality: 'auto',
-        fetch_format: 'auto',
-        dpr: 'auto',
-      },
+      transformation: isUploadingIcon
+        ? {
+            width: 64,
+            height: 64,
+            crop: 'fill',
+            format: 'webp',
+            quality: 'auto',
+          }
+        : {
+            format: 'auto',
+            quality: 'auto',
+            fetch_format: 'auto',
+            dpr: 'auto',
+          },
     };
 
     const uploadPromise = new Promise<CloudinaryResponse>((resolve, reject) => {

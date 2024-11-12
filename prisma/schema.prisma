@@ -60,7 +60,7 @@ enum UserGender {
 
 model HotelBranch {
     id          String      @id @default(cuid())
-    thumbnail   String
+    thumbnail   Json
     images      Json[]
     name        String
     description String
@@ -94,7 +94,7 @@ model HotelRoom {
     amenities               Amenity[]
     max_adults              Int                @default(2)
     max_children            Int                @default(2)
-    thumbnail               String
+    thumbnail               Json
     images                  Json[]
     quantity                Int                @default(1) // Number of rooms of this type
     promotions              RoomPromotion[]
@@ -104,13 +104,15 @@ model HotelRoom {
 }
 
 model Amenity {
-    id       String        @id @default(cuid())
-    name     String
-    slug     String
-    icon     String? // Icon URL or code
-    type     AmenityType
-    rooms    HotelRoom[]
-    branches HotelBranch[]
+    id        String        @id @default(cuid())
+    name      String
+    slug      String
+    icon      Json? // Icon URL or code
+    type      AmenityType
+    rooms     HotelRoom[]
+    branches  HotelBranch[]
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
 }
 
 enum AmenityType {
