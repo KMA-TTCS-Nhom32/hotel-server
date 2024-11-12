@@ -17,6 +17,8 @@ export enum CommonErrorMessagesEnum {
   InvalidAvatarUrl = 'invalidAvatarUrl',
   EmptyUpdatePayload = 'emptyUpdatePayload',
   UserHasActiveBookings = 'userHasActiveBookings',
+  ImageNotFound = 'imageNotFound',
+  GetImageFailed = 'getImageFailed',
 }
 
 export enum RoleErrorMessagesEnum {

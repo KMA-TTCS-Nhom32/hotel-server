@@ -79,7 +79,7 @@ export class UsersService {
     };
 
     clonedPayload.password = await hashPassword(createUserDto.password);
-    
+
     const createdUser = await this.databaseService.user.create({
       data: clonedPayload,
       omit: {
@@ -242,7 +242,7 @@ export class UsersService {
         bookings: {
           where: {
             status: {
-              in: [BookingStatus.PENDING, BookingStatus.PAID, BookingStatus.WAITING_FOR_REFUND],
+              in: [BookingStatus.PENDING, BookingStatus.WAITING_FOR_CHECK_IN],
             },
           },
         },

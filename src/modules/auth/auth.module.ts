@@ -5,7 +5,7 @@ import { DatabaseModule } from '@/database/database.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UsersModule } from '@/users/users.module';
+import { UsersModule } from '@/modules/users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TokenService } from './services/token.service';
@@ -24,11 +24,13 @@ import { RefreshTokenService } from './services/refresh-token.service';
       }),
     }),
     UsersModule,
-    ThrottlerModule.forRoot([{
-      name: 'login', // specific name for login limits
-      ttl: 15 * 60 * 1000, // 15 minutes
-      limit: 5, // 5 attempts
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        name: 'login', // specific name for login limits
+        ttl: 15 * 60 * 1000, // 15 minutes
+        limit: 5, // 5 attempts
+      },
+    ]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, TokenService, LoginService, RefreshTokenService],

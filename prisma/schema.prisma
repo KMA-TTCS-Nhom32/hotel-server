@@ -36,6 +36,8 @@ model User {
     refreshTokens   RefreshToken[]
     createdAt       DateTime          @default(now())
     updatedAt       DateTime          @updatedAt
+    preferences     UserPreference[]
+    loyalty_points  Int               @default(0)
 
     @@unique([email, phone])
 }
@@ -58,37 +60,63 @@ enum UserGender {
 
 model HotelBranch {
     id          String      @id @default(cuid())
+    thumbnail   String
+    images      Json[]
     name        String
     description String
     phone       String
     is_active   Boolean     @default(true)
     address     String
-    // location include latitude and longitude
-    location    Json
+    location    Json // location include latitude and longitude
     rooms       HotelRoom[]
     rating      Float?
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
+    amenities   Amenity[]
 }
 
 model HotelRoom {
-    id                      String           @id @default(cuid())
+    id                      String             @id @default(cuid())
     name                    String
     description             String
     room_type               HotelRoomType
     bed_type                HotelRoomBedType
-    services                String[]
     status                  HotelRoomStatus
     base_price_per_hour     Float
     special_price_per_hour  Float?
     base_price_per_night    Float
     special_price_per_night Float?
+    roomPriceHistories      RoomPriceHistory[]
     branchId                String
-    branch                  HotelBranch      @relation(fields: [branchId], references: [id])
+    branch                  HotelBranch        @relation(fields: [branchId], references: [id])
     bookings                Booking[]
     reviews                 Review[]
-    createdAt               DateTime         @default(now())
-    updatedAt               DateTime         @updatedAt
+    amenities               Amenity[]
+    max_adults              Int                @default(2)
+    max_children            Int                @default(2)
+    thumbnail               String
+    images                  Json[]
+    quantity                Int                @default(1) // Number of rooms of this type
+    promotions              RoomPromotion[]
+    favorited_by            UserPreference[]   @relation("UserFavoriteRooms")
+    createdAt               DateTime           @default(now())
+    updatedAt               DateTime           @updatedAt
+}
+
+model Amenity {
+    id       String        @id @default(cuid())
+    name     String
+    slug     String
+    icon     String? // Icon URL or code
+    type     AmenityType
+    rooms    HotelRoom[]
+    branches HotelBranch[]
+}
+
+enum AmenityType {
+    ROOM // e.g., TV, minibar, safe
+    PROPERTY // e.g., pool, gym, parking
+    SERVICE // e.g., room service, laundry
 }
 
 enum HotelRoomBedType {
@@ -112,22 +140,30 @@ enum HotelRoomStatus {
 }
 
 model Booking {
-    id             String         @id @default(cuid())
-    type           BookingType
-    start_date     DateTime
-    end_date       DateTime
-    start_time     DateTime?
-    end_time       DateTime?
-    roomId         String
-    room           HotelRoom      @relation(fields: [roomId], references: [id])
-    total_amount   Float
-    status         BookingStatus  @default(PENDING)
-    cancel_reason  String?
-    payment_method PaymentMethod?
-    userId         String
-    user           User           @relation(fields: [userId], references: [id])
-    createdAt      DateTime       @default(now())
-    updatedAt      DateTime       @updatedAt
+    id               String         @id @default(cuid())
+    type             BookingType
+    start_date       DateTime
+    end_date         DateTime
+    start_time       DateTime?
+    end_time         DateTime?
+    roomId           String
+    room             HotelRoom      @relation(fields: [roomId], references: [id])
+    total_amount     Float
+    status           BookingStatus  @default(PENDING)
+    cancel_reason    String?
+    payment_method   PaymentMethod?
+    number_of_guests Int
+    special_requests String?
+    check_in_time    DateTime?
+    check_out_time   DateTime?
+    payment_status   PaymentStatus  @default(UNPAID)
+    payment_details  Json?
+    userId           String
+    user             User           @relation(fields: [userId], references: [id])
+    guest_details    Json? // Store additional guest information
+    is_business_trip Boolean        @default(false)
+    createdAt        DateTime       @default(now())
+    updatedAt        DateTime       @updatedAt
 }
 
 enum BookingType {
@@ -151,11 +187,19 @@ model Review {
 
 enum BookingStatus {
     PENDING
-    PAID
-    WAITING_FOR_REFUND
-    REFUNDED
-    COMPLETED
+    WAITING_FOR_CHECK_IN
+    CHECKED_IN
     CANCELLED
+    COMPLETED
+    REFUNDED
+    REJECTED
+}
+
+enum PaymentStatus {
+    UNPAID
+    PAID
+    FAILED
+    REFUNDED
 }
 
 enum PaymentMethod {
@@ -166,20 +210,65 @@ enum PaymentMethod {
     VN_PAY
 }
 
+model RoomPriceHistory {
+    id             String        @id @default(cuid())
+    roomId         String
+    room           HotelRoom     @relation(fields: [roomId], references: [id])
+    price_type     RoomPriceType
+    price          Float
+    effective_from DateTime
+    effective_to   DateTime?
+    createdAt      DateTime      @default(now())
+}
+
+enum RoomPriceType {
+    PER_HOUR
+    PER_NIGHT
+}
+
 model RefreshToken {
-    id            String    @id @default(cuid())
-    token         String    @unique
-    userId        String
-    user          User      @relation(fields: [userId], references: [id])
-    device        String?   // Store device info
-    ip            String?   // Store IP address
-    isRevoked     Boolean   @default(false)
-    expiresAt     DateTime
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+    id        String   @id @default(cuid())
+    token     String   @unique
+    userId    String
+    user      User     @relation(fields: [userId], references: [id])
+    device    String? // Store device info
+    ip        String? // Store IP address
+    isRevoked Boolean  @default(false)
+    expiresAt DateTime
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@index([userId])
     @@index([expiresAt])
     @@index([isRevoked])
     @@index([createdAt])
+}
+
+model RoomPromotion {
+    id             String       @id @default(cuid())
+    code           String       @unique
+    discount_type  DiscountType
+    discount_value Float
+    start_date     DateTime
+    end_date       DateTime
+    min_nights     Int?
+    rooms          HotelRoom[]
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+}
+
+enum DiscountType {
+    PERCENTAGE
+    FIXED_AMOUNT
+}
+
+model UserPreference {
+    id                       String         @id @default(cuid())
+    userId                   String
+    user                     User           @relation(fields: [userId], references: [id])
+    favorite_rooms           HotelRoom[]    @relation("UserFavoriteRooms")
+    preferred_payment_method PaymentMethod?
+    special_requirements     String?
+    createdAt                DateTime       @default(now())
+    updatedAt                DateTime       @updatedAt
 }

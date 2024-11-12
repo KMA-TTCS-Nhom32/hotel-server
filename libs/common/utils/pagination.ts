@@ -5,14 +5,16 @@ export interface PaginationParams {
   pageSize?: number;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
+export interface PaginationMetaResponse {
     total: number;
     page: number;
     pageSize: number;
     totalPages: number;
-  };
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMetaResponse;
 }
 
 export const getPaginationParams = (params: PaginationParams) => {

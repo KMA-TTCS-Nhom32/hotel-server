@@ -139,7 +139,7 @@ export class RefreshTokenService {
         OR: [
           { isRevoked: true },
           { expiresAt: { lt: now } },
-          { createdAt: { lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } }
+          { createdAt: { lt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } }
         ]
       }
     });

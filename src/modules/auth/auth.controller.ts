@@ -30,7 +30,6 @@ export class AuthController {
     return this.authService.authenticate(loginDto, ip, userAgent);
   }
 
-  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refreshTokens(@Body('refreshToken') refreshToken: string) {

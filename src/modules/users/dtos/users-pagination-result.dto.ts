@@ -1,4 +1,4 @@
-import { PaginatedResponse } from 'libs/common/utils/pagination';
+import { PaginatedResponse, PaginationMetaResponse } from 'libs/common/utils';
 import { User } from '../models';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -18,12 +18,7 @@ export class UsersPaginationResultDto implements PaginatedResponse<User> {
     },
     example: { total: 0, page: 1, pageSize: 10, totalPages: 0 },
   })
-  meta: {
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
+  meta: PaginationMetaResponse;
 
   constructor(data: PaginatedResponse<User>) {
     this.data = data.data;

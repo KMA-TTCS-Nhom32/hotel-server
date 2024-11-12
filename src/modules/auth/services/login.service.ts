@@ -1,14 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { compare } from 'bcrypt';
-import { UsersService } from '@/users/users.service';
+import { UsersService } from '@/modules/users/users.service';
 import { AuthErrorMessageEnum } from 'libs/common/enums';
 
 @Injectable()
 export class LoginService {
-  constructor(
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   async validateLogin(emailOrPhone: string, password: string) {
     const fieldInput = this.getLoginFieldType(emailOrPhone);
