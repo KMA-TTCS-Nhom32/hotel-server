@@ -109,7 +109,7 @@ export class UsersService {
       {},
     );
 
-    const [users, total] = await this.databaseService.$transaction([
+    const [userObjects, total] = await this.databaseService.$transaction([
       this.databaseService.user.findMany({
         where,
         skip,
@@ -124,7 +124,12 @@ export class UsersService {
       }),
     ]);
 
-    return createPaginatedResponse(users, total, page, pageSize);
+    return createPaginatedResponse(
+      userObjects.map((user) => new User(user)),
+      total,
+      page,
+      pageSize,
+    );
   }
 
   async findOne(uniqueField: string, type: 'email' | 'phone') {

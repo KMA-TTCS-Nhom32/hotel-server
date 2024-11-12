@@ -18,18 +18,19 @@ import { AmenitiesService } from './amenities.service';
 import { RolesGuard } from '@/modules/auth/guards';
 import { Public, Roles } from '@/modules/auth/decorators';
 import { UserRole } from '@prisma/client';
-import { DEFAULT_PAGESIZE } from 'libs/common';
+import { DEFAULT_PAGESIZE, PaginatedResponse } from 'libs/common';
+import { Amenity } from './models';
 
 @ApiTags('amenities')
 @Controller('amenities')
 @UseGuards(RolesGuard)
-@Roles(UserRole.ADMIN) // Default role for all endpoints
+@Roles(UserRole.ADMIN, UserRole.STAFF) // Default role for all endpoints
 export class AmenitiesController {
   constructor(private readonly amenitiesService: AmenitiesService) {}
 
   @Public() // Override the default role requirement
   @Get()
-  async findAll(@Query() query: QueryAmenityDto) {
+  async findAll(@Query() query: QueryAmenityDto): Promise<PaginatedResponse<Amenity>> {
     const page = query?.page ?? 1;
     const pageSize = query?.pageSize ?? DEFAULT_PAGESIZE;
 

@@ -72,4 +72,16 @@ export class CloudinaryService {
       secure_url: response.secure_url,
     };
   }
+
+  deleteImage(publicId: string): Promise<CloudinaryResponse> {
+    return new Promise<CloudinaryResponse>((resolve, reject) => {
+      cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  }
 }

@@ -19,6 +19,7 @@ export enum CommonErrorMessagesEnum {
   UserHasActiveBookings = 'userHasActiveBookings',
   ImageNotFound = 'imageNotFound',
   GetImageFailed = 'getImageFailed',
+  RequestFailed = 'requestFailed',
 }
 
 export enum RoleErrorMessagesEnum {
@@ -32,4 +33,14 @@ export enum AuthErrorMessageEnum {
   InvalidEmailOrPhone = 'invalidEmailOrPhone',
   WrongUsernameOrPassword = 'wrongUsernameOrPassword',
   InvalidRefreshToken = 'invalidRefreshToken',
+}
+
+export enum ImageErrorMessagesEnum {
+  InvalidImageFormat = 'invalidImageFormat',
+  InvalidImageSize = 'invalidImageSize',
+  InvalidImageType = 'invalidImageType',
+  InvalidImageUrl = 'invalidImageUrl',
+  ImageUploadFailed = 'imageUploadFailed',
+  ImageDeleteFailed = 'imageDeleteFailed',
+  ImageNotFound = 'imageNotFound',
 }
