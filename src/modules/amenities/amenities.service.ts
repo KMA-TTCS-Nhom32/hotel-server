@@ -68,6 +68,7 @@ export class AmenitiesService {
           throw new ConflictException('Amenity with this slug already exists');
         }
       }
+      console.log('error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
