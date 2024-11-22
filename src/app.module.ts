@@ -1,8 +1,9 @@
-import { Module, ValidationPipe } from '@nestjs/common';
+import { Module, ValidationPipe, OnModuleInit } from '@nestjs/common';
 import { APP_PIPE, APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bull';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -18,7 +19,10 @@ import { CloudinaryModule } from './third-party/cloudinary/cloudinary.module';
 import { DatabaseModule } from './database/database.module';
 
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { VerificationModule } from './modules/verification/verification.module';
+import { EmailModule } from './communication/email/email.module';
 
+import { getBullConfig } from './config/bull.config';
 
 @Module({
   imports: [
@@ -30,6 +34,11 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
         limit: 5, // 5 requests per minute
       },
     ]),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: getBullConfig,
+      inject: [ConfigService],
+    }),
     DatabaseModule,
     CloudinaryModule,
     AuthModule,
@@ -37,6 +46,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     AmenitiesModule,
     BranchModule,
     ImagesModule,
+    VerificationModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
@@ -51,4 +62,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     AppService,
   ],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  async onModuleInit() {
+    console.log('Connecting to Redis Cloud...');
+  }
+}

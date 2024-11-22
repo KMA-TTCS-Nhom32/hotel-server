@@ -34,6 +34,27 @@ export class LoginService {
       );
     }
 
+    // Check if user is verified based on login method
+    if (fieldInput === 'email' && !user.verified_email) {
+      throw new HttpException(
+        {
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          message: AuthErrorMessageEnum.EmailNotVerified,
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    if (fieldInput === 'phone' && !user.verified_phone) {
+      throw new HttpException(
+        {
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          message: AuthErrorMessageEnum.PhoneNotVerified,
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
     const { password: _, ...result } = user;
     return result;
   }

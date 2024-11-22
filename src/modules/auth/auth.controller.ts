@@ -1,15 +1,30 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards, Get, Req, Ip, Headers, Param, Query } from '@nestjs/common';
-import { ApiOkResponse } from '@nestjs/swagger';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+  Get,
+  Req,
+  Ip,
+  Headers,
+  Param,
+  Query,
+} from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { RolesGuard } from './guards/roles.guard';
-import { UserRole } from '@prisma/client';
+import { AccountIdentifier, UserRole } from '@prisma/client';
 import { Request } from 'express';
-import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 
+import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 import { AuthService } from './auth.service';
 import { LoginDto, LoginResponseDto } from './dtos';
 import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
+
+import { User } from '../users/models';
+import { CreateUserDto } from '../users/dtos';
 
 @Controller('auth')
 export class AuthController {
@@ -44,18 +59,18 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @Get('admin')
-  getAdminProfile() {
-    return 'Admin profile';
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.STAFF, UserRole.ADMIN)
-  @Get('staff')
-  getStaffProfile() {
-    return 'Staff profile';
+  @Public()
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreatedResponse({
+    description: 'User created successfully',
+    type: User,
+  })
+  async register(
+    @Body() createUserDto: CreateUserDto,
+    @Body('accountIdentifier') accountIdentifier: AccountIdentifier = AccountIdentifier.EMAIL,
+  ) {
+    return this.authService.register(createUserDto, accountIdentifier);
   }
 
   @Get('sessions')
@@ -67,10 +82,7 @@ export class AuthController {
 
   @Post('sessions/:sessionId/revoke')
   @HttpCode(HttpStatus.OK)
-  async revokeSession(
-    @Param('sessionId') sessionId: string,
-    @Req() req: Request
-  ) {
+  async revokeSession(@Param('sessionId') sessionId: string, @Req() req: Request) {
     const user = req.user as JwtUser;
     await this.authService.revokeRefreshToken(user.userId, sessionId);
     return { message: 'Session revoked successfully' };

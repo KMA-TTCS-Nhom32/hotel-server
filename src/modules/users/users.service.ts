@@ -58,17 +58,12 @@ export class UsersService {
     const existedUser = await this.isUserExisted(createUserDto.email, createUserDto.phone);
 
     if (existedUser) {
-      const message = createUserDto.email
-        ? CommonErrorMessagesEnum.EmailExisted
-        : CommonErrorMessagesEnum.PhoneExisted;
-
+      const field = createUserDto.email ? 'Email' : 'Phone';
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          message,
-          errors: {
-            [createUserDto.email ? 'email' : 'phone']: message,
-          },
+          message: CommonErrorMessagesEnum[`${field}Existed`],
+          errors: { [field.toLowerCase()]: CommonErrorMessagesEnum[`${field}Existed`] }
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );

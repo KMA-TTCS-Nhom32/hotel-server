@@ -11,6 +11,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { TokenService } from './services/token.service';
 import { LoginService } from './services/login.service';
 import { RefreshTokenService } from './services/refresh-token.service';
+import { VerificationModule } from '../verification/verification.module';
+import { EmailModule } from '@/communication/email/email.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { RefreshTokenService } from './services/refresh-token.service';
         limit: 5, // 5 attempts
       },
     ]),
+    VerificationModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, TokenService, LoginService, RefreshTokenService],

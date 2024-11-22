@@ -27,15 +27,15 @@ export class UsersController {
     return this.usersService.findMany({ page, pageSize }, query.filters, query.sort);
   }
 
-  @Post('/')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiCreatedResponse({
-    description: 'User created successfully',
-    type: User,
-  })
-  async createUser(@Body() createUserDto: Omit<CreateUserDto, 'role'>) {
-    return this.usersService.create(createUserDto);
-  }
+//   @Post('/')
+//   @HttpCode(HttpStatus.CREATED)
+//   @ApiCreatedResponse({
+//     description: 'User created successfully',
+//     type: User,
+//   })
+//   async createUser(@Body() createUserDto: Omit<CreateUserDto, 'role'>) {
+//     return this.usersService.create(createUserDto);
+//   }
 
   //   @Post('/update')
   //   @HttpCode(HttpStatus.OK)

@@ -5,6 +5,11 @@ import { RefreshTokenService } from './services/refresh-token.service';
 import { LoginDto } from './dtos';
 import { TokenResponse } from './types';
 import { AuthErrorMessageEnum } from 'libs/common/enums';
+import { CreateUserDto } from '../users/dtos';
+import { UsersService } from '../users/users.service';
+import { AccountIdentifier } from '@prisma/client';
+import { VerificationService } from '../verification/verification.service';
+import { EmailService } from '@/communication/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +17,9 @@ export class AuthService {
     private readonly loginService: LoginService,
     private readonly tokenService: TokenService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly userService: UsersService,
+    private readonly verificationService: VerificationService,
+    private readonly emailService: EmailService,
   ) {}
 
   async authenticate(loginDto: LoginDto, ip?: string, device?: string) {
@@ -60,7 +68,7 @@ export class AuthService {
   }
 
   async revokeRefreshToken(userId: string, tokenId?: string) {
-    await this.refreshTokenService.revokeRefreshToken(userId, tokenId);
+    return this.refreshTokenService.revokeRefreshToken(userId, tokenId);
   }
 
   async getUserActiveSessions(userId: string) {
@@ -73,5 +81,52 @@ export class AuthService {
 
   async getSuspiciousActivities(userId: string) {
     return this.refreshTokenService.getSuspiciousActivities(userId);
+  }
+
+  async register(createUserDto: CreateUserDto, accountIdentifier: AccountIdentifier) {
+    if (accountIdentifier === AccountIdentifier.PHONE && !createUserDto.phone) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: AuthErrorMessageEnum.PhoneIsRequired,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (accountIdentifier === AccountIdentifier.EMAIL && !createUserDto.email) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: AuthErrorMessageEnum.EmailIsRequired,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Create the user
+    const user = await this.userService.create(createUserDto);
+
+    // Generate verification code
+    const verification = await this.verificationService.createVerification(
+      user.id,
+      accountIdentifier,
+    );
+
+    // Send verification email if email registration
+    if (accountIdentifier === AccountIdentifier.EMAIL && user.email) {
+      await this.emailService.queueVerificationEmail({
+        to: user.email,
+        code: verification.code,
+      });
+    }
+
+    // Return the created user (excluding sensitive data)
+    return {
+      user,
+      message: accountIdentifier === AccountIdentifier.EMAIL 
+        ? 'Registration successful. Please check your email for verification code.'
+        : 'Registration successful. Please verify your phone number.',
+    };
   }
 }

@@ -33,6 +33,10 @@ export enum AuthErrorMessageEnum {
   InvalidEmailOrPhone = 'invalidEmailOrPhone',
   WrongUsernameOrPassword = 'wrongUsernameOrPassword',
   InvalidRefreshToken = 'invalidRefreshToken',
+  PhoneIsRequired = 'phoneIsRequired',
+  EmailIsRequired = 'emailIsRequired',
+  EmailNotVerified = 'emailNotVerified',
+  PhoneNotVerified = 'phoneNotVerified',
 }
 
 export enum ImageErrorMessagesEnum {
