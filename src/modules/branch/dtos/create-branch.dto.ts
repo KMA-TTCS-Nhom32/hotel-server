@@ -11,6 +11,24 @@ import {
 } from 'class-validator';
 import { Type as TransformType } from 'class-transformer';
 
+class LocationDto {
+  @ApiProperty({
+    example: 10.762622,
+    description: 'Latitude coordinate',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  latitude: number;
+
+  @ApiProperty({
+    example: 106.660172,
+    description: 'Longitude coordinate',
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  longitude: number;
+}
+
 export class CreateBranchDto {
   @ApiProperty({
     example: { url: 'thumbnail-url', publicId: 'thumbnail-public-id' },
@@ -79,11 +97,13 @@ export class CreateBranchDto {
 
   @ApiProperty({
     example: { latitude: 10.762622, longitude: 106.660172 },
-    description: "The branch's location (latitude and longitude).",
-    type: Object,
+    description: "Branch's geographical location",
+    type: LocationDto,
   })
   @IsNotEmpty()
-  location: object;
+  @ValidateNested()
+  @TransformType(() => LocationDto)
+  location: LocationDto;
 
   @ApiProperty({
     example: 4.5,
