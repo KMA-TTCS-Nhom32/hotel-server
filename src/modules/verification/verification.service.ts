@@ -14,7 +14,7 @@ export class VerificationService {
     const code = this.generateOTP();
     const expires_at = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
 
-    // Delete any existing verification codes for this user and type
+    // Delete any existing verification codes
     await this.databaseService.verification.deleteMany({
       where: {
         userId,
@@ -62,20 +62,10 @@ export class VerificationService {
       },
     });
 
-    // Update user's verification status
-    await this.databaseService.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        // verified_email: type === AccountIdentifier.EMAIL ? true : undefined,
-        // verified_phone: type === AccountIdentifier.PHONE ? true : undefined,
-        [`verified_${type.toLowerCase()}`]: true,
-      },
-    });
-
     return {
-      message: 'Verification successful',
+      success: true,
+      userId,
+      type,
     };
   }
 }
