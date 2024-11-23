@@ -1,4 +1,4 @@
-import { Process, Processor } from '@nestjs/bull';
+import { Process, Processor, OnQueueError, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { EmailService } from './email.service';
@@ -10,15 +10,34 @@ export class EmailProcessor {
 
   constructor(private readonly emailService: EmailService) {}
 
-  @Process('verification-email')
+  @Process({
+    name: 'verification-email',
+    concurrency: 1  // Process one job at a time
+  })
   async handleVerificationEmail(job: Job<RegisterVerificationEmailDto>) {
-    this.logger.debug('Start processing verification email job...');
-    try {
-      await this.emailService.sendRegisterVerificationEmail(job.data);
-      this.logger.debug('Verification email sent successfully');
-    } catch (error) {
-      this.logger.error('Failed to process verification email job', error);
-      throw error;
+    this.logger.debug(`Processing verification email job ${job.id} for ${job.data.to}`);
+    
+    const result = await this.emailService.sendRegisterVerificationEmail(job.data);
+    
+    if (!result) {
+      this.logger.error(`Failed to send verification email for job ${job.id}`);
+      throw new Error('Failed to send verification email');
     }
+    
+    this.logger.debug(`Successfully processed verification email job ${job.id}`);
+    return result;
+  }
+
+  @OnQueueError()
+  onError(error: Error) {
+    this.logger.error(`Queue error: ${error.message}`, error.stack);
+  }
+
+  @OnQueueFailed()
+  onFailed(job: Job, error: Error) {
+    this.logger.error(
+      `Failed job ${job.id} of type ${job.name}: ${error.message}`,
+      error.stack,
+    );
   }
 }

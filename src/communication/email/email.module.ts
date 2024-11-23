@@ -11,6 +11,12 @@ import { EmailProcessor } from './email.processor';
   imports: [
     BullModule.registerQueue({
       name: 'email-queue',
+      defaultJobOptions: {
+        attempts: 3,
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+      // Remove Redis config from here since it's handled in bull.config.ts
     }),
     ThrottlerModule.forRoot([
       {

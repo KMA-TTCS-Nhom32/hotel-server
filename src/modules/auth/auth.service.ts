@@ -106,30 +106,54 @@ export class AuthService {
       );
     }
 
-    // Create the user
-    const user = await this.userService.create(createUserDto);
-
-    // Generate verification code
-    const verification = await this.verificationService.createVerification(
-      user.id,
-      accountIdentifier,
+    const existingUser = await this.userService.findOne(
+      createUserDto.email || createUserDto.phone,
+      createUserDto.email ? 'email' : 'phone',
     );
 
-    // Send verification email if email registration
-    if (accountIdentifier === AccountIdentifier.EMAIL && user.email) {
-      await this.emailService.queueVerificationEmail({
-        to: user.email,
-        code: verification.code,
-      });
+    if (existingUser) {
+      //   TODO: resend email verification
+      console.log('resend email verification');
     }
 
-    // Return the created user (excluding sensitive data)
-    return {
-      user,
-      message: accountIdentifier === AccountIdentifier.EMAIL 
-        ? 'Registration successful. Please check your email for verification code.'
-        : 'Registration successful. Please verify your phone number.',
-    };
+    // Use transaction to ensure data consistency
+    return this.databaseService.$transaction(async (tx) => {
+      // Create the user
+      const user = await this.userService.create(createUserDto);
+
+      // Generate verification code
+      const verification = await this.verificationService.createVerification(
+        user.id,
+        accountIdentifier,
+      );
+
+      // Send verification email if email registration
+      if (accountIdentifier === AccountIdentifier.EMAIL && user.email) {
+        const emailQueued = await this.emailService.queueVerificationEmail({
+          to: user.email,
+          code: verification.code,
+        });
+
+        if (!emailQueued) {
+          throw new HttpException(
+            {
+              status: HttpStatus.SERVICE_UNAVAILABLE,
+              message: 'Failed to send verification email. Please try again later.',
+            },
+            HttpStatus.SERVICE_UNAVAILABLE,
+          );
+        }
+      }
+
+      // Return the created user (excluding sensitive data)
+      return {
+        user,
+        message:
+          accountIdentifier === AccountIdentifier.EMAIL
+            ? 'Registration successful. Please check your email for verification code.'
+            : 'Registration successful. Please verify your phone number.',
+      };
+    });
   }
 
   async verifyUserEmail(userId: string) {

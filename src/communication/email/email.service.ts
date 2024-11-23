@@ -2,10 +2,10 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import handlebars from 'handlebars';
 import { from, catchError, retry, firstValueFrom } from 'rxjs';
-import fs from 'fs';
+import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import { otpLoginTemplateValues } from './templates/template-values';
@@ -33,8 +33,16 @@ export class EmailService implements OnModuleInit {
       },
     });
 
-    const templatePath = join(__dirname, 'templates', 'otp.template.hbs');
-    const templateContent = fs.readFileSync(templatePath, 'utf-8');
+    // const templatePath = join(__dirname, 'templates', 'otp.template.hbs');
+    const templatePath = join(
+      process.cwd(),
+      'src',
+      'communication',
+      'email',
+      'templates',
+      'otp.template.hbs',
+    );
+    const templateContent = readFileSync(templatePath, 'utf-8');
     this.otpTemplate = handlebars.compile(templateContent);
   }
 
@@ -50,42 +58,72 @@ export class EmailService implements OnModuleInit {
 
   async queueVerificationEmail(registerVerificationDto: RegisterVerificationEmailDto) {
     try {
-      const job = await this.emailQueue.add('verification-email', registerVerificationDto);
-      this.logger.debug(`Verification email queued: ${job.id}`);
+      this.logger.debug(`Attempting to queue email to: ${registerVerificationDto.to}`);
+      const job = await this.emailQueue.add('verification-email', registerVerificationDto, {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000, // 2 seconds
+        },
+      });
+      this.logger.debug(`Verification email queued successfully. Job ID: ${job.id}`);
       return true;
     } catch (error) {
-      this.logger.error('Failed to queue verification email', error);
+      this.logger.error('Failed to queue verification email:', {
+        error: error.message,
+        stack: error.stack,
+        data: registerVerificationDto,
+      });
       return false;
     }
   }
 
   async sendRegisterVerificationEmail(registerVerificationDto: RegisterVerificationEmailDto) {
     const { to, code, lang = 'en' } = registerVerificationDto;
-    const templateValues = otpLoginTemplateValues[lang];
-    const mailOptions: EmailOptions = {
-      from: {
-        name: this.configService.get('SMTP_FROM_NAME'),
-        address: this.configService.get('SMTP_FROM_EMAIL'),
-      },
-      to,
-      subject: templateValues.title,
-      html: this.otpTemplate({
-        ...templateValues,
-        code,
-      }),
-      attachments: [{
-        filename: 'logo.png',
-        path: join(__dirname, 'templates/assets/logo_light_rec.png'),
-        cid: 'unique@nodemailer.com'
-      }]
-    };
+    this.logger.debug(`Preparing to send verification email to: ${to}`);
 
-    return firstValueFrom(from(this.transporter.sendMail(mailOptions)).pipe(
-      retry(3), // Will retry 3 times before failing
-      catchError((error) => {
-        console.error('Error sending email after 3 retries:', error);
-        return from([false]);
-      })
-    ));
+    try {
+      const templateValues = otpLoginTemplateValues[lang];
+      const mailOptions: EmailOptions = {
+        from: {
+          name: this.configService.get('SMTP_FROM_NAME'),
+          address: this.configService.get('SMTP_FROM_EMAIL'),
+        },
+        to,
+        subject: templateValues.title,
+        html: this.otpTemplate({
+          ...templateValues,
+          code,
+        }),
+        attachments: [
+          {
+            filename: 'logo.png',
+            //   path: join(__dirname, 'templates/assets/logo_dark_rec.png'),
+            path: join(
+              process.cwd(),
+              'src',
+              'communication',
+              'email',
+              'templates',
+              'assets',
+              'logo_dark_rec.png',
+            ),
+            cid: 'unique@nodemailer.com',
+          },
+        ],
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      this.logger.debug(`Email sent successfully to ${to}. MessageId: ${result.messageId}`);
+      return true;
+    } catch (error) {
+      this.logger.error('Error in sendRegisterVerificationEmail:', {
+        error: error.message,
+        stack: error.stack,
+        to,
+        code,
+      });
+      return false;
+    }
   }
 }

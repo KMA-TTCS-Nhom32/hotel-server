@@ -22,7 +22,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { VerificationModule } from './modules/verification/verification.module';
 import { EmailModule } from './communication/email/email.module';
 
-import { getBullConfig } from './config/bull.config';
+import { getBullConfig } from './config';
 
 @Module({
   imports: [

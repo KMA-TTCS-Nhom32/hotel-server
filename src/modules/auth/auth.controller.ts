@@ -12,20 +12,21 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RolesGuard } from './guards/roles.guard';
 import { AccountIdentifier, UserRole } from '@prisma/client';
 import { Request } from 'express';
 
 import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 import { AuthService } from './auth.service';
-import { LoginDto, LoginResponseDto } from './dtos';
+import { LoginDto, LoginResponseDto, VerifyEmailDto } from './dtos';
 import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
 
 import { User } from '../users/models';
 import { CreateUserDto } from '../users/dtos';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -100,5 +101,19 @@ export class AuthController {
   @Get('users/:userId/suspicious-activities')
   async getSuspiciousActivities(@Param('userId') userId: string) {
     return this.authService.getSuspiciousActivities(userId);
+  }
+
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email with OTP code' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Email verified successfully' })
+  @ApiResponse({ status: HttpStatus.UNPROCESSABLE_ENTITY, description: 'Invalid verification code' })
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyOTPAndUpdateUser(
+      verifyEmailDto.userId,
+      verifyEmailDto.code,
+      AccountIdentifier.EMAIL,
+    );
   }
 }

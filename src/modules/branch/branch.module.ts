@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { BranchService } from './branch.service';
 import { BranchController } from './branch.controller';
-import { DatabaseService } from '@/database/database.service';
+import { DatabaseModule } from '@/database/database.module';
 
 @Module({
-  imports: [DatabaseService],
+  imports: [DatabaseModule],
   controllers: [BranchController],
   providers: [BranchService],
 })
