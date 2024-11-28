@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { CommonService, LoginService, RefreshTokenService, RegisterService, TokenService } from './services';
 import { AuthController } from './auth.controller';
 import { DatabaseModule } from '@/database/database.module';
 import { PassportModule } from '@nestjs/passport';
@@ -8,9 +9,6 @@ import { ConfigService } from '@nestjs/config';
 import { UsersModule } from '@/modules/users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { TokenService } from './services/token.service';
-import { LoginService } from './services/login.service';
-import { RefreshTokenService } from './services/refresh-token.service';
 import { VerificationModule } from '../verification/verification.module';
 import { EmailModule } from '@/communication/email/email.module';
 
@@ -37,7 +35,15 @@ import { EmailModule } from '@/communication/email/email.module';
     EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, TokenService, LoginService, RefreshTokenService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    CommonService,
+    TokenService,
+    LoginService,
+    RegisterService,
+    RefreshTokenService,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -4,13 +4,16 @@ import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import handlebars from 'handlebars';
-import { from, catchError, retry, firstValueFrom } from 'rxjs';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { otpLoginTemplateValues } from './templates/template-values';
-import { RegisterVerificationEmailDto } from './dtos';
+import {
+  otpForgotPasswordTemplateValues,
+  otpLoginTemplateValues,
+} from './templates/template-values';
+import { VerificationEmailDto } from './dtos';
 import { EmailOptions } from './interfaces';
+import { EmailTypeEnum } from './types';
 
 @Injectable()
 export class EmailService implements OnModuleInit {
@@ -56,10 +59,10 @@ export class EmailService implements OnModuleInit {
     }
   }
 
-  async queueVerificationEmail(registerVerificationDto: RegisterVerificationEmailDto) {
+  async queueVerificationEmail(verificationDto: VerificationEmailDto) {
     try {
-      this.logger.debug(`Attempting to queue email to: ${registerVerificationDto.to}`);
-      const job = await this.emailQueue.add('verification-email', registerVerificationDto, {
+      this.logger.debug(`Attempting to queue email to: ${verificationDto.to}`);
+      const job = await this.emailQueue.add('verification-email', verificationDto, {
         attempts: 3,
         backoff: {
           type: 'exponential',
@@ -72,18 +75,21 @@ export class EmailService implements OnModuleInit {
       this.logger.error('Failed to queue verification email:', {
         error: error.message,
         stack: error.stack,
-        data: registerVerificationDto,
+        data: verificationDto,
       });
       return false;
     }
   }
 
-  async sendRegisterVerificationEmail(registerVerificationDto: RegisterVerificationEmailDto) {
-    const { to, code, lang = 'en' } = registerVerificationDto;
+  async sendVerificationEmail(verificationDto: VerificationEmailDto) {
+    const { to, code, lang = 'en', type } = verificationDto;
     this.logger.debug(`Preparing to send verification email to: ${to}`);
 
     try {
-      const templateValues = otpLoginTemplateValues[lang];
+      const templateValues =
+        type === EmailTypeEnum.VERIFY_ACCOUNT
+          ? otpLoginTemplateValues[lang]
+          : otpForgotPasswordTemplateValues[lang];
       const mailOptions: EmailOptions = {
         from: {
           name: this.configService.get('SMTP_FROM_NAME'),
@@ -117,7 +123,7 @@ export class EmailService implements OnModuleInit {
       this.logger.debug(`Email sent successfully to ${to}. MessageId: ${result.messageId}`);
       return true;
     } catch (error) {
-      this.logger.error('Error in sendRegisterVerificationEmail:', {
+      this.logger.error('Error in sendVerificationEmail:', {
         error: error.message,
         stack: error.stack,
         to,

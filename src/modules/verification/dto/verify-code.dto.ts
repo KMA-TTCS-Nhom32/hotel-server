@@ -1,14 +1,8 @@
-import { IsString, IsEnum, Length } from 'class-validator';
-import { AccountIdentifier } from '@prisma/client';
+import { IsString, Length } from 'class-validator';
+import { CreateVerifyCodeDto } from './create-verify-code.dto';
 
-export class VerifyCodeDto {
-  @IsString()
-  userId: string;
-
+export class VerifyCodeDto extends CreateVerifyCodeDto {
   @IsString()
   @Length(6, 6)
   code: string;
-
-  @IsEnum(AccountIdentifier)
-  type: AccountIdentifier;
 }

@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Public } from '@/modules/auth/decorators/public.decorator';
 import { EmailService } from './email.service';
-import { RegisterVerificationEmailDto } from './dtos';
+import { VerificationEmailDto } from './dtos';
 
 @ApiTags('Email')
 @Controller('email')
@@ -17,7 +17,7 @@ export class EmailController {
   @ApiOperation({ summary: 'Send verification email' })
   @ApiResponse({ status: 200, description: 'Email sent successfully' })
   @ApiResponse({ status: 429, description: 'Too Many Requests' })
-  async sendVerificationEmail(@Body() verificationDto: RegisterVerificationEmailDto) {
+  async sendVerificationEmail(@Body() verificationDto: VerificationEmailDto) {
     const result = await this.emailService.queueVerificationEmail(verificationDto);
     return {
       success: result,

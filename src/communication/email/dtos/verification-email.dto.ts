@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, IsIn, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsIn, IsOptional, IsEnum } from 'class-validator';
+import { EmailTemplateType, EmailTypeEnum } from '../types';
 
-export class RegisterVerificationEmailDto {
+export class VerificationEmailDto {
   @ApiProperty({
     example: 'user@example.com',
     description: 'Email address to send verification code',
@@ -28,4 +29,14 @@ export class RegisterVerificationEmailDto {
   @IsOptional()
   @IsIn(['en', 'vi'])
   lang?: 'en' | 'vi' = 'en';
+
+  @ApiProperty({
+    example: 'register',
+    description: 'Type of verification email',
+    enum: EmailTypeEnum,
+    default: EmailTypeEnum.VERIFY_ACCOUNT,
+  })
+  @IsIn([EmailTypeEnum.VERIFY_ACCOUNT, EmailTypeEnum.FORGOT_PASSWORD])
+  @IsEnum(EmailTypeEnum)
+  type: EmailTemplateType = EmailTypeEnum.VERIFY_ACCOUNT;
 }

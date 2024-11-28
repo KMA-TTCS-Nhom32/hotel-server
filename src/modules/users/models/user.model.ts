@@ -11,16 +11,16 @@ export class User extends AbstractModel {
   }
 
   @ApiProperty({
-    type: String,
+    type: String || null,
     example: 'sondoannam202@gmail.com',
   })
-  email: string;
+  email: string | null;
 
   @ApiProperty({
-    type: String,
+    type: String || null,
     example: '0123456789',
   })
-  phone: string;
+  phone: string | null;
 
   @ApiProperty({
     type: Boolean,

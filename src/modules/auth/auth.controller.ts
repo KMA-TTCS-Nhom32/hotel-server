@@ -19,12 +19,13 @@ import { Request } from 'express';
 
 import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 import { AuthService } from './auth.service';
-import { LoginDto, LoginResponseDto, VerifyEmailDto } from './dtos';
+import { LoginDto, LoginResponseDto, RegisterResponseDto, VerifyEmailDto } from './dtos';
 import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
 
 import { User } from '../users/models';
 import { CreateUserDto } from '../users/dtos';
+import { InitiateForgotPasswordEmailDto, ResetPasswordWithOTPEmailDto } from './dtos/forgot-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -65,12 +66,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({
     description: 'User created successfully',
-    type: User,
+    type: RegisterResponseDto,
   })
   async register(
     @Body() createUserDto: CreateUserDto,
     @Body('accountIdentifier') accountIdentifier: AccountIdentifier = AccountIdentifier.EMAIL,
-  ) {
+  ): Promise<RegisterResponseDto> {
     return this.authService.register(createUserDto, accountIdentifier);
   }
 
@@ -110,10 +111,24 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.OK, description: 'Email verified successfully' })
   @ApiResponse({ status: HttpStatus.UNPROCESSABLE_ENTITY, description: 'Invalid verification code' })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    return this.authService.verifyOTPAndUpdateUser(
+    return this.authService.verifyConfirmOTPAndUpdateUser(
       verifyEmailDto.userId,
       verifyEmailDto.code,
       AccountIdentifier.EMAIL,
     );
+  }
+
+  @Post('forgot-password/email/initiate')
+  @Public()
+  @ApiOperation({ summary: 'Initiate forgot password process' })
+  async initiateForgotPassword(@Body() dto: InitiateForgotPasswordEmailDto) {
+    return this.authService.initiateForgotPasswordForEmail(dto.email);
+  }
+
+  @Post('forgot-password/email/reset')
+  @Public()
+  @ApiOperation({ summary: 'Reset password using OTP' })
+  async resetPasswordWithOTP(@Body() dto: ResetPasswordWithOTPEmailDto) {
+    return this.authService.resetPasswordWithEmail(dto);
   }
 }

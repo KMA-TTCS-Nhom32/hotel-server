@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { BullModuleOptions } from '@nestjs/bull';
 
 export const getBullConfig = (configService: ConfigService): BullModuleOptions => {
-  const isProduction = true;
+  const isProduction = configService.get('NODE_ENV') === 'production';
 
   return {
     defaultJobOptions: {

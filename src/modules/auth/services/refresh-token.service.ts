@@ -58,6 +58,13 @@ export class RefreshTokenService {
     }
   }
 
+  async revokeAllUserTokens(userId: string) {
+    return this.databaseService.refreshToken.updateMany({
+      where: { userId, isRevoked: false },
+      data: { isRevoked: true },
+    });
+  }
+
   async getUserActiveSessions(userId: string, currentTokenId?: string): Promise<ActiveSession[]> {
     const activeSessions = await this.databaseService.refreshToken.findMany({
       where: {

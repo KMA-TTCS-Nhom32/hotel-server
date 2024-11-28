@@ -1,27 +1,27 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { TokenService } from './services/token.service';
-import { LoginService } from './services/login.service';
-import { RefreshTokenService } from './services/refresh-token.service';
 import { LoginDto } from './dtos';
 import { TokenResponse } from './types';
+import { LoginService, RefreshTokenService, RegisterService, TokenService } from './services';
 import { AuthErrorMessageEnum, CommonErrorMessagesEnum } from 'libs/common/enums';
 import { CreateUserDto } from '../users/dtos';
-import { UsersService } from '../users/users.service';
 import { AccountIdentifier } from '@prisma/client';
 import { VerificationService } from '../verification/verification.service';
-import { EmailService } from '@/communication/email/email.service';
 import { DatabaseService } from '@/database/database.service';
+import { CommonService } from './services/common.service';
+import { ResetPasswordWithOTPEmailDto } from './dtos/forgot-password.dto';
+import { hashPassword } from 'libs/common';
+import { EmailTypeEnum } from '@/communication/email/types';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly loginService: LoginService,
+    private readonly registerService: RegisterService,
     private readonly tokenService: TokenService,
     private readonly refreshTokenService: RefreshTokenService,
-    private readonly userService: UsersService,
     private readonly verificationService: VerificationService,
-    private readonly emailService: EmailService,
     private readonly databaseService: DatabaseService,
+    private readonly commonService: CommonService,
   ) {}
 
   async authenticate(loginDto: LoginDto, ip?: string, device?: string) {
@@ -86,74 +86,7 @@ export class AuthService {
   }
 
   async register(createUserDto: CreateUserDto, accountIdentifier: AccountIdentifier) {
-    if (accountIdentifier === AccountIdentifier.PHONE && !createUserDto.phone) {
-      throw new HttpException(
-        {
-          status: HttpStatus.BAD_REQUEST,
-          message: AuthErrorMessageEnum.PhoneIsRequired,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    if (accountIdentifier === AccountIdentifier.EMAIL && !createUserDto.email) {
-      throw new HttpException(
-        {
-          status: HttpStatus.BAD_REQUEST,
-          message: AuthErrorMessageEnum.EmailIsRequired,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const existingUser = await this.userService.findOne(
-      createUserDto.email || createUserDto.phone,
-      createUserDto.email ? 'email' : 'phone',
-    );
-
-    if (existingUser) {
-      //   TODO: resend email verification
-      console.log('resend email verification');
-    }
-
-    // Use transaction to ensure data consistency
-    return this.databaseService.$transaction(async (tx) => {
-      // Create the user
-      const user = await this.userService.create(createUserDto);
-
-      // Generate verification code
-      const verification = await this.verificationService.createVerification(
-        user.id,
-        accountIdentifier,
-      );
-
-      // Send verification email if email registration
-      if (accountIdentifier === AccountIdentifier.EMAIL && user.email) {
-        const emailQueued = await this.emailService.queueVerificationEmail({
-          to: user.email,
-          code: verification.code,
-        });
-
-        if (!emailQueued) {
-          throw new HttpException(
-            {
-              status: HttpStatus.SERVICE_UNAVAILABLE,
-              message: 'Failed to send verification email. Please try again later.',
-            },
-            HttpStatus.SERVICE_UNAVAILABLE,
-          );
-        }
-      }
-
-      // Return the created user (excluding sensitive data)
-      return {
-        user,
-        message:
-          accountIdentifier === AccountIdentifier.EMAIL
-            ? 'Registration successful. Please check your email for verification code.'
-            : 'Registration successful. Please verify your phone number.',
-      };
-    });
+    return this.registerService.register(createUserDto, accountIdentifier);
   }
 
   async verifyUserEmail(userId: string) {
@@ -187,7 +120,7 @@ export class AuthService {
     };
   }
 
-  async verifyOTPAndUpdateUser(userId: string, code: string, type: AccountIdentifier) {
+  async verifyConfirmOTPAndUpdateUser(userId: string, code: string, type: AccountIdentifier) {
     // First verify the OTP
     const verificationResult = await this.verificationService.verifyCode(userId, code, type);
 
@@ -208,5 +141,42 @@ export class AuthService {
 
     // Handle other verification types here in the future
     return verificationResult;
+  }
+
+  async initiateForgotPasswordForEmail(email: string) {
+    const user = await this.loginService.findUserOrThrow(email, 'email');
+
+    await this.commonService.sendVerificationCodeEmail(
+      user.id,
+      email,
+      EmailTypeEnum.FORGOT_PASSWORD,
+    );
+
+    return {
+      success: true,
+      message: 'Reset code has been sent to your email',
+    };
+  }
+
+  async resetPasswordWithEmail(dto: ResetPasswordWithOTPEmailDto) {
+    const user = await this.loginService.findUserOrThrow(dto.email, 'email');
+
+    // Verify OTP
+    await this.verificationService.verifyCode(user.id, dto.code, AccountIdentifier.EMAIL);
+
+    // Update password
+    const hashedPassword = await hashPassword(dto.newPassword);
+    await this.databaseService.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    // Revoke all refresh tokens for security
+    await this.refreshTokenService.revokeAllUserTokens(user.id);
+
+    return {
+      success: true,
+      message: 'Password has been reset successfully',
+    };
   }
 }

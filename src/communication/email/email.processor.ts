@@ -2,7 +2,7 @@ import { Process, Processor, OnQueueError, OnQueueFailed } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { EmailService } from './email.service';
-import { RegisterVerificationEmailDto } from './dtos';
+import { VerificationEmailDto } from './dtos';
 
 @Processor('email-queue')
 export class EmailProcessor {
@@ -12,18 +12,18 @@ export class EmailProcessor {
 
   @Process({
     name: 'verification-email',
-    concurrency: 1  // Process one job at a time
+    concurrency: 1, // Process one job at a time
   })
-  async handleVerificationEmail(job: Job<RegisterVerificationEmailDto>) {
+  async handleVerificationEmail(job: Job<VerificationEmailDto>) {
     this.logger.debug(`Processing verification email job ${job.id} for ${job.data.to}`);
-    
-    const result = await this.emailService.sendRegisterVerificationEmail(job.data);
-    
+
+    const result = await this.emailService.sendVerificationEmail(job.data);
+
     if (!result) {
       this.logger.error(`Failed to send verification email for job ${job.id}`);
       throw new Error('Failed to send verification email');
     }
-    
+
     this.logger.debug(`Successfully processed verification email job ${job.id}`);
     return result;
   }
@@ -35,9 +35,6 @@ export class EmailProcessor {
 
   @OnQueueFailed()
   onFailed(job: Job, error: Error) {
-    this.logger.error(
-      `Failed job ${job.id} of type ${job.name}: ${error.message}`,
-      error.stack,
-    );
+    this.logger.error(`Failed job ${job.id} of type ${job.name}: ${error.message}`, error.stack);
   }
 }

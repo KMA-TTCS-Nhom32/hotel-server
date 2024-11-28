@@ -22,7 +22,7 @@ export interface EmailOptions {
   attachments?: EmailAttachment[];
 }
 
-export interface LoginOTPTemplate {
+export interface OTPTemplate {
   title: string;
   contentTitle: string;
   description: string;

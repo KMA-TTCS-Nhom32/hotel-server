@@ -38,6 +38,7 @@ export enum AuthErrorMessageEnum {
   EmailNotVerified = 'emailNotVerified',
   PhoneNotVerified = 'phoneNotVerified',
   UserAlreadyExists = 'userAlreadyExists',
+  SentEmailFailed = 'sentEmailFailed',
 }
 
 export enum ImageErrorMessagesEnum {

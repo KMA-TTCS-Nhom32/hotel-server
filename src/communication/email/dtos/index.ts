@@ -1,1 +1,1 @@
-export * from './register-verification-email.dto';
+export * from './verification-email.dto';
