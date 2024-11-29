@@ -20,11 +20,10 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node", "express", "Multer"],
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
     ]
   },
-  "include": ["src/**/*", "src/types/*.d.ts"]
+  "include": ["src/**/*"]
 }
