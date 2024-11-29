@@ -22,7 +22,7 @@ import { DEFAULT_PAGESIZE, PaginatedResponse } from 'libs/common';
 import { Amenity } from './models';
 
 // import { type Express } from "express";
-import 'multer';
+// import 'multer';
 
 @ApiTags('amenities')
 @Controller('amenities')
