@@ -8,8 +8,7 @@ import {
   Delete, 
   UseGuards,
   Query,
-  HttpStatus,
-  ParseUUIDPipe
+  HttpStatus
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { BranchService } from './branch.service';
@@ -17,10 +16,11 @@ import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
 import { Branch } from './models';
 import { RolesGuard } from '../auth/guards';
-import { Roles } from '../auth/decorators';
+import { Public, Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
 import { QueryBranchesDto } from './dtos/query-branches.dto';
 import { BranchesPaginationResultDto } from './dtos/branches-pagination-result.dto';
+import { InfinityPaginationResultType } from 'libs/common/utils';
 
 @ApiTags('Branches')
 @Controller('branch')
@@ -68,6 +68,27 @@ export class BranchController {
     );
   }
 
+  @Public()
+  @Get('infinite')
+  @ApiOperation({ summary: 'Get branches with infinite scroll for client app' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns branches with infinite pagination',
+    type: Branch,
+    isArray: true,
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'pageSize', required: false, type: Number })
+  @ApiQuery({ name: 'filters', required: false, type: 'string' })
+  @ApiQuery({ name: 'sort', required: false, type: 'string' })
+  async findManyInfinite(
+    @Query() query: QueryBranchesDto,
+  ): Promise<InfinityPaginationResultType<Branch>> {
+    const { page, pageSize: limit, filters } = query;
+    return this.branchService.findManyInfinite(page, limit, filters);
+  }
+
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get branch by ID' })
   @ApiResponse({

@@ -12,7 +12,7 @@ import { Branch } from './models';
 import { Image } from '@/modules/images/models';
 import { FilterBranchesDto } from './dtos/query-branches.dto';
 import { SortDto } from '@/common/dtos/filters-with-pagination.dto';
-import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
+import { getPaginationParams, createPaginatedResponse, PaginationParams, InfinityPaginationResultType, infinityPagination } from 'libs/common/utils';
 
 @Injectable()
 export class BranchService {
@@ -304,6 +304,78 @@ export class BranchService {
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findManyInfinite(
+    page: number = 1,
+    limit: number = 10,
+    filterOptions?: FilterBranchesDto,
+  ): Promise<InfinityPaginationResultType<Branch>> {
+    try {
+      const skip = (page - 1) * limit;
+
+      // Build where conditions (reuse existing conditions)
+      const where: any = {
+        ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
+        ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
+        ...(filterOptions?.keyword
+          ? {
+              OR: [
+                { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      };
+
+      // Add amenities filter if provided
+      if (filterOptions?.amenities?.length) {
+        where.amenities = {
+          some: {
+            slug: {
+              in: filterOptions.amenities,
+            },
+          },
+        };
+      }
+
+      const items = await this.databaseService.hotelBranch.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          amenities: true,
+          rooms: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              base_price_per_night: true,
+              base_price_per_hour: true,
+            },
+          },
+        },
+      });
+
+      const branches = items.map(
+        (branch) =>
+          new Branch({
+            ...branch,
+            thumbnail: branch.thumbnail as unknown as Image,
+            images: branch.images as unknown as Image[],
+            location: branch.location as { latitude: number; longitude: number },
+          }),
+      );
+
+      return infinityPagination(branches, { page, limit });
+    } catch (error) {
+      console.error('Find infinite branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

@@ -1,7 +1,7 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
-import { Transform, Type } from "class-transformer";
-import { SortCaseEnum } from "libs/common";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { SortCaseEnum } from 'libs/common';
 
 export class SortDto<T> {
   @ApiProperty({
@@ -52,3 +52,4 @@ export class QueryManyWithPaginationDto<F, S> {
   @Type(() => Array)
   sort?: S[] | null;
 }
+
