@@ -53,12 +53,12 @@ importers:
       '@prisma/client':
         specifier: 5.21.0
         version: 5.21.0(prisma@5.21.0)
+      '@types/express':
+        specifier: 4.17.21
+        version: 4.17.21
       '@types/multer':
         specifier: 1.4.12
         version: 1.4.12
-      '@types/passport-jwt':
-        specifier: 4.0.1
-        version: 4.0.1
       bcrypt:
         specifier: 5.1.1
         version: 5.1.1
@@ -98,9 +98,6 @@ importers:
       rimraf:
         specifier: ^5.0.0
         version: 5.0.10
-      rxjs:
-        specifier: ^7.8.1
-        version: 7.8.1
       uuid:
         specifier: 11.0.3
         version: 11.0.3
@@ -108,9 +105,6 @@ importers:
       '@types/bcrypt':
         specifier: 5.0.2
         version: 5.0.2
-      '@types/express':
-        specifier: 4.17.21
-        version: 4.17.21
       '@types/jest':
         specifier: 29.5.13
         version: 29.5.13
@@ -120,6 +114,9 @@ importers:
       '@types/nodemailer':
         specifier: ^6.4.17
         version: 6.4.17
+      '@types/passport-jwt':
+        specifier: 4.0.1
+        version: 4.0.1
       '@types/supertest':
         specifier: 6.0.2
         version: 6.0.2
