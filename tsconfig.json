@@ -21,6 +21,5 @@
       "@/*": ["src/*"]
     },
     "types": ["node", "express", "multer"],
-  },
-  "include": ["src/**/*"]
+  }
 }
