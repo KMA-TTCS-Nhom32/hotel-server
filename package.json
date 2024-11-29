@@ -55,17 +55,18 @@
     "passport-jwt": "4.0.1",
     "reflect-metadata": "0.2.2",
     "rimraf": "^5.0.0",
+    "rxjs": "^7.8.1",
     "uuid": "11.0.3"
-},
-"devDependencies": {
+  },
+  "devDependencies": {
     "@types/bcrypt": "5.0.2",
+    "@types/express": "4.17.21",
     "@types/jest": "29.5.13",
     "@types/multer": "1.4.12",
-    "@types/express": "4.17.21",
     "@types/node": "20.16.11",
     "@types/nodemailer": "^6.4.17",
-    "@types/supertest": "6.0.2",
     "@types/passport-jwt": "4.0.1",
+    "@types/supertest": "6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.8.1",
     "@typescript-eslint/parser": "^8.8.1",
     "eslint": "9.12.0",
