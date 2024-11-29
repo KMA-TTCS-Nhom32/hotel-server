@@ -21,7 +21,7 @@ import { UserRole } from '@prisma/client';
 import { DEFAULT_PAGESIZE, PaginatedResponse } from 'libs/common';
 import { Amenity } from './models';
 
-import { type Express } from "express";
+// import { type Express } from "express";
 
 @ApiTags('amenities')
 @Controller('amenities')

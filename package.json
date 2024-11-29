@@ -24,7 +24,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "start:migrate:prod": "pnpx prisma generate && pnpx prisma migrate deploy && pnpm start:prod",
     "pgenerate": "pnpx prisma generate",
-    "heroku-postbuild": "pnpm install && pnpx prisma generate && pnpm build"
+    "heroku-postbuild": "pnpm install && pnpx prisma generate && pnpx prisma migrate deploy && pnpm build"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "2.0.2",
