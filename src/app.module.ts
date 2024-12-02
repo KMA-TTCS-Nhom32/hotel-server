@@ -23,6 +23,7 @@ import { VerificationModule } from './modules/verification/verification.module';
 import { EmailModule } from './communication/email/email.module';
 
 import { getBullConfig } from './config';
+import { ProvincesModule } from './modules/provinces/provinces.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { getBullConfig } from './config';
     ImagesModule,
     VerificationModule,
     EmailModule,
+    ProvincesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -8,7 +8,7 @@ export interface InfinityPaginationResultType<T> {
   hasNextPage: boolean;
 }
 
-export const infinityPagination = <T>(
+export const createInfinityPaginationResponse = <T>(
   data: T[],
   options: TPaginationOptions,
 ): InfinityPaginationResultType<T> => {

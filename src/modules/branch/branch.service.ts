@@ -12,7 +12,13 @@ import { Branch } from './models';
 import { Image } from '@/modules/images/models';
 import { FilterBranchesDto } from './dtos/query-branches.dto';
 import { SortDto } from '@/common/dtos/filters-with-pagination.dto';
-import { getPaginationParams, createPaginatedResponse, PaginationParams, InfinityPaginationResultType, infinityPagination } from 'libs/common/utils';
+import {
+  getPaginationParams,
+  createPaginatedResponse,
+  PaginationParams,
+  InfinityPaginationResultType,
+  createInfinityPaginationResponse,
+} from 'libs/common/utils';
 
 @Injectable()
 export class BranchService {
@@ -39,13 +45,8 @@ export class BranchService {
     try {
       const branchData = await this.databaseService.hotelBranch.create({
         data: {
-          name: createBranchDto.name,
-          description: createBranchDto.description,
-          phone: createBranchDto.phone,
-          address: createBranchDto.address,
+          ...createBranchDto,
           location: this.formatLocation(createBranchDto.location),
-          is_active: createBranchDto.is_active ?? true,
-          rating: createBranchDto.rating ?? 0,
           thumbnail: this.formatImage(createBranchDto.thumbnail),
           images: createBranchDto.images.map((img) => this.formatImage(img)),
         },
@@ -57,8 +58,6 @@ export class BranchService {
         images: branchData.images as unknown as Image[],
         id: branchData.id,
         location: branchData.location as { latitude: number; longitude: number },
-        createdAt: branchData.createdAt,
-        updatedAt: branchData.updatedAt,
       });
     } catch (error) {
       console.error('Create branch error:', error);
@@ -373,7 +372,7 @@ export class BranchService {
           }),
       );
 
-      return infinityPagination(branches, { page, limit });
+      return createInfinityPaginationResponse(branches, { page, limit });
     } catch (error) {
       console.error('Find infinite branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);

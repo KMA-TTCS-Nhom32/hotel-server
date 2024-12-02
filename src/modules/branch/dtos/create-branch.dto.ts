@@ -31,6 +31,15 @@ class LocationDto {
 
 export class CreateBranchDto {
   @ApiProperty({
+    example: 'province-id-123',
+    description: 'ID of the province where this branch is located',
+    type: String,
+  })
+  @IsNotEmpty()
+  @IsString()
+  provinceId: string;
+
+  @ApiProperty({
     example: { url: 'thumbnail-url', publicId: 'thumbnail-public-id' },
     description: "The branch's thumbnail image.",
     type: Image,
