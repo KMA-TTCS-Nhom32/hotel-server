@@ -14,7 +14,7 @@ RUN npm install -g pnpm && pnpm install
 COPY . .
 
 # Generate Prisma client before building the app
-RUN pnpx prisma generate
+RUN pnpx prisma generate && pnpx prisma migrate deploy
 
 # Build the app
 RUN pnpm run build
@@ -23,4 +23,4 @@ RUN pnpm run build
 EXPOSE 4005
 
 # Start the app
-CMD ["pnpm", "run", "start:dev"]
+CMD ["pnpm", "run", "start:prod"]

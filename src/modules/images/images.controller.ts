@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ImagesService } from './images.service';
-import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ImageUploadResponseDto } from './dto';
 import { Public, Roles } from '@/modules/auth/decorators';
 import {
@@ -34,6 +34,12 @@ export class ImagesController {
   @ApiOperation({
     summary: 'Get image by public id',
   })
+  @ApiParam({
+    name: 'publicId',
+    type: String,
+    description: 'Public ID of the image',
+    required: true,
+  })
   @ApiOkResponse({
     description: 'Image found',
     type: ImageUploadResponseDto,
@@ -42,7 +48,7 @@ export class ImagesController {
     description: 'Image not found',
   })
   @Get('/:publicId')
-  async getImageByPublicId(@Param() { publicId }: { publicId: string }) {
+  async getImageByPublicId(@Param('publicId') publicId: string) {
     return this.imagesService.getImageByPublicId(publicId);
   }
 
