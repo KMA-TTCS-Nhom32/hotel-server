@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { AccountIdentifier, UserRole } from '@prisma/client';
 
 import { AbstractModel } from 'libs/common/abstract';
 import { Nullable } from 'libs/common/types';
@@ -33,6 +33,13 @@ export class User extends AbstractModel {
     example: false,
   })
   verified_phone: boolean;
+
+  @ApiProperty({
+    enum: AccountIdentifier,
+    example: AccountIdentifier.EMAIL,
+    type: String,
+  })
+  identifier_type: AccountIdentifier;
 
   @ApiProperty({
     type: Boolean,
