@@ -22,6 +22,10 @@ export class LoginService {
     return await compare(password, hashPassword);
   }
 
+  async findUserByIdOrThrow(id: string) {
+    return this.usersService.findByIdOrThrow(id);
+  }
+
   async findUserOrThrow(emailOrPhone: string, type: 'email' | 'phone') {
     const user = await this.usersService.findOne(emailOrPhone, type);
 

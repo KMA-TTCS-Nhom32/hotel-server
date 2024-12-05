@@ -1,16 +1,17 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { LoginDto } from './dtos';
 import { TokenResponse } from './types';
-import { LoginService, RefreshTokenService, RegisterService, TokenService } from './services';
+import { LoginService, RefreshTokenService, RegisterService, TokenService, CommonService } from './services';
+import { VerificationService } from '../verification/verification.service';
+
 import { AuthErrorMessageEnum, CommonErrorMessagesEnum } from 'libs/common/enums';
 import { CreateUserDto } from '../users/dtos';
 import { AccountIdentifier } from '@prisma/client';
-import { VerificationService } from '../verification/verification.service';
 import { DatabaseService } from '@/database/database.service';
-import { CommonService } from './services/common.service';
 import { ResetPasswordWithOTPEmailDto } from './dtos/forgot-password.dto';
 import { hashPassword } from 'libs/common';
 import { EmailTypeEnum } from '@/communication/email/types';
+import { User } from '../users/models';
 
 @Injectable()
 export class AuthService {
@@ -178,5 +179,9 @@ export class AuthService {
       success: true,
       message: 'Password has been reset successfully',
     };
+  }
+
+  async getProfile(userId: string): Promise<User> {
+    return this.loginService.findUserByIdOrThrow(userId);
   }
 }

@@ -42,11 +42,14 @@ import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
 
 import { CreateUserDto } from '../users/dtos';
+import { User } from '../users/models';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
 
   @Public()
   @UseGuards(LoginThrottlerGuard)
@@ -210,5 +213,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password using OTP' })
   async resetPasswordWithOTP(@Body() dto: ResetPasswordWithOTPEmailDto) {
     return this.authService.resetPasswordWithEmail(dto);
+  }
+
+  @Get('profile')
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiOkResponse({
+    description: 'Current user profile',
+    type: User,
+  })
+  async getProfile(@Req() req: Request) {
+    const user = req.user as JwtUser;
+    return this.authService.getProfile(user.userId);
   }
 }

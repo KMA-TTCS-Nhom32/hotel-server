@@ -63,7 +63,7 @@ export class UsersService {
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
           message: CommonErrorMessagesEnum[`${field}Existed`],
-          errors: { [field.toLowerCase()]: CommonErrorMessagesEnum[`${field}Existed`] }
+          errors: { [field.toLowerCase()]: CommonErrorMessagesEnum[`${field}Existed`] },
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
@@ -148,7 +148,26 @@ export class UsersService {
       where: {
         id,
       },
+      omit: {
+        password: true,
+      },
     });
+  }
+
+  async findByIdOrThrow(id: string) {
+    const user = await this.findById(id);
+
+    if (!user) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: CommonErrorMessagesEnum.UserNotFound,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return new User(user);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
