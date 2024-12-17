@@ -1,12 +1,16 @@
 import { CreateUserDto } from '@/modules/users/dtos';
 import { ApiProperty } from '@nestjs/swagger';
 import { AccountIdentifier } from '@prisma/client';
-import { IsEnum, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsNotEmpty, ValidateNested } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({
     type: CreateUserDto,
   })
+  @IsNotEmpty()
+  @ValidateNested()
+  @Type(() => CreateUserDto)
   data: CreateUserDto;
 
   @ApiProperty({
@@ -16,6 +20,5 @@ export class RegisterDto {
     default: AccountIdentifier.EMAIL,
   })
   @IsEnum(AccountIdentifier)
-  @IsOptional()
-  accountIdentifier?: AccountIdentifier;
+  accountIdentifier: AccountIdentifier = AccountIdentifier.EMAIL;
 }

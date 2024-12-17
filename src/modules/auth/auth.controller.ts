@@ -116,7 +116,6 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
   ): Promise<RegisterResponseDto> {
     const { accountIdentifier, data } = registerDto;
-
     return this.authService.register(data, accountIdentifier);
   }
 
