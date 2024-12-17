@@ -24,6 +24,7 @@ import { EmailModule } from './communication/email/email.module';
 
 import { getBullConfig } from './config';
 import { ProvincesModule } from './modules/provinces/provinces.module';
+import { RoomDetailModule } from './room-detail/room-detail.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ProvincesModule } from './modules/provinces/provinces.module';
     VerificationModule,
     EmailModule,
     ProvincesModule,
+    RoomDetailModule,
   ],
   controllers: [AppController],
   providers: [
