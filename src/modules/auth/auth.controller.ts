@@ -37,11 +37,11 @@ import {
   LogoutResponseDto,
   InitiateForgotPasswordEmailDto,
   ResetPasswordWithOTPEmailDto,
+  RegisterDto,
 } from './dtos';
 import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
 
-import { CreateUserDto } from '../users/dtos';
 import { User } from '../users/models';
 
 @ApiTags('Auth')
@@ -113,11 +113,11 @@ export class AuthController {
     type: RegisterResponseDto,
   })
   async register(
-    @Body() registerDto: CreateUserDto & { accountIdentifier?: AccountIdentifier },
+    @Body() registerDto: RegisterDto,
   ): Promise<RegisterResponseDto> {
-    const { accountIdentifier, ...createUserDto } = registerDto;
+    const { accountIdentifier, data } = registerDto;
 
-    return this.authService.register(createUserDto, accountIdentifier);
+    return this.authService.register(data, accountIdentifier);
   }
 
   @Get('sessions')
