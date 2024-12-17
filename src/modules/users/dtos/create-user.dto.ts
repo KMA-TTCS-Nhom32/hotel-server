@@ -6,20 +6,22 @@ export class CreateUserDto {
         example: 'sondoannam202@gmail.com',
         description: "The user's email address.",
         type: String,
+        required: false,
     })
-    @IsEmail()
     @IsOptional()
+    @IsEmail()
     email?: string;
 
     @ApiProperty({
         example: '0123456789',
         description: "The user's phone number.",
         type: String,
+        required: false,
     })
+    @IsOptional()
     @IsString()
     @MinLength(10)
     @MaxLength(12)
-    @IsOptional()
     phone?: string;
 
     @ApiProperty({
