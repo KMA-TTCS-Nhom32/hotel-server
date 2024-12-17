@@ -70,6 +70,7 @@ export class RegisterService {
       return {
         email: user.email ?? undefined,
         phone: user.phone ?? undefined,
+        id: user.id,
         identifier_type: accountIdentifier,
       };
     });

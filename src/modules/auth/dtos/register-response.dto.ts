@@ -19,6 +19,13 @@ export class RegisterResponseDto {
   phone?: string;
 
   @ApiProperty({
+    example: 'user-id',
+    description: "The user's ID",
+    type: String,
+  })
+  id: string;
+
+  @ApiProperty({
     example: 'EMAIL',
     description: 'The type of identifier used for registration',
     enum: AccountIdentifier,
