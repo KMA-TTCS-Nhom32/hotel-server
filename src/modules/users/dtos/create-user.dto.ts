@@ -7,8 +7,8 @@ export class CreateUserDto {
         description: "The user's email address.",
         type: String,
     })
-    @IsOptional()
     @IsEmail()
+    @IsOptional()
     email: string;
 
     @ApiProperty({
@@ -16,10 +16,10 @@ export class CreateUserDto {
         description: "The user's phone number.",
         type: String,
     })
-    @IsOptional()
     @IsString()
     @MinLength(10)
     @MaxLength(12)
+    @IsOptional()
     phone: string;
 
     @ApiProperty({

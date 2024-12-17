@@ -113,9 +113,10 @@ export class AuthController {
     type: RegisterResponseDto,
   })
   async register(
-    @Body() createUserDto: CreateUserDto,
-    @Body('accountIdentifier') accountIdentifier: AccountIdentifier = AccountIdentifier.EMAIL,
+    @Body() registerDto: CreateUserDto & { accountIdentifier?: AccountIdentifier },
   ): Promise<RegisterResponseDto> {
+    const { accountIdentifier, ...createUserDto } = registerDto;
+
     return this.authService.register(createUserDto, accountIdentifier);
   }
 

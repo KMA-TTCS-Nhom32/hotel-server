@@ -93,29 +93,41 @@ model HotelBranch {
 model HotelRoom {
     id                      String             @id @default(cuid())
     name                    String
-    description             String
-    room_type               HotelRoomType
-    bed_type                HotelRoomBedType
+    thumbnail               Json
+    images                  Json[]
     status                  HotelRoomStatus
+    branchId                String
+    branch                  HotelBranch        @relation(fields: [branchId], references: [id])
+    detailId                String
+    detail                  RoomDetail         @relation(fields: [detailId], references: [id])
     base_price_per_hour     Float
     special_price_per_hour  Float?
     base_price_per_night    Float
     special_price_per_night Float?
+    base_price_per_day      Float
+    special_price_per_day   Float?
     roomPriceHistories      RoomPriceHistory[]
-    branchId                String
-    branch                  HotelBranch        @relation(fields: [branchId], references: [id])
+    promotions              RoomPromotion[]
     bookings                Booking[]
     reviews                 Review[]
-    amenities               Amenity[]
-    max_adults              Int                @default(2)
-    max_children            Int                @default(2)
-    thumbnail               Json
-    images                  Json[]
-    quantity                Int                @default(1) // Number of rooms of this type
-    promotions              RoomPromotion[]
     favorited_by            UserPreference[]   @relation("UserFavoriteRooms")
     createdAt               DateTime           @default(now())
     updatedAt               DateTime           @updatedAt
+}
+
+model RoomDetail {
+    id           String           @id @default(cuid())
+    name         String
+    description  String
+    room_type    HotelRoomType
+    bed_type     HotelRoomBedType
+    amenities    Amenity[]
+    max_adults   Int              @default(2)
+    max_children Int              @default(2)
+    quantity     Int              @default(1)
+    rooms        HotelRoom[]
+    createdAt    DateTime         @default(now())
+    updatedAt    DateTime         @updatedAt
 }
 
 model Amenity {
@@ -124,7 +136,7 @@ model Amenity {
     slug      String
     icon      Json? // Icon URL or code
     type      AmenityType
-    rooms     HotelRoom[]
+    rooms     RoomDetail[]
     branches  HotelBranch[]
     createdAt DateTime      @default(now())
     updatedAt DateTime      @updatedAt
@@ -186,6 +198,7 @@ model Booking {
 enum BookingType {
     HOURLY
     NIGHTLY
+    DAILY
 }
 
 model Review {
