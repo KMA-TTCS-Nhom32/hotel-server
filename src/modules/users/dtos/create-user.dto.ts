@@ -9,7 +9,7 @@ export class CreateUserDto {
     })
     @IsEmail()
     @IsOptional()
-    email: string;
+    email?: string;
 
     @ApiProperty({
         example: '0123456789',
@@ -20,7 +20,7 @@ export class CreateUserDto {
     @MinLength(10)
     @MaxLength(12)
     @IsOptional()
-    phone: string;
+    phone?: string;
 
     @ApiProperty({
         example: 'password-will-secret',
