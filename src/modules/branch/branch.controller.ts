@@ -1,16 +1,16 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
   Query,
-  HttpStatus
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiExtraModels } from '@nestjs/swagger';
 import { BranchService } from './branch.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
@@ -18,11 +18,16 @@ import { Branch } from './models';
 import { RolesGuard } from '../auth/guards';
 import { Public, Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
-import { QueryBranchesDto } from './dtos/query-branches.dto';
-import { BranchesPaginationResultDto } from './dtos/branches-pagination-result.dto';
+import {
+  FilterBranchesDto,
+  QueryBranchesDto,
+  SortBranchDto,
+  BranchesPaginationResultDto,
+} from './dtos';
 import { InfinityPaginationResultType } from 'libs/common/utils';
 
 @ApiTags('Branches')
+@ApiExtraModels(QueryBranchesDto, FilterBranchesDto, SortBranchDto)
 @Controller('branch')
 export class BranchController {
   constructor(private readonly branchService: BranchService) {}
@@ -36,13 +41,13 @@ export class BranchController {
     description: 'Branch has been successfully created.',
     type: Branch,
   })
-  @ApiResponse({ 
-    status: HttpStatus.BAD_REQUEST, 
-    description: 'Invalid input data.' 
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
   })
-  @ApiResponse({ 
-    status: HttpStatus.UNAUTHORIZED, 
-    description: 'Unauthorized.' 
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
   })
   create(@Body() createBranchDto: CreateBranchDto): Promise<Branch> {
     return this.branchService.create(createBranchDto);
@@ -61,11 +66,7 @@ export class BranchController {
   @ApiQuery({ name: 'sort', required: false, type: 'string' })
   async findMany(@Query() query: QueryBranchesDto) {
     const { page, pageSize, filters, sort } = query;
-    return this.branchService.findMany(
-      { page, pageSize },
-      filters,
-      sort,
-    );
+    return this.branchService.findMany({ page, pageSize }, filters, sort);
   }
 
   @Public()
@@ -96,9 +97,9 @@ export class BranchController {
     description: 'Returns a branch',
     type: Branch,
   })
-  @ApiResponse({ 
-    status: HttpStatus.NOT_FOUND, 
-    description: 'Branch not found.' 
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Branch not found.',
   })
   async findOne(@Param('id') id: string): Promise<Branch> {
     return this.branchService.findById(id);
@@ -113,18 +114,15 @@ export class BranchController {
     description: 'Branch has been successfully updated.',
     type: Branch,
   })
-  @ApiResponse({ 
-    status: HttpStatus.NOT_FOUND, 
-    description: 'Branch not found.' 
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Branch not found.',
   })
-  @ApiResponse({ 
-    status: HttpStatus.UNAUTHORIZED, 
-    description: 'Unauthorized.' 
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
   })
-  async update(
-    @Param('id') id: string,
-    @Body() updateBranchDto: UpdateBranchDto,
-  ): Promise<Branch> {
+  async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto): Promise<Branch> {
     return this.branchService.update(id, updateBranchDto);
   }
 
@@ -136,17 +134,17 @@ export class BranchController {
     status: HttpStatus.NO_CONTENT,
     description: 'Branch has been successfully deleted.',
   })
-  @ApiResponse({ 
-    status: HttpStatus.NOT_FOUND, 
-    description: 'Branch not found.' 
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Branch not found.',
   })
-  @ApiResponse({ 
-    status: HttpStatus.CONFLICT, 
-    description: 'Cannot delete branch with active bookings.' 
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Cannot delete branch with active bookings.',
   })
-  @ApiResponse({ 
-    status: HttpStatus.UNAUTHORIZED, 
-    description: 'Unauthorized.' 
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
   })
   async remove(@Param('id') id: string): Promise<void> {
     await this.branchService.remove(id);

@@ -1,26 +1,27 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
   Query,
-  HttpStatus
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
 import { ProvincesService } from './provinces.service';
 import { CreateProvinceDto, UpdateProvinceDto } from './dtos/create-update-province.dto';
 import { Province } from './models';
 import { RolesGuard } from '../auth/guards';
-import { Roles } from '../auth/decorators';
+import { Public, Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
-import { QueryProvincesDto } from './dtos/query-provinces.dto';
+import { FilterProvincesDto, QueryProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { ProvincePaginationResultDto } from './dtos';
 
 @ApiTags('Provinces')
+@ApiExtraModels(QueryProvincesDto, FilterProvincesDto, SortProvinceDto)
 @Controller('provinces')
 export class ProvincesController {
   constructor(private readonly provincesService: ProvincesService) {}
@@ -38,6 +39,7 @@ export class ProvincesController {
     return this.provincesService.create(createProvinceDto);
   }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get all provinces with pagination and filters' })
   @ApiResponse({
@@ -47,13 +49,10 @@ export class ProvincesController {
   })
   findMany(@Query() query: QueryProvincesDto) {
     const { page, pageSize, filters, sort } = query;
-    return this.provincesService.findMany(
-      { page, pageSize },
-      filters,
-      sort,
-    );
+    return this.provincesService.findMany({ page, pageSize }, filters, sort);
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get province by ID' })
   @ApiResponse({
@@ -74,10 +73,7 @@ export class ProvincesController {
     description: 'Province has been successfully updated.',
     type: Province,
   })
-  update(
-    @Param('id') id: string, 
-    @Body() updateProvinceDto: UpdateProvinceDto
-  ): Promise<Province> {
+  update(@Param('id') id: string, @Body() updateProvinceDto: UpdateProvinceDto): Promise<Province> {
     return this.provincesService.update(id, updateProvinceDto);
   }
 
