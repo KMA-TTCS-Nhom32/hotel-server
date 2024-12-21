@@ -65,6 +65,8 @@ model Province {
     zip_code  String
     slug      String
     branches  HotelBranch[]
+    isDeleted Boolean       @default(false)
+    deletedAt DateTime?
     createdAt DateTime      @default(now())
     updatedAt DateTime      @updatedAt
 
@@ -85,6 +87,8 @@ model HotelBranch {
     province    Province    @relation(fields: [provinceId], references: [id])
     rooms       HotelRoom[]
     rating      Float?
+    isDeleted   Boolean     @default(false)
+    deletedAt   DateTime?
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
     amenities   Amenity[]
