@@ -30,7 +30,11 @@ export class Province extends AbstractModel {
 
   @ApiProperty({
     description: 'Count of branches in the province',
-    type: Object({ branches: Number }),
+    example: { branches: 5 },
+    type: 'object',
+    properties: {
+      branches: { type: 'number' }
+    }
   })
   _count: {
     branches: number;
