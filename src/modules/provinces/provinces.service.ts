@@ -8,8 +8,7 @@ import { DatabaseService } from '@/database/database.service';
 import { CreateProvinceDto, UpdateProvinceDto } from './dtos/create-update-province.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
 import { Province } from './models';
-import { FilterProvincesDto } from './dtos/query-provinces.dto';
-import { SortDto } from '@/common/dtos';
+import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 
 @Injectable()
@@ -32,7 +31,7 @@ export class ProvincesService {
   async findMany(
     paginationOptions: PaginationParams,
     filterOptions?: FilterProvincesDto,
-    sortOptions?: SortDto<'name' | 'zip_code' | 'createdAt' | 'updatedAt'>[],
+    sortOptions?: SortProvinceDto[],
   ) {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);

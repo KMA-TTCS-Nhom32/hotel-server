@@ -10,8 +10,8 @@ import { UpdateBranchDto } from './dtos/update-branch.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
 import { Branch } from './models';
 import { Image } from '@/modules/images/models';
-import { FilterBranchesDto } from './dtos/query-branches.dto';
-import { SortDto } from '@/common/dtos/filters-with-pagination.dto';
+import { FilterBranchesDto, SortBranchDto } from './dtos/query-branches.dto';
+
 import {
   getPaginationParams,
   createPaginatedResponse,
@@ -68,7 +68,7 @@ export class BranchService {
   async findMany(
     paginationOptions: PaginationParams,
     filterOptions?: FilterBranchesDto,
-    sortOptions?: SortDto<'name' | 'rating' | 'createdAt'>[],
+    sortOptions?: SortBranchDto[],
   ) {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
@@ -77,6 +77,7 @@ export class BranchService {
       const where: any = {
         ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
         ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
+        ...(filterOptions?.provinceId ? { provinceId: filterOptions.provinceId } : {}),
         ...(filterOptions?.keyword
           ? {
               OR: [
