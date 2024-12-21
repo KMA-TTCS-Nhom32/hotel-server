@@ -27,4 +27,12 @@ export class Province extends AbstractModel {
     description: 'Slug of the province',
   })
   slug: string;
+
+  @ApiProperty({
+    description: 'Count of branches in the province',
+    type: Object({ branches: Number }),
+  })
+  _count: {
+    branches: number;
+  };
 }

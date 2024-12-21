@@ -19,6 +19,9 @@ export class ProvincesService {
     try {
       const province = await this.databaseService.province.create({
         data: createProvinceDto,
+        include: {
+          _count: true,
+        },
       });
 
       return new Province(province);
@@ -61,6 +64,9 @@ export class ProvincesService {
           skip,
           take,
           orderBy,
+          include: {
+            _count: true,
+          },
         }),
         this.databaseService.province.count({ where }),
       ]);
@@ -82,7 +88,7 @@ export class ProvincesService {
       const province = await this.databaseService.province.findUnique({
         where: { id },
         include: {
-          branches: true,
+          _count: true,
         },
       });
 
@@ -109,6 +115,9 @@ export class ProvincesService {
 
       const updatedProvince = await this.databaseService.province.update({
         where: { id },
+        include: {
+          _count: true,
+        },
         data: updateProvinceDto,
       });
 
