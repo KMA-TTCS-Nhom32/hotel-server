@@ -2,7 +2,7 @@ import { AbstractModel } from 'libs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { HotelRoomType, HotelRoomBedType } from '@prisma/client';
 import { Amenity } from '@/modules/amenities/models';
-import { HotelRoom } from './hotel-room.model';
+import { HotelRoom } from '@/modules/room/models';
 
 export class RoomDetail extends AbstractModel {
   constructor(data: RoomDetail) {
@@ -35,5 +35,5 @@ export class RoomDetail extends AbstractModel {
   quantity: number;
 
   @ApiProperty({ type: () => [HotelRoom] })
-  rooms?: any[];
+  rooms?: HotelRoom[];
 }

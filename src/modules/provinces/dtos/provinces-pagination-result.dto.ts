@@ -1,4 +1,4 @@
-import { PaginationResultDto } from '@/common/dtos';
+import { createPaginationDto } from '@/common/dtos';
 import { Province } from '../models';
 
-export class ProvincePaginationResultDto extends PaginationResultDto<Province> {}
+export class ProvincePaginationResultDto extends createPaginationDto(Province) {}

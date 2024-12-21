@@ -1,4 +1,4 @@
 import { Branch } from '../models';
-import { PaginationResultDto } from '@/common/dtos';
+import { createPaginationDto } from '@/common/dtos';
 
-export class BranchesPaginationResultDto extends PaginationResultDto<Branch> {}
+export class BranchesPaginationResultDto extends createPaginationDto(Branch) {}
