@@ -40,16 +40,12 @@ export class QueryManyWithPaginationDto<F, S> {
   @IsNumber()
   pageSize: number;
 
-  @ApiPropertyOptional({ type: String, description: 'JSON string' })
+  @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => (value ? JSON.parse(value) : undefined))
-  @Type(() => Object)
   filters?: F | null;
 
-  @ApiPropertyOptional({ type: String, description: 'JSON string' })
+  @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }) => (value ? JSON.parse(value) : undefined))
-  @Type(() => Array)
   sort?: S[] | null;
 }
 
