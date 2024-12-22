@@ -21,9 +21,7 @@ export class RefreshTokenService {
         userId,
         ip,
         device,
-        expiresAt: new Date(
-          Date.now() + this.getRefreshTokenTTL()
-        ),
+        expiresAt: new Date(Date.now() + this.getRefreshTokenTTL()),
       },
     });
 
@@ -31,9 +29,12 @@ export class RefreshTokenService {
       jti: token.id,
       sub: userId,
     };
+    
+    const expiresIn = this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED');
+    console.log('Refresh token expiration:', expiresIn); // Debug log
 
     return this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED'),
+      expiresIn,
     });
   }
 
@@ -70,27 +71,27 @@ export class RefreshTokenService {
       where: {
         userId,
         isRevoked: false,
-        expiresAt: { gt: new Date() }
+        expiresAt: { gt: new Date() },
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
       select: {
         id: true,
         device: true,
         ip: true,
         createdAt: true,
-        expiresAt: true
-      }
+        expiresAt: true,
+      },
     });
 
-    return activeSessions.map(session => ({
+    return activeSessions.map((session) => ({
       id: session.id,
       device: session.device,
       ip: session.ip,
       lastUsed: session.createdAt,
       expiresAt: session.expiresAt,
-      isCurrentSession: session.id === currentTokenId
+      isCurrentSession: session.id === currentTokenId,
     }));
   }
 
@@ -101,14 +102,14 @@ export class RefreshTokenService {
       where: {
         ...where,
         isRevoked: false,
-        expiresAt: { gt: new Date() }
+        expiresAt: { gt: new Date() },
       },
       _count: true,
       orderBy: {
         _count: {
-          device: 'desc'
-        }
-      }
+          device: 'desc',
+        },
+      },
     });
   }
 
@@ -120,20 +121,20 @@ export class RefreshTokenService {
         createdAt: { gt: last24Hours },
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'desc',
       },
       select: {
         ip: true,
         device: true,
         createdAt: true,
-      }
+      },
     });
   }
 
   private getRefreshTokenTTL(): number {
     const expiration = this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRED') || '7d';
-    return expiration.includes('d') 
-      ? parseInt(expiration) * 24 * 60 * 60 * 1000 
+    return expiration.includes('d')
+      ? parseInt(expiration) * 24 * 60 * 60 * 1000
       : parseInt(expiration) * 1000;
   }
 
@@ -146,9 +147,9 @@ export class RefreshTokenService {
         OR: [
           { isRevoked: true },
           { expiresAt: { lt: now } },
-          { createdAt: { lt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } }
-        ]
-      }
+          { createdAt: { lt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+        ],
+      },
     });
   }
 }

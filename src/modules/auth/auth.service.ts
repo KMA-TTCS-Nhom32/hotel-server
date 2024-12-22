@@ -43,31 +43,81 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenResponse> {
-    const payload = this.tokenService.verifyRefreshToken(refreshToken);
-    const token = await this.refreshTokenService.validateRefreshToken(payload.jti);
-
-    if (!token || token.isRevoked || token.expiresAt < new Date()) {
+    try {
+      const payload = this.tokenService.verifyRefreshToken(refreshToken);
+      
+      if (!payload || !payload.jti) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNAUTHORIZED,
+            message: 'Invalid refresh token payload',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+  
+      const token = await this.refreshTokenService.validateRefreshToken(payload.jti);
+  
+      if (!token) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNAUTHORIZED,
+            message: 'Refresh token not found',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+  
+      if (token.isRevoked) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNAUTHORIZED,
+            message: 'Refresh token has been revoked',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+  
+      if (token.expiresAt < new Date()) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNAUTHORIZED,
+            message: 'Refresh token has expired',
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+  
+      // Rest of the code remains the same
+      const [newAccessToken, newRefreshToken] = await Promise.all([
+        this.tokenService.generateAccessToken(token.user),
+        this.refreshTokenService.createRefreshToken(token.userId, token.ip, token.device),
+      ]);
+  
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        accessTokenExpires: this.tokenService.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED'),
+      };
+    } catch (error) {
+      // Log the error for debugging
+      console.error('Refresh token error:', error);
+      
+      // If it's already an HTTP exception, rethrow it
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      // Otherwise, throw a generic error
       throw new HttpException(
         {
           status: HttpStatus.UNAUTHORIZED,
-          message: AuthErrorMessageEnum.InvalidRefreshToken,
+          message: 'Invalid refresh token',
+          error: error.message,
         },
         HttpStatus.UNAUTHORIZED,
       );
     }
-
-    await this.refreshTokenService.revokeRefreshToken(token.userId, token.id);
-
-    const [newAccessToken, newRefreshToken] = await Promise.all([
-      this.tokenService.generateAccessToken(token.user),
-      this.refreshTokenService.createRefreshToken(token.userId, token.ip, token.device),
-    ]);
-
-    return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
-      accessTokenExpires: this.tokenService.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED'),
-    };
   }
 
   async revokeRefreshToken(userId: string, tokenId?: string) {

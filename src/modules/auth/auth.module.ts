@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CommonService, LoginService, RefreshTokenService, RegisterService, TokenService } from './services';
+import {
+  CommonService,
+  LoginService,
+  RefreshTokenService,
+  RegisterService,
+  TokenService,
+} from './services';
 import { AuthController } from './auth.controller';
 import { DatabaseModule } from '@/database/database.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '@/modules/users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -17,10 +23,14 @@ import { EmailModule } from '@/communication/email/email.module';
     DatabaseModule,
     PassportModule,
     JwtModule.registerAsync({
+      imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_ACCESS_TOKEN_EXPIRED') },
+        // signOptions: {
+        // Remove the expiresIn from here since we'll handle it separately for access and refresh tokens
+        // expiresIn: config.get<string>('JWT_ACCESS_TOKEN_EXPIRED')
+        // },
       }),
     }),
     UsersModule,

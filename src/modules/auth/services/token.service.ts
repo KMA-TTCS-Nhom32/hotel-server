@@ -23,14 +23,19 @@ export class TokenService {
 
   getTokenExpiration(configKey: string): number {
     const expiration = this.configService.get<string>(configKey) || '5m';
-    const milliseconds = expiration.includes('m') 
-      ? parseInt(expiration) * 60 * 1000 
+    const milliseconds = expiration.includes('m')
+      ? parseInt(expiration) * 60 * 1000
       : parseInt(expiration) * 1000;
     return Date.now() + milliseconds;
   }
 
   verifyRefreshToken(token: string): RefreshTokenPayload {
-    return this.jwtService.verify<RefreshTokenPayload>(token);
+    try {
+      return this.jwtService.verify<RefreshTokenPayload>(token);
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      throw error;
+    }
   }
 
   verifyAccessToken(token: string): JwtPayload {

@@ -66,8 +66,8 @@ export class AuthController {
     return this.authService.authenticate(loginDto, ip, userAgent);
   }
 
-  @Post('refresh')
   @Public()
+  @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Refresh access token',
