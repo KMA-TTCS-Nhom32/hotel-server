@@ -10,10 +10,13 @@ import { CommonErrorMessagesEnum } from 'libs/common';
 import { Province } from './models';
 import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
+import { BaseService } from '@/common/services/base.service';
 
 @Injectable()
-export class ProvincesService {
-  constructor(private readonly databaseService: DatabaseService) {}
+export class ProvincesService extends BaseService {
+  constructor(protected readonly databaseService: DatabaseService) {
+    super(databaseService);
+  }
 
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
     try {
@@ -35,20 +38,22 @@ export class ProvincesService {
     paginationOptions: PaginationParams,
     filterOptions?: FilterProvincesDto,
     sortOptions?: SortProvinceDto[],
+    includeDeleted = false,
   ) {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      const where: any = {
-        ...(filterOptions?.keyword
+      const where = this.mergeWithBaseWhere(
+        filterOptions?.keyword
           ? {
               OR: [
                 { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
                 { zip_code: { contains: filterOptions.keyword } },
               ],
             }
-          : {}),
-      };
+          : {},
+        includeDeleted,
+      );
 
       const orderBy = sortOptions?.reduce(
         (acc, { orderBy: field, order }) => ({
@@ -83,10 +88,10 @@ export class ProvincesService {
     }
   }
 
-  async findById(id: string): Promise<Province> {
+  async findById(id: string, includeDeleted = false): Promise<Province> {
     try {
-      const province = await this.databaseService.province.findUnique({
-        where: { id },
+      const province = await this.databaseService.province.findFirst({
+        where: this.mergeWithBaseWhere({ id }, includeDeleted),
         include: {
           _count: true,
         },
@@ -130,13 +135,14 @@ export class ProvincesService {
 
   async remove(id: string): Promise<void> {
     try {
-      // Start transaction
-      await this.databaseService.$transaction(async (prisma) => {
-        // 1. Check if province exists and has branches
-        const province = await prisma.province.findUnique({
+      await this.softDelete('province', id, async () => {
+        // Additional checks before soft delete
+        const province = await this.databaseService.province.findUnique({
           where: { id },
           include: {
-            branches: true,
+            branches: {
+              where: { isDeleted: false },
+            },
           },
         });
 
@@ -150,7 +156,6 @@ export class ProvincesService {
           );
         }
 
-        // 2. Check if province has any branches
         if (province.branches.length > 0) {
           throw new HttpException(
             {
@@ -160,14 +165,32 @@ export class ProvincesService {
             HttpStatus.CONFLICT,
           );
         }
-
-        // 3. Delete the province
-        await prisma.province.delete({
-          where: { id },
-        });
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async restore(id: string): Promise<Province> {
+    try {
+      return await this.restoreDeleted<Province>('province', id);
+    } catch (error) {
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findDeleted() {
+    try {
+      const provinces = await this.databaseService.province.findMany({
+        where: { isDeleted: true },
+        include: {
+          _count: true,
+        },
+      });
+
+      return provinces.map((province) => new Province(province));
+    } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

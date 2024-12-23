@@ -88,4 +88,22 @@ export class ProvincesController {
   remove(@Param('id') id: string): Promise<void> {
     return this.provincesService.remove(id);
   }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore a soft-deleted province' })
+  @ApiResponse({ status: 200, description: 'Province restored successfully' })
+  async restore(@Param('id') id: string) {
+    return this.provincesService.restore(id);
+  }
+
+  @Get('deleted')
+  @ApiOperation({ summary: 'Get all soft-deleted provinces' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns all soft-deleted provinces',
+    type: [Province],
+  })
+  async findDeleted() {
+    return this.provincesService.findDeleted();
+  }
 }
