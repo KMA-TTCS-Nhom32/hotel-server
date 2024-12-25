@@ -1,8 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Image } from '@/modules/images/models';
 import { AbstractModel } from 'libs/common/abstract';
 import { Nullable } from 'libs/common/types';
 import { HotelRoom } from '@/modules/room/models';
+import { Province } from '@/modules/provinces/models';
 
 export class Branch extends AbstractModel {
   constructor(data: Nullable<Branch>) {
@@ -16,6 +17,13 @@ export class Branch extends AbstractModel {
     description: 'ID of the province where this branch is located',
   })
   provinceId: string;
+
+  @ApiPropertyOptional({
+    type: Province,
+    description: 'Province where this branch is located',
+    example: { id: 'province-id-123', name: 'Ha Noi', zip_code: '100000', slug: 'ha-noi' },
+  })
+  province?: Province;
 
   @ApiProperty({
     type: Image,

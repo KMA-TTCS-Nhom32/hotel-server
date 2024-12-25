@@ -1,8 +1,8 @@
 import { AbstractModel } from 'libs/common';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class Province extends AbstractModel {
-  constructor(data: Province) {
+  constructor(data: Province | Omit<Province, '_count'>) {
     super();
     Object.assign(this, data);
   }
@@ -28,15 +28,15 @@ export class Province extends AbstractModel {
   })
   slug: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Count of branches in the province',
     example: { branches: 5 },
     type: 'object',
     properties: {
-      branches: { type: 'number' }
-    }
+      branches: { type: 'number' },
+    },
   })
-  _count: {
+  _count?: {
     branches: number;
   };
 }
