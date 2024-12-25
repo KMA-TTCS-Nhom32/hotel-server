@@ -78,6 +78,7 @@ model HotelBranch {
     thumbnail   Json
     images      Json[]
     name        String
+    slug        String
     description String
     phone       String
     is_active   Boolean     @default(true)
@@ -97,6 +98,7 @@ model HotelBranch {
 model HotelRoom {
     id                      String             @id @default(cuid())
     name                    String
+    slug                    String
     thumbnail               Json
     images                  Json[]
     status                  HotelRoomStatus
@@ -178,6 +180,7 @@ enum HotelRoomStatus {
 
 model Booking {
     id               String         @id @default(cuid())
+    code             String         @unique
     type             BookingType
     start_date       DateTime
     end_date         DateTime

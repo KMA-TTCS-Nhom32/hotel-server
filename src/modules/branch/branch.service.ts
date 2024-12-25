@@ -105,6 +105,12 @@ export class BranchService extends BaseService {
         includeDeleted,
       );
 
+      if (filterOptions?.provinceSlug) {
+        where.province = {
+            slug: filterOptions.provinceSlug,
+        }
+      }
+
       // Build sort conditions
       const orderBy = sortOptions?.reduce(
         (acc, { orderBy: field, order }) => ({
@@ -159,10 +165,41 @@ export class BranchService extends BaseService {
         include: {
           amenities: true,
           rooms: {
-            // where: { isDeleted: false },
-            select: {
-              id: true,
-            },
+            where: { isDeleted: false },
+          },
+        },
+      });
+
+      if (!branch) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            message: 'Branch not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return new Branch({
+        ...branch,
+        thumbnail: branch.thumbnail as unknown as Image,
+        images: branch.images as unknown as Image[],
+        location: branch.location as { latitude: number; longitude: number },
+      });
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findBySlug(slug: string) {
+    try {
+      const branch = await this.databaseService.hotelBranch.findFirst({
+        where: this.mergeWithBaseWhere({ slug }),
+        include: {
+          amenities: true,
+          rooms: {
+            where: { isDeleted: false },
           },
         },
       });

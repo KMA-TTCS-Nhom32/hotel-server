@@ -50,6 +50,15 @@ export class FilterBranchesDto {
   @IsString()
   provinceId?: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    example: 'province-slug',
+    description: 'Filter by province slug',
+  })
+  @IsOptional()
+  @IsString()
+  provinceSlug?: string;
+
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? [value] : value))

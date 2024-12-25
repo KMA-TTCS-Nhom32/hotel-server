@@ -69,6 +69,15 @@ export class CreateBranchDto {
   name: string;
 
   @ApiProperty({
+    example: 'branch-slug',
+    description: "The branch's slug.",
+    type: String,
+  })
+  @IsNotEmpty()
+  @IsString()
+  slug: string;
+
+  @ApiProperty({
     example: 'Branch Description',
     description: "The branch's description.",
     type: String,

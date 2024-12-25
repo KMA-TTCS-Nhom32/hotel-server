@@ -2,12 +2,20 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Image } from '@/modules/images/models';
 import { AbstractModel } from 'libs/common/abstract';
 import { Nullable } from 'libs/common/types';
+import { HotelRoom } from '@/modules/room/models';
 
 export class Branch extends AbstractModel {
   constructor(data: Nullable<Branch>) {
     super();
     Object.assign(this, data);
   }
+
+  @ApiProperty({
+    type: String,
+    example: 'province-id-123',
+    description: 'ID of the province where this branch is located',
+  })
+  provinceId: string;
 
   @ApiProperty({
     type: Image,
@@ -27,6 +35,13 @@ export class Branch extends AbstractModel {
     description: "Branch's name",
   })
   name: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'hotel-branch-slug',
+    description: "Branch's slug",
+  })
+  slug: string;
 
   @ApiProperty({
     type: String,
@@ -69,4 +84,17 @@ export class Branch extends AbstractModel {
     description: "Branch's rating",
   })
   rating: number;
+}
+
+export class BranchDetail extends Branch {
+  constructor(data: Nullable<BranchDetail>) {
+    super(data);
+    Object.assign(this, data);
+  }
+
+  @ApiProperty({
+    type: [HotelRoom],
+    description: 'List of rooms available in the branch',
+  })
+  rooms: HotelRoom[];
 }
