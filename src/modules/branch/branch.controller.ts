@@ -14,7 +14,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiExtraModels } from '@n
 import { BranchService } from './branch.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
-import { Branch } from './models';
+import { Branch, BranchDetail } from './models';
 import { RolesGuard } from '../auth/guards';
 import { Public, Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
@@ -89,19 +89,15 @@ export class BranchController {
   }
 
   @Public()
-  @Get(':id')
-  @ApiOperation({ summary: 'Get branch by ID' })
+  @Get(':idOrSlug')
+  @ApiOperation({ summary: 'Get branch by ID or slug' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns a branch',
-    type: Branch,
+    type: BranchDetail,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Branch not found.',
-  })
-  async findOne(@Param('id') id: string): Promise<Branch> {
-    return this.branchService.findById(id);
+  findOne(@Param('idOrSlug') idOrSlug: string) {
+    return this.branchService.findByIdOrSlug(idOrSlug);
   }
 
   @Patch(':id')
@@ -121,7 +117,7 @@ export class BranchController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized.',
   })
-  async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto): Promise<Branch> {
+  async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto) {
     return this.branchService.update(id, updateBranchDto);
   }
 

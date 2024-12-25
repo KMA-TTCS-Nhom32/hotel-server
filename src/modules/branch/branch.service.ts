@@ -9,7 +9,7 @@ import { BaseService } from '@/common/services/base.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
-import { Branch } from './models';
+import { Branch, BranchDetail } from './models';
 import { Image } from '@/modules/images/models';
 import { FilterBranchesDto, SortBranchDto } from './dtos/query-branches.dto';
 
@@ -107,8 +107,8 @@ export class BranchService extends BaseService {
 
       if (filterOptions?.provinceSlug) {
         where.province = {
-            slug: filterOptions.provinceSlug,
-        }
+          slug: filterOptions.provinceSlug,
+        };
       }
 
       // Build sort conditions
@@ -158,10 +158,15 @@ export class BranchService extends BaseService {
     }
   }
 
-  async findById(id: string, includeDeleted = false): Promise<Branch> {
+  async findByIdOrSlug(identifier: string, includeDeleted = false): Promise<Branch> {
     try {
       const branch = await this.databaseService.hotelBranch.findFirst({
-        where: this.mergeWithBaseWhere({ id }, includeDeleted),
+        where: this.mergeWithBaseWhere(
+          {
+            OR: [{ id: identifier }, { slug: identifier }],
+          },
+          includeDeleted,
+        ),
         include: {
           amenities: true,
           rooms: {
@@ -180,41 +185,7 @@ export class BranchService extends BaseService {
         );
       }
 
-      return new Branch({
-        ...branch,
-        thumbnail: branch.thumbnail as unknown as Image,
-        images: branch.images as unknown as Image[],
-        location: branch.location as { latitude: number; longitude: number },
-      });
-    } catch (error) {
-      if (error instanceof HttpException) throw error;
-      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
-    }
-  }
-
-  async findBySlug(slug: string) {
-    try {
-      const branch = await this.databaseService.hotelBranch.findFirst({
-        where: this.mergeWithBaseWhere({ slug }),
-        include: {
-          amenities: true,
-          rooms: {
-            where: { isDeleted: false },
-          },
-        },
-      });
-
-      if (!branch) {
-        throw new HttpException(
-          {
-            status: HttpStatus.NOT_FOUND,
-            message: 'Branch not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      return new Branch({
+      return new BranchDetail({
         ...branch,
         thumbnail: branch.thumbnail as unknown as Image,
         images: branch.images as unknown as Image[],
