@@ -68,6 +68,9 @@ importers:
       cloudinary:
         specifier: 2.5.1
         version: 2.5.1
+      cron:
+        specifier: 3.1.7
+        version: 3.1.7
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -2696,6 +2699,10 @@ packages:
 
   luxon@3.4.4:
     resolution: {integrity: sha512-zobTr7akeGHnv7eBOXcRgMeCP6+uyYsczwmeRCauvpvaAltgNyTbLH/+VaEAPUeWBT+1GuNmz4wC/6jtQzbbVA==}
+    engines: {node: '>=12'}
+
+  luxon@3.5.0:
+    resolution: {integrity: sha512-rh+Zjr6DNfUYR3bPwJEnuwDdqMbxZW7LOQfUN4B54+Cl+0o5zaU9RJ6bcidfDtC1cWCZXQ+nvX8bf6bAji37QQ==}
     engines: {node: '>=12'}
 
   magic-string@0.30.8:
@@ -5679,7 +5686,7 @@ snapshots:
 
   cron-parser@4.9.0:
     dependencies:
-      luxon: 3.4.4
+      luxon: 3.5.0
 
   cron@3.1.7:
     dependencies:
@@ -7129,6 +7136,8 @@ snapshots:
       yallist: 3.1.1
 
   luxon@3.4.4: {}
+
+  luxon@3.5.0: {}
 
   magic-string@0.30.8:
     dependencies:

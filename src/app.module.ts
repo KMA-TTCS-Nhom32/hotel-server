@@ -26,6 +26,7 @@ import { getBullConfig } from './config';
 import { ProvincesModule } from './modules/provinces/provinces.module';
 import { RoomDetailModule } from './modules/room-detail/room-detail.module';
 import { RoomModule } from './modules/room/room.module';
+import { CleanupModule } from './common/modules/cleanup.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { RoomModule } from './modules/room/room.module';
     ProvincesModule,
     RoomDetailModule,
     RoomModule,
+    CleanupModule,
   ],
   controllers: [AppController],
   providers: [
