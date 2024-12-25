@@ -1,4 +1,6 @@
 import { Branch } from '../models';
-import { createPaginationDto } from '@/common/dtos';
+import { createInfinitePaginationDto, createPaginationDto } from '@/common/dtos';
 
 export class BranchesPaginationResultDto extends createPaginationDto(Branch) {}
+
+export class BranchesInfinitePaginationResultDto extends createInfinitePaginationDto(Branch) {}

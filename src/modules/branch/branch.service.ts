@@ -5,6 +5,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { DatabaseService } from '@/database/database.service';
+import { BaseService } from '@/common/services/base.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
@@ -16,13 +17,14 @@ import {
   getPaginationParams,
   createPaginatedResponse,
   PaginationParams,
-  InfinityPaginationResultType,
   createInfinityPaginationResponse,
 } from 'libs/common/utils';
 
 @Injectable()
-export class BranchService {
-  constructor(private readonly databaseService: DatabaseService) {}
+export class BranchService extends BaseService {
+  constructor(protected readonly databaseService: DatabaseService) {
+    super(databaseService);
+  }
 
   private formatImage(image: Image): Record<string, any> {
     return {
@@ -69,36 +71,39 @@ export class BranchService {
     paginationOptions: PaginationParams,
     filterOptions?: FilterBranchesDto,
     sortOptions?: SortBranchDto[],
+    includeDeleted = false,
   ) {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      // Build where conditions
-      const where: any = {
-        ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
-        ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
-        ...(filterOptions?.provinceId ? { provinceId: filterOptions.provinceId } : {}),
-        ...(filterOptions?.keyword
-          ? {
-              OR: [
-                { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-      };
-
-      // Add amenities filter if provided
-      if (filterOptions?.amenities?.length) {
-        where.amenities = {
-          some: {
-            slug: {
-              in: filterOptions.amenities,
-            },
-          },
-        };
-      }
+      const where = this.mergeWithBaseWhere(
+        {
+          ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
+          ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
+          ...(filterOptions?.provinceId ? { provinceId: filterOptions.provinceId } : {}),
+          ...(filterOptions?.keyword
+            ? {
+                OR: [
+                  { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                  { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                  { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                ],
+              }
+            : {}),
+          ...(filterOptions?.amenities?.length
+            ? {
+                amenities: {
+                  some: {
+                    slug: {
+                      in: filterOptions.amenities,
+                    },
+                  },
+                },
+              }
+            : {}),
+        },
+        includeDeleted,
+      );
 
       // Build sort conditions
       const orderBy = sortOptions?.reduce(
@@ -147,17 +152,16 @@ export class BranchService {
     }
   }
 
-  async findById(id: string): Promise<Branch> {
+  async findById(id: string, includeDeleted = false): Promise<Branch> {
     try {
-      const branch = await this.databaseService.hotelBranch.findUnique({
-        where: { id },
+      const branch = await this.databaseService.hotelBranch.findFirst({
+        where: this.mergeWithBaseWhere({ id }, includeDeleted),
         include: {
           amenities: true,
           rooms: {
+            // where: { isDeleted: false },
             select: {
               id: true,
-              name: true,
-              status: true,
             },
           },
         },
@@ -250,10 +254,8 @@ export class BranchService {
 
   async remove(id: string): Promise<void> {
     try {
-      // Start transaction
-      await this.databaseService.$transaction(async (prisma) => {
-        // 1. Check if branch exists and has active bookings
-        const branch = await prisma.hotelBranch.findUnique({
+      await this.softDelete('hotelBranch', id, async () => {
+        const branch = await this.databaseService.hotelBranch.findUnique({
           where: { id },
           include: {
             rooms: {
@@ -272,38 +274,63 @@ export class BranchService {
 
         if (!branch) {
           throw new HttpException(
-            {
-              status: HttpStatus.NOT_FOUND,
-              message: 'Branch not found',
-            },
+            { status: HttpStatus.NOT_FOUND, message: 'Branch not found' },
             HttpStatus.NOT_FOUND,
           );
         }
 
-        // 2. Check for active bookings
         const hasActiveBookings = branch.rooms.some((room) => room.bookings.length > 0);
         if (hasActiveBookings) {
           throw new HttpException(
-            {
-              status: HttpStatus.CONFLICT,
-              message: 'Cannot delete branch with active bookings',
-            },
+            { status: HttpStatus.CONFLICT, message: 'Cannot delete branch with active bookings' },
             HttpStatus.CONFLICT,
           );
         }
-
-        // 3. Delete related records first (maintaining referential integrity)
-        await prisma.hotelRoom.deleteMany({
-          where: { branchId: id },
-        });
-
-        // 4. Delete the branch
-        await prisma.hotelBranch.delete({
-          where: { id },
-        });
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async restore(id: string): Promise<Branch> {
+    try {
+      const restoredBranch = await this.restoreDeleted<Branch>('hotelBranch', id);
+      return new Branch({
+        ...restoredBranch,
+        thumbnail: restoredBranch.thumbnail as unknown as Image,
+        images: restoredBranch.images as unknown as Image[],
+        location: restoredBranch.location as { latitude: number; longitude: number },
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findDeleted() {
+    try {
+      const branches = await this.databaseService.hotelBranch.findMany({
+        where: { isDeleted: true },
+        include: {
+          amenities: true,
+          rooms: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      return branches.map(
+        (branch) =>
+          new Branch({
+            ...branch,
+            thumbnail: branch.thumbnail as unknown as Image,
+            images: branch.images as unknown as Image[],
+            location: branch.location as { latitude: number; longitude: number },
+          }),
+      );
+    } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
@@ -312,12 +339,12 @@ export class BranchService {
     page: number = 1,
     limit: number = 10,
     filterOptions?: FilterBranchesDto,
-  ): Promise<InfinityPaginationResultType<Branch>> {
+    sortOptions?: SortBranchDto[],
+  ) {
     try {
       const skip = (page - 1) * limit;
 
-      // Build where conditions (reuse existing conditions)
-      const where: any = {
+      const where = this.mergeWithBaseWhere({
         ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
         ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
         ...(filterOptions?.keyword
@@ -329,7 +356,7 @@ export class BranchService {
               ],
             }
           : {}),
-      };
+      });
 
       // Add amenities filter if provided
       if (filterOptions?.amenities?.length) {
@@ -342,22 +369,25 @@ export class BranchService {
         };
       }
 
+      // Build sort conditions
+      const orderBy = sortOptions?.reduce(
+        (acc, { orderBy: field, order }) => ({
+          ...acc,
+          [field]: order.toLowerCase(),
+        }),
+        {},
+      );
+
       const items = await this.databaseService.hotelBranch.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
         include: {
           amenities: true,
           rooms: {
             select: {
               id: true,
-              name: true,
-              status: true,
-              base_price_per_night: true,
-              base_price_per_hour: true,
             },
           },
         },

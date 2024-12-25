@@ -23,12 +23,12 @@ import {
   QueryBranchesDto,
   SortBranchDto,
   BranchesPaginationResultDto,
+  BranchesInfinitePaginationResultDto,
 } from './dtos';
-import { InfinityPaginationResultType } from 'libs/common/utils';
 
 @ApiTags('Branches')
 @ApiExtraModels(QueryBranchesDto, FilterBranchesDto, SortBranchDto)
-@Controller('branch')
+@Controller('branches')
 export class BranchController {
   constructor(private readonly branchService: BranchService) {}
 
@@ -75,8 +75,7 @@ export class BranchController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns branches with infinite pagination',
-    type: Branch,
-    isArray: true,
+    type: BranchesInfinitePaginationResultDto,
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
@@ -84,9 +83,9 @@ export class BranchController {
   @ApiQuery({ name: 'sort', required: false, type: 'string' })
   async findManyInfinite(
     @Query() query: QueryBranchesDto,
-  ): Promise<InfinityPaginationResultType<Branch>> {
-    const { page, pageSize: limit, filters } = query;
-    return this.branchService.findManyInfinite(page, limit, filters);
+  ) {
+    const { page, pageSize: limit, filters, sort } = query;
+    return this.branchService.findManyInfinite(page, limit, filters, sort);
   }
 
   @Public()
@@ -148,5 +147,27 @@ export class BranchController {
   })
   async remove(@Param('id') id: string): Promise<void> {
     await this.branchService.remove(id);
+  }
+
+  @Post(':id/restore')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Restore a soft-deleted branch' })
+  @ApiResponse({ status: 200, description: 'Branch restored successfully' })
+  async restore(@Param('id') id: string) {
+    return this.branchService.restore(id);
+  }
+
+  @Get('deleted')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all soft-deleted branches' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns all soft-deleted branches',
+    type: [Branch],
+  })
+  async findDeleted() {
+    return this.branchService.findDeleted();
   }
 }

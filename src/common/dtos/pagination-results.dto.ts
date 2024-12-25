@@ -38,3 +38,25 @@ export function createPaginationDto<T>(ItemType: Type<T>) {
   // Return class constructor
   return PaginationDto;
 }
+
+export abstract class InfinitePaginationResultDto<T> {
+  data: T[];
+  hasNextPage: boolean;
+}
+
+export function createInfinitePaginationDto<T>(ItemType: Type<T>) {
+  class InfinitePaginationDto extends InfinitePaginationResultDto<T> {
+    @ApiProperty({
+      type: ItemType,
+      isArray: true,
+    })
+    declare data: T[];
+
+    @ApiProperty({
+      type: 'boolean',
+    })
+    declare hasNextPage: boolean;
+  }
+
+  return InfinitePaginationDto;
+}

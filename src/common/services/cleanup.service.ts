@@ -16,6 +16,14 @@ export class CleanupService implements OnModuleInit {
   private readonly logger = new Logger(CleanupService.name);
   private readonly config = getCleanupConfig(this.configService);
 
+  private readonly modelDependencyOrder = [
+    'booking',       // Delete bookings first
+    'review',        // Then reviews
+    'hotelRoom',     // Then rooms
+    'hotelBranch',   // Then branches
+    'province',      // Finally provinces
+  ];
+
   onModuleInit() {
     const job = new CronJob(this.config.scheduleTime, () => {
       this.cleanupSoftDeletedRecords();
@@ -41,23 +49,61 @@ export class CleanupService implements OnModuleInit {
     const cutoffDate = new Date(Date.now() - this.config.retentionPeriod * 24 * 60 * 60 * 1000);
 
     try {
-      const deletePromises = this.config.models.map((model) =>
-        this.databaseService[model].deleteMany({
-          where: {
-            isDeleted: true,
-            deletedAt: { lt: cutoffDate },
-          },
-        }),
-      );
+      // Use transaction to ensure all-or-nothing deletion
+      await this.databaseService.$transaction(async (prisma) => {
+        const results = {};
 
-      const results = await Promise.all(deletePromises);
+        // Delete in order of dependencies
+        for (const model of this.modelDependencyOrder) {
+          // Apply safety checks based on configuration
+          if (this.config.safetyChecks.preventDeleteWithActiveBookings && model === 'hotelRoom') {
+            const deleteResult = await prisma[model].deleteMany({
+              where: {
+                isDeleted: true,
+                deletedAt: { lt: cutoffDate },
+                bookings: { none: { status: { in: ['PENDING', 'CHECKED_IN'] } } }
+              },
+            });
+            results[model] = deleteResult.count;
+          }
+          else if (this.config.safetyChecks.preventDeleteWithActiveRooms && model === 'hotelBranch') {
+            const deleteResult = await prisma[model].deleteMany({
+              where: {
+                isDeleted: true,
+                deletedAt: { lt: cutoffDate },
+                rooms: { none: { isDeleted: false } }
+              },
+            });
+            results[model] = deleteResult.count;
+          }
+          else if (this.config.safetyChecks.preventDeleteWithActiveBranches && model === 'province') {
+            const deleteResult = await prisma[model].deleteMany({
+              where: {
+                isDeleted: true,
+                deletedAt: { lt: cutoffDate },
+                branches: { none: { isDeleted: false } }
+              },
+            });
+            results[model] = deleteResult.count;
+          }
+          else {
+            // Default deletion without safety checks for other models
+            const deleteResult = await prisma[model].deleteMany({
+              where: {
+                isDeleted: true,
+                deletedAt: { lt: cutoffDate },
+              },
+            });
+            results[model] = deleteResult.count;
+          }
 
-      const summary = results.reduce((acc, result, index) => {
-        acc[this.config.models[index]] = result.count;
-        return acc;
-      }, {});
+          this.logger.log(`Cleaned up ${results[model]} ${model} records`);
+        }
 
-      this.logger.log('Cleanup completed. Results:', summary);
+        return results;
+      });
+
+      this.logger.log('Cleanup completed successfully');
     } catch (error) {
       this.logger.error('Error during cleanup:', error);
     }

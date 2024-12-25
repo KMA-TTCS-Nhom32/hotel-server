@@ -4,4 +4,5 @@ export type CleanupConfig = {
   scheduleTime: string;
   batchSize: number;
   enabled: boolean;
+  safetyChecks: any;
 };

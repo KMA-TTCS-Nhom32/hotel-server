@@ -13,5 +13,10 @@ export const getCleanupConfig = (configService: ConfigService): CleanupConfig =>
       : CronExpression.EVERY_30_SECONDS,
     batchSize: configService.get<number>('CLEANUP_BATCH_SIZE', 100),
     enabled: configService.get<boolean>('ENABLE_AUTO_CLEANUP', false),
+    safetyChecks: {
+      preventDeleteWithActiveBookings: true,
+      preventDeleteWithActiveRooms: true,
+      preventDeleteWithActiveBranches: true,
+    },
   };
 };

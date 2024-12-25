@@ -115,6 +115,8 @@ model HotelRoom {
     bookings                Booking[]
     reviews                 Review[]
     favorited_by            UserPreference[]   @relation("UserFavoriteRooms")
+    isDeleted               Boolean            @default(false)
+    deletedAt               DateTime?
     createdAt               DateTime           @default(now())
     updatedAt               DateTime           @updatedAt
 }
@@ -130,6 +132,8 @@ model RoomDetail {
     max_children Int              @default(2)
     quantity     Int              @default(1)
     rooms        HotelRoom[]
+    isDeleted    Boolean          @default(false)
+    deletedAt    DateTime?
     createdAt    DateTime         @default(now())
     updatedAt    DateTime         @updatedAt
 }
@@ -195,6 +199,8 @@ model Booking {
     user             User           @relation(fields: [userId], references: [id])
     guest_details    Json? // Store additional guest information
     is_business_trip Boolean        @default(false)
+    isDeleted        Boolean        @default(false)
+    deletedAt        DateTime?
     createdAt        DateTime       @default(now())
     updatedAt        DateTime       @updatedAt
 }
