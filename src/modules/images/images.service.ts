@@ -54,4 +54,13 @@ export class ImagesService {
 
     return uploadedImages;
   }
+
+  async uploadIcon(icon: Express.Multer.File) {
+    try {
+      const uploadedIcon = await this.cloudinaryService.uploadImage(icon, true);
+      return new ImageUploadResponseDto(uploadedIcon);
+    } catch (error) {
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.GetImageFailed);
+    }
+  }
 }

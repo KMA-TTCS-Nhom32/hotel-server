@@ -23,7 +23,7 @@ export class CloudinaryService {
             width: 64,
             height: 64,
             crop: 'fill',
-            format: 'webp',
+            format: 'svg',
             quality: 'auto',
           }
         : {

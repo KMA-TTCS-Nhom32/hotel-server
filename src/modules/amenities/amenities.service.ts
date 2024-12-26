@@ -1,5 +1,7 @@
 import {
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -11,7 +13,6 @@ import {
   CommonErrorMessagesEnum,
   createPaginatedResponse,
   getPaginationParams,
-  ImageErrorMessagesEnum,
   PaginationParams,
 } from 'libs/common';
 import { CreateAmenityDto, FilterAmenityDto, SortAmenityDto, UpdateAmenityDto } from './dtos';
@@ -25,6 +26,13 @@ export class AmenitiesService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  private formatImage(image: Image): Record<string, any> {
+    return {
+      url: image.url,
+      publicId: image.publicId,
+    };
+  }
+
   private mapIconToImage(iconData: any): Image | null {
     if (!iconData) return null;
     return {
@@ -33,30 +41,19 @@ export class AmenitiesService {
     };
   }
 
-  private async uploadIcon(icon: Express.Multer.File) {
-    try {
-      const uploadResult = await this.cloudinaryService.uploadImage(icon, true);
-      return this.mapIconToImage(uploadResult);
-    } catch (error) {
-      throw new InternalServerErrorException(ImageErrorMessagesEnum.ImageUploadFailed);
-    }
-  }
-
-  async create(dto: CreateAmenityDto, icon?: Express.Multer.File) {
-    const iconData = icon ? await this.uploadIcon(icon) : null;
-
+  async create(dto: CreateAmenityDto) {
     try {
       const amenity = await this.databaseSerivce.$transaction(async (prisma) => {
         const created = await prisma.amenity.create({
           data: {
             ...dto,
-            icon: iconData ? { ...iconData } : null,
+            icon: this.formatImage(dto.icon),
           },
         });
 
         return new Amenity({
           ...created,
-          icon: iconData,
+          icon: created.icon ? this.mapIconToImage(created.icon) : null,
         });
       });
 
@@ -137,28 +134,32 @@ export class AmenitiesService {
     });
   }
 
-  async update(id: string, dto: UpdateAmenityDto, icon?: Express.Multer.File) {
+  async update(id: string, dto: UpdateAmenityDto) {
     try {
       return await this.databaseSerivce.$transaction(async (prisma) => {
         const existing = await this.findOne(id);
-        const iconData = icon ? await this.uploadIcon(icon) : null;
 
-        // If there's an existing icon and we're uploading a new one, delete the old one
-        if (existing.icon?.publicId && iconData) {
-          await this.cloudinaryService.deleteImage(existing.icon.publicId);
+        if (!existing) {
+          throw new HttpException(
+            {
+              status: HttpStatus.NOT_FOUND,
+              message: CommonErrorMessagesEnum.NotFound,
+            },
+            HttpStatus.NOT_FOUND,
+          );
         }
 
         const updated = await prisma.amenity.update({
           where: { id },
           data: {
             ...dto,
-            ...(iconData && { icon: { ...iconData } }),
+            icon: dto.icon ? this.formatImage(dto.icon) : undefined,
           },
         });
 
         return new Amenity({
           ...updated,
-          icon: iconData || existing.icon,
+          icon: updated.icon ? this.mapIconToImage(updated.icon) : null,
         });
       });
     } catch (error) {

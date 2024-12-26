@@ -144,7 +144,7 @@ model Amenity {
     id        String        @id @default(cuid())
     name      String
     slug      String
-    icon      Json? // Icon URL or code
+    icon      Json // Icon URL or code
     type      AmenityType
     rooms     RoomDetail[]
     branches  HotelBranch[]

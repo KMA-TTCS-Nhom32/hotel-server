@@ -10,7 +10,7 @@ import {
   Query,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiExtraModels } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
 import { BranchService } from './branch.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
@@ -73,10 +73,6 @@ export class BranchController {
     description: 'Returns paginated branches list',
     type: BranchesPaginationResultDto,
   })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  @ApiQuery({ name: 'filters', required: false, type: 'string' })
-  @ApiQuery({ name: 'sort', required: false, type: 'string' })
   async findMany(@Query() query: QueryBranchesDto) {
     const { page, pageSize, filters, sort } = query;
     return this.branchService.findMany({ page, pageSize }, filters, sort);
@@ -90,10 +86,6 @@ export class BranchController {
     description: 'Returns branches with infinite pagination',
     type: BranchesInfinitePaginationResultDto,
   })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number })
-  @ApiQuery({ name: 'filters', required: false, type: 'string' })
-  @ApiQuery({ name: 'sort', required: false, type: 'string' })
   async findManyInfinite(@Query() query: QueryBranchesDto) {
     const { page, pageSize: limit, filters, sort } = query;
     return this.branchService.findManyInfinite(page, limit, filters, sort);

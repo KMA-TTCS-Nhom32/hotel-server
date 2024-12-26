@@ -10,9 +10,19 @@ import {
   FileTypeValidator,
   BadRequestException,
   UseGuards,
+  UploadedFile,
 } from '@nestjs/common';
 import { ImagesService } from './images.service';
-import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiPayloadTooLargeResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ImageUploadResponseDto } from './dto';
 import { Public, Roles } from '@/modules/auth/decorators';
 import {
@@ -20,8 +30,11 @@ import {
   IMAGE_FILE_MAX_SIZE_IN_BYTES,
   IMAGE_FILE_MAX_SIZE_IN_MB,
   MULTI_IMAGE_FILE_MAX_COUNT,
+  CLOUDINARY_ALLOW_ICON_FORMATS,
+  ICON_FILE_MAX_SIZE_IN_BYTES,
+  ICON_FILE_MAX_SIZE_IN_MB,
 } from '@/third-party/cloudinary/cloudinary.constant';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { RolesGuard } from '@/modules/auth/guards';
 import { UserRole } from '@prisma/client';
 
@@ -54,6 +67,18 @@ export class ImagesController {
 
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({
+    summary: 'Upload multiple image',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiCreatedResponse({
+    description: 'Images uploaded',
+    type: ImageUploadResponseDto,
+    isArray: true,
+  })
+  @ApiPayloadTooLargeResponse({
+    description: `Image size too large, maximum ${IMAGE_FILE_MAX_SIZE_IN_MB} MB, and maximum ${MULTI_IMAGE_FILE_MAX_COUNT} images`,
+  })
   @UseInterceptors(
     FilesInterceptor('images', MULTI_IMAGE_FILE_MAX_COUNT, {
       limits: {
@@ -105,5 +130,56 @@ export class ImagesController {
     return this.imagesService.uploadImages({
       images,
     });
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Upload amenity icon',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiCreatedResponse({
+    description: 'Icon uploaded',
+    type: ImageUploadResponseDto,
+  })
+  @ApiPayloadTooLargeResponse({
+    description: `Icon size too large, maximum ${ICON_FILE_MAX_SIZE_IN_MB} MB`,
+  })
+  @UseInterceptors(
+    FileInterceptor('icon', {
+      limits: {
+        fileSize: ICON_FILE_MAX_SIZE_IN_BYTES,
+      },
+      fileFilter: (req, file, cb) => {
+        if (!new RegExp(`\\.(${CLOUDINARY_ALLOW_ICON_FORMATS.join('|')})$`).exec(
+          file.originalname?.toLowerCase(),
+        )) {
+          return cb(
+            new BadRequestException(
+              `Only ${CLOUDINARY_ALLOW_ICON_FORMATS.join(', ')} files are allowed!`,
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  @Post('icon')
+  async uploadIcon(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: ICON_FILE_MAX_SIZE_IN_BYTES }),
+          new FileTypeValidator({
+            fileType: 'image',
+          }),
+        ],
+        fileIsRequired: true,
+      }),
+    )
+    icon: Express.Multer.File,
+  ): Promise<ImageUploadResponseDto> {
+    return this.imagesService.uploadIcon(icon);
   }
 }
