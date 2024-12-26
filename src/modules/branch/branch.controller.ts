@@ -53,6 +53,19 @@ export class BranchController {
     return this.branchService.create(createBranchDto);
   }
 
+  @Public()
+  @Get('latest')
+  @ApiOperation({ summary: 'Get latest branches' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns latest branches',
+    type: [Branch],
+  })
+  getLatestBranches(@Body() limit: number) {
+    return this.branchService.getLatestBranches(limit);
+  }
+
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get all branches with pagination and filters' })
   @ApiResponse({
@@ -81,9 +94,7 @@ export class BranchController {
   @ApiQuery({ name: 'pageSize', required: false, type: Number })
   @ApiQuery({ name: 'filters', required: false, type: 'string' })
   @ApiQuery({ name: 'sort', required: false, type: 'string' })
-  async findManyInfinite(
-    @Query() query: QueryBranchesDto,
-  ) {
+  async findManyInfinite(@Query() query: QueryBranchesDto) {
     const { page, pageSize: limit, filters, sort } = query;
     return this.branchService.findManyInfinite(page, limit, filters, sort);
   }

@@ -67,6 +67,35 @@ export class BranchService extends BaseService {
     }
   }
 
+  async getLatestBranches(limit: number = 3) {
+    try {
+      const branches = await this.databaseService.hotelBranch.findMany({
+        where: { is_active: true, isDeleted: false },
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          province: true,
+          amenities: true,
+        },
+      });
+
+      return branches.map(
+        (branch) =>
+          new Branch({
+            ...branch,
+            thumbnail: branch.thumbnail as unknown as Image,
+            images: branch.images as unknown as Image[],
+            location: branch.location as { latitude: number; longitude: number },
+          }),
+      );
+    } catch (error) {
+      console.error('Get latest branches error:', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
   async findMany(
     paginationOptions: PaginationParams,
     filterOptions?: FilterBranchesDto,
