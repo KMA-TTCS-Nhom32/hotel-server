@@ -10,9 +10,10 @@ import {
   UploadedFile,
   UseInterceptors,
   UseGuards,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiConsumes, ApiBody, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { CreateAmenityDto, QueryAmenityDto, UpdateAmenityDto } from './dtos';
 import { AmenitiesService } from './amenities.service';
 import { RolesGuard } from '@/modules/auth/guards';
@@ -49,19 +50,10 @@ export class AmenitiesController {
   @Post()
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('icon'))
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        slug: { type: 'string' },
-        type: { type: 'string', enum: ['ROOM', 'PROPERTY', 'SERVICE'] },
-        icon: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Amenity has been successfully created.',
+    type: Amenity,
   })
   async create(@Body() dto: CreateAmenityDto, @UploadedFile() icon?: Express.Multer.File) {
     return this.amenitiesService.create(dto, icon);
