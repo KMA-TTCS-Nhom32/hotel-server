@@ -20,8 +20,8 @@ export class CloudinaryService {
       allowedFormats: CLOUDINARY_ALLOW_IMAGE_FORMATS,
       transformation: isUploadingIcon
         ? {
-            width: 64,
             height: 64,
+            width: 'auto',
             crop: 'fill',
             format: 'svg',
             quality: 'auto',
