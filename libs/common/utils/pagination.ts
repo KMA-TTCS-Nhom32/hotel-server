@@ -18,8 +18,8 @@ export interface PaginatedResponse<T> {
 }
 
 export const getPaginationParams = (params: PaginationParams) => {
-  const page = Number(params.page) || 1;
-  const pageSize = Number(params.pageSize) || DEFAULT_PAGESIZE;
+  const page = params.page || 1;
+  const pageSize = params.pageSize || DEFAULT_PAGESIZE;
   const skip = (page - 1) * pageSize;
 
   return {

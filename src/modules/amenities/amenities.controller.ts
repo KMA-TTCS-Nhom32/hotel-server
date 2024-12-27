@@ -23,28 +23,26 @@ import { AmenitiesService } from './amenities.service';
 import { RolesGuard } from '@/modules/auth/guards';
 import { Public, Roles } from '@/modules/auth/decorators';
 import { UserRole } from '@prisma/client';
-import { DEFAULT_PAGESIZE, PaginatedResponse } from 'libs/common';
 import { Amenity } from './models';
 
 @ApiTags('amenities')
-@ApiExtraModels(FilterAmenityDto, SortAmenityDto)
+@ApiExtraModels(QueryAmenityDto, FilterAmenityDto, SortAmenityDto)
 @Controller('amenities')
 export class AmenitiesController {
   constructor(private readonly amenitiesService: AmenitiesService) {}
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Get all amenities' })
+  @ApiOperation({ summary: 'Get amenities' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Amenities found',
     type: AmenitiesPaginationResultDto,
   })
-  async findAll(@Query() query: QueryAmenityDto): Promise<PaginatedResponse<Amenity>> {
-    const page = query?.page ?? 1;
-    const pageSize = query?.pageSize ?? DEFAULT_PAGESIZE;
+  async findMany(@Query() query: QueryAmenityDto) {
+    const { page, pageSize, filters, sort } = query;
 
-    return this.amenitiesService.findMany({ page, pageSize }, query.filters, query.sort);
+    return this.amenitiesService.findMany({ page, pageSize }, filters, sort);
   }
 
   @Public()
