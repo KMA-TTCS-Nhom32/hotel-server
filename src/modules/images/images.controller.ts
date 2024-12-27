@@ -30,7 +30,6 @@ import {
   IMAGE_FILE_MAX_SIZE_IN_BYTES,
   IMAGE_FILE_MAX_SIZE_IN_MB,
   MULTI_IMAGE_FILE_MAX_COUNT,
-  CLOUDINARY_ALLOW_ICON_FORMATS,
   ICON_FILE_MAX_SIZE_IN_BYTES,
   ICON_FILE_MAX_SIZE_IN_MB,
 } from '@/third-party/cloudinary/cloudinary.constant';
@@ -151,12 +150,12 @@ export class ImagesController {
         fileSize: ICON_FILE_MAX_SIZE_IN_BYTES,
       },
       fileFilter: (req, file, cb) => {
-        if (!new RegExp(`\\.(${CLOUDINARY_ALLOW_ICON_FORMATS.join('|')})$`).exec(
+        if (!new RegExp(`\\.(${CLOUDINARY_ALLOW_IMAGE_FORMATS.join('|')})$`).exec(
           file.originalname?.toLowerCase(),
         )) {
           return cb(
             new BadRequestException(
-              `Only ${CLOUDINARY_ALLOW_ICON_FORMATS.join(', ')} files are allowed!`,
+              `Only ${CLOUDINARY_ALLOW_IMAGE_FORMATS.join(', ')} files are allowed!`,
             ),
             false,
           );
