@@ -54,10 +54,11 @@ export class BranchService extends BaseService {
 
   async create(createBranchDto: CreateBranchDto): Promise<Branch> {
     try {
+      console.log('createBranchDto', createBranchDto);
       const branchData = await this.databaseService.hotelBranch.create({
         data: {
-          ...createBranchDto,
           //   location: this.formatLocation(createBranchDto.location),
+          ...createBranchDto,
           thumbnail: this.formatImage(createBranchDto.thumbnail),
           images: createBranchDto.images.map((img) => this.formatImage(img)),
         },
