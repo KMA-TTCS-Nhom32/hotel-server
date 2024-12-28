@@ -83,7 +83,7 @@ model HotelBranch {
     phone       String
     is_active   Boolean     @default(true)
     address     String
-    location    Json // location include latitude and longitude
+    location    Json?       @default("{ \"latitude\": \"0\", \"longitude\": \"0\" }")
     provinceId  String
     province    Province    @relation(fields: [provinceId], references: [id])
     rooms       HotelRoom[]

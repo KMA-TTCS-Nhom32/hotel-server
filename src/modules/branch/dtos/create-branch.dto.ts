@@ -11,23 +11,23 @@ import {
 } from 'class-validator';
 import { Type as TransformType } from 'class-transformer';
 
-class LocationDto {
-  @ApiProperty({
-    example: 10.762622,
-    description: 'Latitude coordinate',
-  })
-  @IsNumber()
-  @IsNotEmpty()
-  latitude: number;
+// class LocationDto {
+//   @ApiProperty({
+//     example: 10.762622,
+//     description: 'Latitude coordinate',
+//   })
+//   @IsNumber()
+//   @IsNotEmpty()
+//   latitude: number;
 
-  @ApiProperty({
-    example: 106.660172,
-    description: 'Longitude coordinate',
-  })
-  @IsNumber()
-  @IsNotEmpty()
-  longitude: number;
-}
+//   @ApiProperty({
+//     example: 106.660172,
+//     description: 'Longitude coordinate',
+//   })
+//   @IsNumber()
+//   @IsNotEmpty()
+//   longitude: number;
+// }
 
 export class CreateBranchDto {
   @ApiProperty({
@@ -113,15 +113,15 @@ export class CreateBranchDto {
   @IsString()
   address: string;
 
-  @ApiProperty({
-    example: { latitude: 10.762622, longitude: 106.660172 },
-    description: "Branch's geographical location",
-    type: LocationDto,
-  })
-  @IsNotEmpty()
-  @ValidateNested()
-  @TransformType(() => LocationDto)
-  location: LocationDto;
+//   @ApiProperty({
+//     example: { latitude: 10.762622, longitude: 106.660172 },
+//     description: "Branch's geographical location",
+//     type: LocationDto,
+//   })
+//   @IsNotEmpty()
+//   @ValidateNested()
+//   @TransformType(() => LocationDto)
+//   location: LocationDto;
 
   @ApiProperty({
     example: 4.5,

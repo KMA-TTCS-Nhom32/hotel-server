@@ -33,7 +33,7 @@ export class AmenitiesService {
     };
   }
 
-  private mapIconToImage(iconData: any): Image | null {
+  private mapIconToImage(iconData: any) {
     if (!iconData) return null;
     return {
       url: iconData.secure_url || iconData.url,

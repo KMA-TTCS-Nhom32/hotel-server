@@ -33,22 +33,22 @@ export class BranchService extends BaseService {
     };
   }
 
-  private formatLocation(location: {
-    latitude: number;
-    longitude: number;
-  }): Record<string, number> {
-    return {
-      latitude: location.latitude,
-      longitude: location.longitude,
-    };
-  }
+  //   private formatLocation(location: {
+  //     latitude: number;
+  //     longitude: number;
+  //   }): Record<string, number> {
+  //     return {
+  //       latitude: location.latitude,
+  //       longitude: location.longitude,
+  //     };
+  //   }
 
   async create(createBranchDto: CreateBranchDto): Promise<Branch> {
     try {
       const branchData = await this.databaseService.hotelBranch.create({
         data: {
           ...createBranchDto,
-          location: this.formatLocation(createBranchDto.location),
+          //   location: this.formatLocation(createBranchDto.location),
           thumbnail: this.formatImage(createBranchDto.thumbnail),
           images: createBranchDto.images.map((img) => this.formatImage(img)),
         },
@@ -59,7 +59,7 @@ export class BranchService extends BaseService {
         thumbnail: branchData.thumbnail as unknown as Image,
         images: branchData.images as unknown as Image[],
         id: branchData.id,
-        location: branchData.location as { latitude: number; longitude: number },
+        // location: branchData.location as { latitude: number; longitude: number },
       });
     } catch (error) {
       console.error('Create branch error:', error);
@@ -87,7 +87,7 @@ export class BranchService extends BaseService {
             ...branch,
             thumbnail: branch.thumbnail as unknown as Image,
             images: branch.images as unknown as Image[],
-            location: branch.location as { latitude: number; longitude: number },
+            // location: branch.location as { latitude: number; longitude: number },
           }),
       );
     } catch (error) {
@@ -175,7 +175,7 @@ export class BranchService extends BaseService {
               ...branch,
               thumbnail: branch.thumbnail as unknown as Image,
               images: branch.images as unknown as Image[],
-              location: branch.location as { latitude: number; longitude: number },
+              //   location: branch.location as { latitude: number; longitude: number },
             }),
         ),
         total,
@@ -220,7 +220,7 @@ export class BranchService extends BaseService {
         ...branch,
         thumbnail: branch.thumbnail as unknown as Image,
         images: branch.images as unknown as Image[],
-        location: branch.location as { latitude: number; longitude: number },
+        // location: branch.location as { latitude: number; longitude: number },
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -251,9 +251,9 @@ export class BranchService extends BaseService {
         // 2. Prepare update data
         const updateData: any = {
           ...updateBranchDto,
-          ...(updateBranchDto.location && {
-            location: this.formatLocation(updateBranchDto.location),
-          }),
+          //   ...(updateBranchDto.location && {
+          //     location: this.formatLocation(updateBranchDto.location),
+          //   }),
           ...(updateBranchDto.thumbnail && {
             thumbnail: this.formatImage(updateBranchDto.thumbnail),
           }),
@@ -282,7 +282,7 @@ export class BranchService extends BaseService {
           ...updatedBranch,
           thumbnail: updatedBranch.thumbnail as unknown as Image,
           images: updatedBranch.images as unknown as Image[],
-          location: updatedBranch.location as { latitude: number; longitude: number },
+          //   location: updatedBranch.location as { latitude: number; longitude: number },
         });
       });
     } catch (error) {
@@ -339,7 +339,7 @@ export class BranchService extends BaseService {
         ...restoredBranch,
         thumbnail: restoredBranch.thumbnail as unknown as Image,
         images: restoredBranch.images as unknown as Image[],
-        location: restoredBranch.location as { latitude: number; longitude: number },
+        // location: restoredBranch.location as { latitude: number; longitude: number },
       });
     } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -366,7 +366,7 @@ export class BranchService extends BaseService {
             ...branch,
             thumbnail: branch.thumbnail as unknown as Image,
             images: branch.images as unknown as Image[],
-            location: branch.location as { latitude: number; longitude: number },
+            // location: branch.location as { latitude: number; longitude: number },
           }),
       );
     } catch (error) {
@@ -438,7 +438,7 @@ export class BranchService extends BaseService {
             ...branch,
             thumbnail: branch.thumbnail as unknown as Image,
             images: branch.images as unknown as Image[],
-            location: branch.location as { latitude: number; longitude: number },
+            // location: branch.location as { latitude: number; longitude: number },
           }),
       );
 

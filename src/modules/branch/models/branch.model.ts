@@ -79,12 +79,12 @@ export class Branch extends AbstractModel {
   })
   address: string;
 
-  @ApiProperty({
-    type: Object,
-    example: { latitude: 10.762622, longitude: 106.660172 },
-    description: "Branch's geographical location",
-  })
-  location: { latitude: number; longitude: number };
+  //   @ApiProperty({
+  //     type: Object,
+  //     example: { latitude: 10.762622, longitude: 106.660172 },
+  //     description: "Branch's geographical location",
+  //   })
+  //   location: { latitude: number; longitude: number };
 
   @ApiProperty({
     type: Number,
