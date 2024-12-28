@@ -1,20 +1,26 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { CreateBranchDto } from './create-branch.dto';
 import { NearBy } from '../models';
-import { IsArray, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateBranchDto extends PartialType(CreateBranchDto) {
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     description: 'Branch amenities',
   })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  amenityIds: string[];
+  amenityIds?: string[];
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [NearBy],
     description: 'Nearby locations',
   })
-  nearBy: NearBy[];
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NearBy)
+  @IsArray()
+  nearBy?: NearBy[];
 }
