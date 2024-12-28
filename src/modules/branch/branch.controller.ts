@@ -32,9 +32,9 @@ import {
 export class BranchController {
   constructor(private readonly branchService: BranchService) {}
 
-  @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Post()
   @ApiOperation({ summary: 'Create a new branch' })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -103,9 +103,9 @@ export class BranchController {
     return this.branchService.findByIdOrSlug(idOrSlug);
   }
 
-  @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Patch(':id')
   @ApiOperation({ summary: 'Update a branch' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -124,9 +124,9 @@ export class BranchController {
     return this.branchService.update(id, updateBranchDto);
   }
 
-  @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Delete(':id')
   @ApiOperation({ summary: 'Delete a branch' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
@@ -148,18 +148,18 @@ export class BranchController {
     await this.branchService.remove(id);
   }
 
-  @Post(':id/restore')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Post(':id/restore')
   @ApiOperation({ summary: 'Restore a soft-deleted branch' })
   @ApiResponse({ status: 200, description: 'Branch restored successfully' })
   async restore(@Param('id') id: string) {
     return this.branchService.restore(id);
   }
 
-  @Get('deleted')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Get('deleted')
   @ApiOperation({ summary: 'Get all soft-deleted branches' })
   @ApiResponse({
     status: HttpStatus.OK,

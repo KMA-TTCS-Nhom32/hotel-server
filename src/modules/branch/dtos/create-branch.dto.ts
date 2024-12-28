@@ -9,7 +9,7 @@ import {
   IsNumber,
   ValidateNested,
 } from 'class-validator';
-import { Type as TransformType } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 // class LocationDto {
 //   @ApiProperty({
@@ -44,9 +44,8 @@ export class CreateBranchDto {
     description: "The branch's thumbnail image.",
     type: Image,
   })
+  @Type(() => Image)
   @IsNotEmpty()
-  @ValidateNested()
-  @TransformType(() => Image)
   thumbnail: Image;
 
   @ApiProperty({
@@ -55,8 +54,9 @@ export class CreateBranchDto {
     type: [Image],
   })
   @IsArray()
+  @IsNotEmpty()
   @ValidateNested({ each: true })
-  @TransformType(() => Image)
+  @Type(() => Image)
   images: Image[];
 
   @ApiProperty({
