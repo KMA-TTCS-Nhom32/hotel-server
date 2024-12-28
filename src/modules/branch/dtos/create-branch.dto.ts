@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsArray,
   IsNumber,
   ValidateNested,
 } from 'class-validator';
@@ -53,8 +52,6 @@ export class CreateBranchDto {
     description: "The branch's images.",
     type: [Image],
   })
-  @IsArray()
-  @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => Image)
   images: Image[];
