@@ -6,7 +6,6 @@ import {
   IsOptional,
   IsString,
   IsNumber,
-  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -52,7 +51,6 @@ export class CreateBranchDto {
     description: "The branch's images.",
     type: [Image],
   })
-  @ValidateNested({ each: true })
   @Type(() => Image)
   images: Image[];
 
