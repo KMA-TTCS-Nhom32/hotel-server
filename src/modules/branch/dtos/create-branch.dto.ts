@@ -53,10 +53,9 @@ export class CreateBranchDto {
     description: "The branch's images.",
     type: [Image],
   })
-  @IsArray()
-  @ValidateNested({ each: true })
+  @ValidateNested()
   @Type(() => Image)
-  @IsNotEmpty()
+  @IsArray()
   images: Image[];
 
   @ApiProperty({

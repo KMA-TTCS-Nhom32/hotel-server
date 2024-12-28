@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class Image {
   @ApiProperty({
@@ -6,6 +7,8 @@ export class Image {
     description: "The image's URL.",
     type: String,
   })
+  @IsNotEmpty()
+  @IsString()
   url: string;
 
   @ApiProperty({
@@ -13,5 +16,7 @@ export class Image {
     description: "The image's public ID in Cloudinary.",
     type: String,
   })
+  @IsNotEmpty()
+  @IsString()
   publicId: string;
 }
