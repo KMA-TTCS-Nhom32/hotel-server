@@ -9,7 +9,7 @@ import { BaseService } from '@/common/services/base.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
-import { Branch, BranchDetail } from './models';
+import { Branch, BranchDetail, NearBy } from './models';
 import { Image } from '@/modules/images/models';
 import { FilterBranchesDto, SortBranchDto } from './dtos/query-branches.dto';
 
@@ -19,6 +19,8 @@ import {
   PaginationParams,
   createInfinityPaginationResponse,
 } from 'libs/common/utils';
+import { Amenity } from '../amenities/models';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class BranchService extends BaseService {
@@ -31,6 +33,13 @@ export class BranchService extends BaseService {
       url: image.url,
       publicId: image.publicId,
     };
+  }
+
+  private formatNearBy(nearBy: NearBy[]): Record<string, any>[] {
+    return nearBy.map((item) => ({
+      name: item.name,
+      distance: item.distance,
+    }));
   }
 
   //   private formatLocation(location: {
@@ -221,6 +230,8 @@ export class BranchService extends BaseService {
         thumbnail: branch.thumbnail as unknown as Image,
         images: branch.images as unknown as Image[],
         // location: branch.location as { latitude: number; longitude: number },
+        amenities: branch.amenities as unknown as Amenity[],
+        nearBy: branch.nearBy as unknown as NearBy[],
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -228,7 +239,33 @@ export class BranchService extends BaseService {
     }
   }
 
-  async update(id: string, updateBranchDto: UpdateBranchDto): Promise<Branch> {
+  private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
+    const updateData = {
+      ...(updateBranchDto.thumbnail && {
+        thumbnail: this.formatImage(updateBranchDto.thumbnail),
+      }),
+      ...(updateBranchDto.images && {
+        images: updateBranchDto.images.map((img) => this.formatImage(img)),
+      }),
+      ...(updateBranchDto.amenityIds && {
+        amenities: { set: updateBranchDto.amenityIds.map((id) => ({ id })) },
+      }),
+      ...(updateBranchDto.nearBy && {
+        nearBy: this.formatNearBy(updateBranchDto.nearBy),
+      }),
+      ...(updateBranchDto.provinceId && {
+        province: { connect: { id: updateBranchDto.provinceId } },
+      }),
+      ...updateBranchDto,
+    };
+
+    delete updateData.amenityIds;
+    delete updateData.provinceId;
+
+    return updateData as any;
+  }
+
+  async update(id: string, updateBranchDto: UpdateBranchDto) {
     try {
       // Start transaction
       return await this.databaseService.$transaction(async (prisma) => {
@@ -249,40 +286,28 @@ export class BranchService extends BaseService {
         }
 
         // 2. Prepare update data
-        const updateData: any = {
-          ...updateBranchDto,
-          //   ...(updateBranchDto.location && {
-          //     location: this.formatLocation(updateBranchDto.location),
-          //   }),
-          ...(updateBranchDto.thumbnail && {
-            thumbnail: this.formatImage(updateBranchDto.thumbnail),
-          }),
-          ...(updateBranchDto.images && {
-            images: updateBranchDto.images.map((img) => this.formatImage(img)),
-          }),
-        };
+        const updateData = this.prepareUpdateData(updateBranchDto);
 
         // 3. Update branch
         const updatedBranch = await prisma.hotelBranch.update({
           where: { id },
           data: updateData,
           include: {
+            province: true,
             amenities: true,
             rooms: {
-              select: {
-                id: true,
-                name: true,
-                status: true,
-              },
+              where: { isDeleted: false },
             },
           },
         });
 
-        return new Branch({
+        return new BranchDetail({
           ...updatedBranch,
           thumbnail: updatedBranch.thumbnail as unknown as Image,
           images: updatedBranch.images as unknown as Image[],
           //   location: updatedBranch.location as { latitude: number; longitude: number },
+          amenities: updatedBranch.amenities as unknown as Amenity[],
+          nearBy: updatedBranch.nearBy as unknown as NearBy[],
         });
       });
     } catch (error) {

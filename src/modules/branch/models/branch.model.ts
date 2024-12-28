@@ -4,6 +4,21 @@ import { AbstractModel } from 'libs/common/abstract';
 import { Nullable } from 'libs/common/types';
 import { HotelRoom } from '@/modules/room/models';
 import { Province } from '@/modules/provinces/models';
+import { Amenity } from '@/modules/amenities/models';
+
+export class NearBy {
+  @ApiProperty({
+    type: String,
+    description: 'Name of the nearby location',
+  })
+  name: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Distance from the branch',
+  })
+  distance: string;
+}
 
 export class Branch extends AbstractModel {
   constructor(data: Nullable<Branch>) {
@@ -101,8 +116,21 @@ export class BranchDetail extends Branch {
   }
 
   @ApiProperty({
+    type: [Amenity],
+    description: 'Amenities available in the branch',
+  })
+  amenities: Amenity[];
+
+  @ApiProperty({
     type: [HotelRoom],
     description: 'List of rooms available in the branch',
   })
   rooms: HotelRoom[];
+
+  @ApiProperty({
+    type: [NearBy],
+    description: 'Nearby locations',
+    example: [{ name: 'Supermarket', distance: '1 km' }],
+  })
+  nearBy: NearBy[];
 }

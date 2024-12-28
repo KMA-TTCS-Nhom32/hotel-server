@@ -88,6 +88,7 @@ model HotelBranch {
     province    Province    @relation(fields: [provinceId], references: [id])
     rooms       HotelRoom[]
     rating      Float?
+    nearBy      Json[]      @default([])
     isDeleted   Boolean     @default(false)
     deletedAt   DateTime?
     createdAt   DateTime    @default(now())
