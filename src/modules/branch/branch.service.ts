@@ -20,7 +20,7 @@ import {
   createInfinityPaginationResponse,
 } from 'libs/common/utils';
 import { Amenity } from '../amenities/models';
-import { Prisma } from '@prisma/client';
+import { HotelRoom } from '../room/models';
 
 @Injectable()
 export class BranchService extends BaseService {
@@ -231,6 +231,7 @@ export class BranchService extends BaseService {
         thumbnail: branch.thumbnail as unknown as Image,
         images: branch.images as unknown as Image[],
         // location: branch.location as { latitude: number; longitude: number },
+        rooms: branch.rooms as unknown as HotelRoom[],
         amenities: branch.amenities as unknown as Amenity[],
         nearBy: branch.nearBy as unknown as NearBy[],
       });
@@ -307,6 +308,7 @@ export class BranchService extends BaseService {
           thumbnail: updatedBranch.thumbnail as unknown as Image,
           images: updatedBranch.images as unknown as Image[],
           //   location: updatedBranch.location as { latitude: number; longitude: number },
+          rooms: updatedBranch.rooms as unknown as HotelRoom[],
           amenities: updatedBranch.amenities as unknown as Amenity[],
           nearBy: updatedBranch.nearBy as unknown as NearBy[],
         });
@@ -325,10 +327,14 @@ export class BranchService extends BaseService {
           include: {
             rooms: {
               include: {
-                bookings: {
-                  where: {
-                    status: {
-                      in: ['PENDING', 'WAITING_FOR_CHECK_IN', 'CHECKED_IN'],
+                flat_rooms: {
+                  include: {
+                    bookings: {
+                      where: {
+                        status: {
+                          in: ['PENDING', 'WAITING_FOR_CHECK_IN', 'CHECKED_IN'],
+                        },
+                      },
                     },
                   },
                 },
@@ -344,7 +350,9 @@ export class BranchService extends BaseService {
           );
         }
 
-        const hasActiveBookings = branch.rooms.some((room) => room.bookings.length > 0);
+        const hasActiveBookings = branch.rooms.some((room) =>
+          room.flat_rooms.some((fr) => fr.bookings.length > 0),
+        );
         if (hasActiveBookings) {
           throw new HttpException(
             { status: HttpStatus.CONFLICT, message: 'Cannot delete branch with active bookings' },

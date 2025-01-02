@@ -74,71 +74,73 @@ model Province {
 }
 
 model HotelBranch {
-    id          String      @id @default(cuid())
+    id          String       @id @default(cuid())
     thumbnail   Json
     images      Json[]
     name        String
     slug        String
     description String
     phone       String
-    is_active   Boolean     @default(true)
+    is_active   Boolean      @default(true)
     address     String
-    location    Json?       @default("{ \"latitude\": \"0\", \"longitude\": \"0\" }")
+    location    Json?        @default("{ \"latitude\": \"0\", \"longitude\": \"0\" }")
     provinceId  String
-    province    Province    @relation(fields: [provinceId], references: [id])
-    rooms       HotelRoom[]
+    province    Province     @relation(fields: [provinceId], references: [id])
     rating      Float?
-    nearBy      Json[]      @default([])
-    isDeleted   Boolean     @default(false)
+    nearBy      Json[]       @default([])
+    isDeleted   Boolean      @default(false)
     deletedAt   DateTime?
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
     amenities   Amenity[]
+    rooms       RoomDetail[]
 }
 
 model HotelRoom {
-    id                      String             @id @default(cuid())
-    name                    String
-    slug                    String
-    thumbnail               Json
-    images                  Json[]
-    status                  HotelRoomStatus
-    branchId                String
-    branch                  HotelBranch        @relation(fields: [branchId], references: [id])
-    detailId                String
-    detail                  RoomDetail         @relation(fields: [detailId], references: [id])
-    base_price_per_hour     Float
-    special_price_per_hour  Float?
-    base_price_per_night    Float
-    special_price_per_night Float?
-    base_price_per_day      Float
-    special_price_per_day   Float?
-    roomPriceHistories      RoomPriceHistory[]
-    promotions              RoomPromotion[]
-    bookings                Booking[]
-    reviews                 Review[]
-    favorited_by            UserPreference[]   @relation("UserFavoriteRooms")
-    isDeleted               Boolean            @default(false)
-    deletedAt               DateTime?
-    createdAt               DateTime           @default(now())
-    updatedAt               DateTime           @updatedAt
-}
-
-model RoomDetail {
     id           String           @id @default(cuid())
     name         String
-    description  String
-    room_type    HotelRoomType
-    bed_type     HotelRoomBedType
-    amenities    Amenity[]
-    max_adults   Int              @default(2)
-    max_children Int              @default(2)
-    quantity     Int              @default(1)
-    rooms        HotelRoom[]
+    slug         String
+    status       HotelRoomStatus
+    detailId     String
+    detail       RoomDetail       @relation(fields: [detailId], references: [id])
+    bookings     Booking[]
+    reviews      Review[]
+    favorited_by UserPreference[] @relation("UserFavoriteRooms")
     isDeleted    Boolean          @default(false)
     deletedAt    DateTime?
     createdAt    DateTime         @default(now())
     updatedAt    DateTime         @updatedAt
+}
+
+model RoomDetail {
+    id                      String             @id @default(cuid())
+    name                    String
+    slug                    String
+    description             String
+    branchId                String
+    branch                  HotelBranch        @relation(fields: [branchId], references: [id])
+    thumbnail               Json
+    images                  Json[]
+    room_type               HotelRoomType
+    bed_type                HotelRoomBedType
+    amenities               Amenity[]
+    base_price_per_hour     Decimal            @db.Decimal(9, 0)
+    special_price_per_hour  Decimal?           @default(0) @db.Decimal(9, 0)
+    base_price_per_night    Decimal            @db.Decimal(9, 0)
+    special_price_per_night Decimal?           @default(0) @db.Decimal(9, 0)
+    base_price_per_day      Decimal            @db.Decimal(9, 0)
+    special_price_per_day   Decimal?           @default(0) @db.Decimal(9, 0)
+    roomPriceHistories      RoomPriceHistory[]
+    promotions              RoomPromotion[]
+    max_adults              Int                @default(2)
+    max_children            Int                @default(2)
+    quantity                Int                @default(1)
+    flat_rooms              HotelRoom[]
+    rating                  Float?
+    isDeleted               Boolean            @default(false)
+    deletedAt               DateTime?
+    createdAt               DateTime           @default(now())
+    updatedAt               DateTime           @updatedAt
 }
 
 model Amenity {
@@ -194,6 +196,9 @@ model Booking {
     cancel_reason    String?
     payment_method   PaymentMethod?
     number_of_guests Int
+    adults           Int            @default(1)
+    children         Int            @default(0)
+    infants          Int            @default(0)
     special_requests String?
     check_in_time    DateTime?
     check_out_time   DateTime?
@@ -217,9 +222,9 @@ enum BookingType {
 
 model Review {
     id                  String    @id @default(cuid())
-    rating_services     Int       @default(0)
-    rating_cleanliness  Int       @default(0)
-    rating_comfort      Int       @default(0)
+    rating_services     Int
+    rating_cleanliness  Int
+    rating_comfort      Int
     is_anonymous_review Boolean   @default(false)
     comment             String?
     roomId              String
@@ -256,8 +261,8 @@ enum PaymentMethod {
 
 model RoomPriceHistory {
     id             String        @id @default(cuid())
-    roomId         String
-    room           HotelRoom     @relation(fields: [roomId], references: [id])
+    roomDetailId   String
+    roomDetail     RoomDetail    @relation(fields: [roomDetailId], references: [id])
     price_type     RoomPriceType
     price          Float
     effective_from DateTime
@@ -291,12 +296,15 @@ model RefreshToken {
 model RoomPromotion {
     id             String       @id @default(cuid())
     code           String       @unique
+    applied_type   BookingType
     discount_type  DiscountType
     discount_value Float
     start_date     DateTime
     end_date       DateTime
+    min_hours      Int?
     min_nights     Int?
-    rooms          HotelRoom[]
+    min_days       Int?
+    applied_rooms  RoomDetail[]
     createdAt      DateTime     @default(now())
     updatedAt      DateTime     @updatedAt
 }

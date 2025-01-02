@@ -61,7 +61,7 @@ export class BranchController {
     description: 'Returns latest branches',
     type: [Branch],
   })
-  getLatestBranches(@Body() limit: number) {
+  getLatestBranches(@Body() limit?: number) {
     return this.branchService.getLatestBranches(limit);
   }
 

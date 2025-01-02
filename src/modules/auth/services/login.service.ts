@@ -18,7 +18,7 @@ export class LoginService {
     return input.includes('@') ? 'email' : 'phone';
   }
 
-  private async comparePassword(password: string, hashPassword: string) {
+  async comparePassword(password: string, hashPassword: string) {
     return await compare(password, hashPassword);
   }
 

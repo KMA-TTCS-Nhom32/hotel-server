@@ -6,24 +6,31 @@ import { AbstractModel } from 'libs/common';
 export class SoftDeleteService {
   constructor(private readonly db: DatabaseService) {}
 
+  private getPrismaModel(modelName: string) {
+    // Convert PascalCase to camelCase (e.g., HotelRoom -> hotelRoom)
+    const camelCaseModel = modelName.charAt(0).toLowerCase() + modelName.slice(1);
+    
+    // Check if the model exists in Prisma client
+    if (!(camelCaseModel in this.db)) {
+      throw new Error(`Model ${modelName} not found in Prisma client`);
+    }
+
+    return this.db[camelCaseModel];
+  }
+
   protected async softDelete(
     model: string,
     id: string,
     additionalChecks?: () => Promise<void>,
   ): Promise<void> {
-    const prismaModel = this.db[model.toLowerCase()];
-
-    if (!prismaModel) {
-      throw new Error(`Model ${model} not found`);
-    }
+    const prismaModel = this.getPrismaModel(model);
 
     await this.db.$transaction(async (prisma) => {
-      // Run any additional checks if provided
       if (additionalChecks) {
         await additionalChecks();
       }
 
-      await prisma[model.toLowerCase()].update({
+      await prismaModel.update({
         where: { id },
         data: {
           isDeleted: true,
@@ -34,11 +41,7 @@ export class SoftDeleteService {
   }
 
   protected async restoreDeleted<T extends AbstractModel>(model: string, id: string): Promise<T> {
-    const prismaModel = this.db[model.toLowerCase()];
-
-    if (!prismaModel) {
-      throw new Error(`Model ${model} not found`);
-    }
+    const prismaModel = this.getPrismaModel(model);
 
     return await prismaModel.update({
       where: { id },

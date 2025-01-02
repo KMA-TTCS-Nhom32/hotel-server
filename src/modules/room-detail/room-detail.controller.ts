@@ -1,15 +1,31 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
 import { RoomDetailService } from './room-detail.service';
 import { CreateRoomDetailDto, UpdateRoomDetailDto } from './dtos/create-update-room-detail.dto';
 import { UserRole } from '@prisma/client';
-import { QueryRoomDetailDto } from './dtos/query-room-detail.dto';
 import { RolesGuard } from '@/modules/auth/guards';
 import { Roles } from '@/modules/auth/decorators';
 import { RoomDetail } from './models';
-import { RoomDetailPaginationResultDto } from './dtos';
+import {
+  FilterRoomDetailDto,
+  QueryRoomDetailDto,
+  RoomDetailPaginationResultDto,
+  SortRoomDetailDto,
+} from './dtos';
 
 @ApiTags('Room Details')
+@ApiExtraModels(QueryRoomDetailDto, FilterRoomDetailDto, SortRoomDetailDto)
 @Controller('room-details')
 export class RoomDetailController {
   constructor(private readonly roomDetailService: RoomDetailService) {}
@@ -36,11 +52,7 @@ export class RoomDetailController {
   })
   findMany(@Query() query: QueryRoomDetailDto) {
     const { page, pageSize, filters, sort } = query;
-    return this.roomDetailService.findMany(
-      { page, pageSize },
-      filters,
-      sort,
-    );
+    return this.roomDetailService.findMany({ page, pageSize }, filters, sort);
   }
 
   @Get(':id')
@@ -63,7 +75,10 @@ export class RoomDetailController {
     description: 'Room detail has been successfully updated.',
     type: RoomDetail,
   })
-  update(@Param('id') id: string, @Body() updateRoomDetailDto: UpdateRoomDetailDto): Promise<RoomDetail> {
+  update(
+    @Param('id') id: string,
+    @Body() updateRoomDetailDto: UpdateRoomDetailDto,
+  ): Promise<RoomDetail> {
     return this.roomDetailService.update(id, updateRoomDetailDto);
   }
 

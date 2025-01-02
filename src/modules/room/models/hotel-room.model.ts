@@ -1,7 +1,7 @@
 import { AbstractModel } from 'libs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { HotelRoomStatus } from '@prisma/client';
-import { Image } from '@/modules/images/models';
+import { RoomDetail } from '@/modules/room-detail/models';
 // import { RoomPriceHistory } from '@/modules/room-price/models';
 // import { RoomPromotion } from '@/modules/promotions/models';
 // import { Booking } from '@/modules/bookings/models';
@@ -13,41 +13,41 @@ export class HotelRoom extends AbstractModel {
     Object.assign(this, data);
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    type: String,
+    example: 'Hotel Room Name',
+    description: "Hotel Room's name",
+  })
   name: string;
 
-  @ApiProperty({ type: Image })
-  thumbnail: any;
+  @ApiProperty({
+    type: String,
+    example: 'hotel-room-slug',
+    description: "Hotel Room's slug",
+  })
+  slug: string;
 
-  @ApiProperty({ type: () => [Image] })
-  images: any[];
-
-  @ApiProperty({ enum: HotelRoomStatus })
+  @ApiProperty({
+    enum: HotelRoomStatus,
+    example: HotelRoomStatus.AVAILABLE,
+    description: "Hotel Room's status",
+    type: String,
+  })
   status: HotelRoomStatus;
 
-  @ApiProperty()
-  branchId: string;
-
-  @ApiProperty()
+  @ApiProperty({
+    type: String,
+    example: 'detail-id-123',
+    description: 'ID of the room detail',
+  })
   detailId: string;
 
-  @ApiProperty()
-  base_price_per_hour: number;
-
-  @ApiProperty({ required: false })
-  special_price_per_hour?: number;
-
-  @ApiProperty()
-  base_price_per_night: number;
-
-  @ApiProperty({ required: false })
-  special_price_per_night?: number;
-
-  @ApiProperty()
-  base_price_per_day: number;
-
-  @ApiProperty({ required: false })
-  special_price_per_day?: number;
+  @ApiProperty({
+    type: RoomDetail,
+    description: 'Room detail',
+  })
+  detail?: RoomDetail;
+}
 
 //   @ApiProperty({ type: () => [RoomPriceHistory], required: false })
 //   roomPriceHistories?: RoomPriceHistory[];
@@ -60,4 +60,3 @@ export class HotelRoom extends AbstractModel {
 
 //   @ApiProperty({ type: () => [Review], required: false })
 //   reviews?: Review[];
-}

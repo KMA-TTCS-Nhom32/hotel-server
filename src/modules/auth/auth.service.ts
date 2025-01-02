@@ -1,7 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { LoginDto } from './dtos';
+import { ChangePasswordDto, LoginDto, UpdateProfileDto } from './dtos';
 import { TokenResponse } from './types';
-import { LoginService, RefreshTokenService, RegisterService, TokenService, CommonService } from './services';
+import {
+  LoginService,
+  RefreshTokenService,
+  RegisterService,
+  TokenService,
+  CommonService,
+} from './services';
 import { VerificationService } from '../verification/verification.service';
 
 import { AuthErrorMessageEnum, CommonErrorMessagesEnum } from 'libs/common/enums';
@@ -45,7 +51,7 @@ export class AuthService {
   async refreshTokens(refreshToken: string): Promise<TokenResponse> {
     try {
       const payload = this.tokenService.verifyRefreshToken(refreshToken);
-      
+
       if (!payload || !payload.jti) {
         throw new HttpException(
           {
@@ -55,9 +61,9 @@ export class AuthService {
           HttpStatus.UNAUTHORIZED,
         );
       }
-  
+
       const token = await this.refreshTokenService.validateRefreshToken(payload.jti);
-  
+
       if (!token) {
         throw new HttpException(
           {
@@ -67,7 +73,7 @@ export class AuthService {
           HttpStatus.UNAUTHORIZED,
         );
       }
-  
+
       if (token.isRevoked) {
         throw new HttpException(
           {
@@ -77,7 +83,7 @@ export class AuthService {
           HttpStatus.UNAUTHORIZED,
         );
       }
-  
+
       if (token.expiresAt < new Date()) {
         throw new HttpException(
           {
@@ -87,13 +93,13 @@ export class AuthService {
           HttpStatus.UNAUTHORIZED,
         );
       }
-  
+
       // Rest of the code remains the same
       const [newAccessToken, newRefreshToken] = await Promise.all([
         this.tokenService.generateAccessToken(token.user),
         this.refreshTokenService.createRefreshToken(token.userId, token.ip, token.device),
       ]);
-  
+
       return {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
@@ -102,12 +108,12 @@ export class AuthService {
     } catch (error) {
       // Log the error for debugging
       console.error('Refresh token error:', error);
-      
+
       // If it's already an HTTP exception, rethrow it
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       // Otherwise, throw a generic error
       throw new HttpException(
         {
@@ -233,5 +239,148 @@ export class AuthService {
 
   async getProfile(userId: string): Promise<User> {
     return this.loginService.findUserByIdOrThrow(userId);
+  }
+
+  private validateContactUpdate(user: User, updateProfileDto: UpdateProfileDto) {
+    // Combined validation for both email and phone
+    if (
+      (updateProfileDto.email && user.identifier_type === AccountIdentifier.EMAIL) ||
+      (updateProfileDto.phone && user.identifier_type === AccountIdentifier.PHONE)
+    ) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: `Cannot update ${user.identifier_type.toLowerCase()} when registered with ${user.identifier_type.toLowerCase()}`,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private async validateContactUniqueness(userId: string, email?: string, phone?: string) {
+    if (email) {
+      const existingUser = await this.databaseService.user.findUnique({
+        where: { email },
+      });
+      if (existingUser && existingUser.id !== userId) {
+        throw new HttpException(
+          {
+            status: HttpStatus.CONFLICT,
+            message: CommonErrorMessagesEnum.EmailExisted,
+          },
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+
+    if (phone) {
+      const existingUser = await this.databaseService.user.findUnique({
+        where: { phone },
+      });
+      if (existingUser && existingUser.id !== userId) {
+        throw new HttpException(
+          {
+            status: HttpStatus.CONFLICT,
+            message: CommonErrorMessagesEnum.PhoneExisted,
+          },
+          HttpStatus.CONFLICT,
+        );
+      }
+    }
+  }
+
+  private prepareUpdateProfile(updateProfileDto: UpdateProfileDto): Partial<UpdateProfileDto> {
+    return Object.entries(updateProfileDto).reduce<Partial<UpdateProfileDto>>(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {},
+    );
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: CommonErrorMessagesEnum.UserNotFound,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    this.validateContactUpdate(user, updateProfileDto);
+    await this.validateContactUniqueness(userId, updateProfileDto.email, updateProfileDto.phone);
+
+    const updateData = this.prepareUpdateProfile(updateProfileDto) as any;
+
+    return this.databaseService.user.update({
+      where: { id: userId },
+      data: updateData,
+      omit: {
+        password: true,
+      },
+    });
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'New password and confirm password do not match',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: CommonErrorMessagesEnum.UserNotFound,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const isPasswordValid = await this.loginService.comparePassword(currentPassword, user.password);
+
+    if (!isPasswordValid) {
+      throw new HttpException(
+        {
+          status: HttpStatus.UNAUTHORIZED,
+          message: 'Current password is incorrect',
+        },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const hashedNewPassword = await hashPassword(newPassword);
+
+    await this.databaseService.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword },
+    });
+
+    // Revoke all refresh tokens for security
+    await this.refreshTokenService.revokeAllUserTokens(userId);
+
+    return {
+      message: 'Password changed successfully',
+    };
   }
 }

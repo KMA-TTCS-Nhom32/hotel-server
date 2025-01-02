@@ -1,37 +1,60 @@
-import { Injectable, InternalServerErrorException, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { DatabaseService } from '@/database/database.service';
 import { CreateRoomDetailDto, UpdateRoomDetailDto } from './dtos/create-update-room-detail.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
 import { RoomDetail } from './models';
-import { FilterRoomDetailDto } from './dtos/query-room-detail.dto';
-import { SortDto } from '@/common/dtos';
-import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
+import { FilterRoomDetailDto, SortRoomDetailDto } from './dtos/query-room-detail.dto';
+import {
+  getPaginationParams,
+  createPaginatedResponse,
+  PaginationParams,
+  createInfinityPaginationResponse,
+} from 'libs/common/utils';
+import { Image } from '../images/models';
+import { BaseService } from '@/common/services';
 
 @Injectable()
-export class RoomDetailService {
-  constructor(private readonly databaseService: DatabaseService) {}
+export class RoomDetailService extends BaseService {
+  constructor(protected readonly databaseService: DatabaseService) {
+    super(databaseService);
+  }
+
+  private formatImage(image: Image): Record<string, any> {
+    return {
+      url: image.url,
+      publicId: image.publicId,
+    };
+  }
 
   async create(createRoomDetailDto: CreateRoomDetailDto): Promise<RoomDetail> {
     try {
-      const { amenityIds, ...data } = createRoomDetailDto;
+      const { amenityIds, thumbnail, images, ...data } = createRoomDetailDto;
+      const formattedThumbnail = this.formatImage(thumbnail);
+      const formattedImages = images.map(this.formatImage);
       const roomDetail = await this.databaseService.roomDetail.create({
         data: {
           ...data,
           amenities: {
-            connect: amenityIds.map(id => ({ id }))
-          }
+            connect: amenityIds.map((id) => ({ id })),
+          },
+          thumbnail: formattedThumbnail,
+          images: formattedImages,
         },
         include: {
-          amenities: true
-        }
+          amenities: true,
+        },
       });
 
       return new RoomDetail({
         ...roomDetail,
-        amenities: roomDetail.amenities.map(amenity => ({
-          ...amenity,
-          icon: { url: amenity.icon as string, publicId: '' }
-        }))
+        amenities: roomDetail.amenities as any[],
+        thumbnail: formattedThumbnail as any,
+        images: formattedImages as any[],
       });
     } catch (error) {
       console.error('Create room detail error:', error);
@@ -39,44 +62,90 @@ export class RoomDetailService {
     }
   }
 
-  private transformRoomDetail(roomDetail: any): RoomDetail {
-    return new RoomDetail({
-      ...roomDetail,
-      amenities: roomDetail.amenities?.map(amenity => ({
-        ...amenity,
-        icon: amenity.icon ? { url: amenity.icon as string, publicId: '' } : null
-      }))
-    });
+  private prepareFilterOptions(filterOptions: FilterRoomDetailDto) {
+    const {
+      keyword,
+      room_type,
+      bed_type,
+      amenities,
+      branchId,
+      branchSlug,
+      provinceId,
+      provinceSlug,
+      rating_from,
+      rating_to,
+      maxPrice,
+      minPrice,
+    } = filterOptions;
+    const where: any = {
+      flat_rooms: {
+        some: {
+          isDeleted: false,
+          status: 'AVAILABLE',
+        },
+      },
+      ...(keyword && {
+        OR: [
+          { name: { contains: keyword, mode: 'insensitive' } },
+          { description: { contains: keyword, mode: 'insensitive' } },
+        ],
+      }),
+      ...(room_type && { room_type: room_type }),
+      ...(bed_type && { bed_type: bed_type }),
+      ...(filterOptions?.amenities?.length && {
+        amenities: {
+          some: {
+            slug: {
+              in: amenities,
+            },
+          },
+        },
+      }),
+      ...(branchId && { branchId }),
+      ...(branchSlug && { branch: { slug: branchSlug } }),
+      ...(provinceId && { branch: { provinceId } }),
+      ...(provinceSlug && { branch: { province: { slug: provinceSlug } } }),
+      ...(rating_from && rating_to && { rating: { gte: rating_from, lte: rating_to } }),
+      ...(minPrice && {
+        OR: [
+          { base_price_per_hour: { gte: minPrice } },
+          { base_price_per_night: { gte: minPrice } },
+          { base_price_per_day: { gte: minPrice } },
+        ],
+      }),
+      ...(maxPrice && {
+        OR: [
+          { base_price_per_hour: { lte: maxPrice } },
+          { base_price_per_night: { lte: maxPrice } },
+          { base_price_per_day: { lte: maxPrice } },
+        ],
+      }),
+    };
+
+    return this.mergeWithBaseWhere(where);
+  }
+
+  private prepareSortOptions(sortOptions: SortRoomDetailDto[]) {
+    return sortOptions.reduce(
+      (acc, { orderBy: field, order }) => ({
+        ...acc,
+        [field]: order.toLowerCase(),
+      }),
+      {},
+    );
   }
 
   async findMany(
     paginationOptions: PaginationParams,
     filterOptions?: FilterRoomDetailDto,
-    sortOptions?: SortDto<'name' | 'room_type' | 'bed_type' | 'createdAt' | 'updatedAt'>[],
+    sortOptions?: SortRoomDetailDto[],
   ) {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      const where: any = {
-        ...(filterOptions?.keyword
-          ? {
-              OR: [
-                { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
-        ...(filterOptions?.room_type ? { room_type: filterOptions.room_type } : {}),
-        ...(filterOptions?.bed_type ? { bed_type: filterOptions.bed_type } : {}),
-      };
+      const where = this.prepareFilterOptions(filterOptions);
 
-      const orderBy = sortOptions?.reduce(
-        (acc, { orderBy: field, order }) => ({
-          ...acc,
-          [field]: order.toLowerCase(),
-        }),
-        {},
-      );
+      const orderBy = this.prepareSortOptions(sortOptions);
 
       const [roomDetails, total] = await this.databaseService.$transaction([
         this.databaseService.roomDetail.findMany({
@@ -85,14 +154,21 @@ export class RoomDetailService {
           take,
           orderBy,
           include: {
-            amenities: true
-          }
+            amenities: true,
+            branch: true,
+            flat_rooms: {
+              where: {
+                isDeleted: false,
+                status: 'AVAILABLE',
+              },
+            },
+          },
         }),
         this.databaseService.roomDetail.count({ where }),
       ]);
 
       return createPaginatedResponse(
-        roomDetails.map((detail) => this.transformRoomDetail(detail)),
+        roomDetails.map((roomDetail) => new RoomDetail(roomDetail as any)),
         total,
         page,
         pageSize,
@@ -109,7 +185,7 @@ export class RoomDetailService {
         where: { id },
         include: {
           amenities: true,
-          rooms: true,
+          flat_rooms: true,
         },
       });
 
@@ -123,74 +199,164 @@ export class RoomDetailService {
         );
       }
 
-      return this.transformRoomDetail(roomDetail);
+      return new RoomDetail(roomDetail as any);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
 
-  async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto): Promise<RoomDetail> {
+  private prepareUpdateData(updateRoomDetailDto: UpdateRoomDetailDto) {
+    const updateData = {
+      ...updateRoomDetailDto,
+      ...(updateRoomDetailDto.thumbnail && {
+        thumbnail: this.formatImage(updateRoomDetailDto.thumbnail),
+      }),
+      ...(updateRoomDetailDto.images && {
+        images: updateRoomDetailDto.images.map(this.formatImage),
+      }),
+      ...(updateRoomDetailDto.amenityIds && {
+        amenities: { set: updateRoomDetailDto.amenityIds.map((id) => ({ id })) },
+      }),
+    };
+
+    delete updateData.amenityIds;
+    delete updateData.branchId;
+
+    return updateData as any;
+  }
+
+  async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto) {
     try {
-      await this.findById(id);
-      const { amenityIds, ...data } = updateRoomDetailDto;
+      return await this.databaseService.$transaction(async (prisma) => {
+        await this.findById(id);
 
-      const updatedRoomDetail = await this.databaseService.roomDetail.update({
-        where: { id },
-        data: {
-          ...data,
-          amenities: {
-            set: amenityIds.map(id => ({ id }))
-          }
-        },
-        include: {
-          amenities: true
-        }
+        const updatedRoomDetail = await prisma.roomDetail.update({
+          where: { id },
+          data: this.prepareUpdateData(updateRoomDetailDto),
+          include: {
+            branch: true,
+            amenities: true,
+            flat_rooms: true,
+          },
+        });
+
+        return new RoomDetail(updatedRoomDetail as any);
       });
-
-      return this.transformRoomDetail(updatedRoomDetail);
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findManyInfinite(
+    page: number = 1,
+    limit: number = 10,
+    filterOptions?: FilterRoomDetailDto,
+    sortOptions?: SortRoomDetailDto[],
+  ) {
+    try {
+      const skip = (page - 1) * limit;
+
+      const where = this.prepareFilterOptions(filterOptions);
+
+      const orderBy = this.prepareSortOptions(sortOptions);
+
+      const roomDetails = await this.databaseService.roomDetail.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          amenities: true,
+          branch: true,
+          flat_rooms: {
+            where: {
+              isDeleted: false,
+              status: 'AVAILABLE',
+            },
+          },
+        },
+      });
+
+      return createInfinityPaginationResponse<RoomDetail>(roomDetails as any[], { page, limit });
+    } catch (error) {
+      console.error('Find room details error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
 
   async remove(id: string): Promise<void> {
     try {
-      await this.databaseService.$transaction(async (prisma) => {
-        const roomDetail = await prisma.roomDetail.findUnique({
+      await this.softDelete('roomDetail', id, async () => {
+        const roomDetail = await this.databaseService.roomDetail.findUnique({
           where: { id },
           include: {
-            rooms: true,
+            flat_rooms: {
+              include: {
+                bookings: {
+                  where: {
+                    status: {
+                      in: ['PENDING', 'WAITING_FOR_CHECK_IN', 'CHECKED_IN'],
+                    },
+                  },
+                },
+              },
+            },
           },
         });
 
         if (!roomDetail) {
           throw new HttpException(
-            {
-              status: HttpStatus.NOT_FOUND,
-              message: 'Room detail not found',
-            },
+            { status: HttpStatus.NOT_FOUND, message: 'Room detail not found' },
             HttpStatus.NOT_FOUND,
           );
         }
 
-        if (roomDetail.rooms.length > 0) {
+        const hasActiveBookings = roomDetail.flat_rooms.some((room) => room.bookings.length > 0);
+        if (hasActiveBookings) {
           throw new HttpException(
             {
               status: HttpStatus.CONFLICT,
-              message: 'Cannot delete room detail with existing rooms',
+              message: 'Cannot delete room detail with active bookings',
             },
             HttpStatus.CONFLICT,
           );
         }
-
-        await prisma.roomDetail.delete({
-          where: { id },
-        });
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async restore(id: string): Promise<RoomDetail> {
+    try {
+      const restoredRoomDetail = await this.restoreDeleted<RoomDetail>('roomDetail', id);
+      return new RoomDetail(restoredRoomDetail as any);
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findDeleted() {
+    try {
+      const roomDetails = await this.databaseService.roomDetail.findMany({
+        where: { isDeleted: true },
+        include: {
+          amenities: true,
+          branch: true,
+          flat_rooms: {
+            where: {
+              isDeleted: false,
+            },
+          },
+        },
+      });
+
+      return roomDetails.map((roomDetail) => new RoomDetail(roomDetail as any));
+    } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

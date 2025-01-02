@@ -11,6 +11,7 @@ import {
   Headers,
   Param,
   Query,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -38,6 +39,8 @@ import {
   InitiateForgotPasswordEmailDto,
   ResetPasswordWithOTPEmailDto,
   RegisterDto,
+  UpdateProfileDto,
+  ChangePasswordDto,
 } from './dtos';
 import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
@@ -224,5 +227,33 @@ export class AuthController {
   async getProfile(@Req() req: Request) {
     const user = req.user as JwtUser;
     return this.authService.getProfile(user.userId);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiOkResponse({
+    description: 'Profile updated successfully',
+    type: User,
+  })
+  async updateProfile(
+    @Req() req: Request,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    const user = req.user as JwtUser;
+    return this.authService.updateProfile(user.userId, updateProfileDto);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiOkResponse({
+    description: 'Password changed successfully',
+  })
+  async changePassword(
+    @Req() req: Request,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    const user = req.user as JwtUser;
+    return this.authService.changePassword(user.userId, changePasswordDto);
   }
 }
