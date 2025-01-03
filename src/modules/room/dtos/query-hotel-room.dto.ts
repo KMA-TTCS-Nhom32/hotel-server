@@ -9,6 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { JsonTransform } from 'libs/common';
+import { HotelRoom } from '../models';
 
 export class FilterHotelRoomDto {
   @ApiPropertyOptional({
@@ -49,9 +50,7 @@ export class FilterHotelRoomDto {
   detailSlug?: string;
 }
 
-export type HotelRoomSortFields = 'name' | 'rating' | 'price' | 'createdAt';
-
-export class SortHotelRoomDto extends SortDto<HotelRoomSortFields> {}
+export class SortHotelRoomDto extends SortDto<HotelRoom> {}
 
 export class QueryHotelRoomDto extends QueryManyWithPaginationDto<
   FilterHotelRoomDto,
