@@ -31,7 +31,7 @@ export class RoomDetail extends AbstractModel {
   branchId: string;
 
   @ApiProperty({
-    type: Branch,
+    type: () => Branch,
     description: 'Branch where this room is located',
   })
   branch?: Branch;
@@ -108,6 +108,6 @@ export class RoomDetail extends AbstractModel {
   })
   special_price_per_day?: Decimal;
 
-  @ApiProperty({ type: [HotelRoom] })
+  @ApiProperty({ type: () => [HotelRoom] })
   flat_rooms?: HotelRoom[];
 }

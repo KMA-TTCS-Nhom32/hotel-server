@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Image } from '@/modules/images/models';
 import { AbstractModel } from 'libs/common/abstract';
-import { HotelRoom } from '@/modules/room/models';
 import { Province } from '@/modules/provinces/models';
 import { Amenity } from '@/modules/amenities/models';
+import { RoomDetail } from '@/modules/room-detail/models';
 
 export class NearBy {
   @ApiProperty({
@@ -121,10 +121,10 @@ export class BranchDetail extends Branch {
   amenities: Amenity[];
 
   @ApiProperty({
-    type: [HotelRoom],
+    type: () => [RoomDetail], // Modified to use lazy loading
     description: 'List of rooms available in the branch',
   })
-  rooms: HotelRoom[];
+  rooms: RoomDetail[];
 
   @ApiProperty({
     type: [NearBy],

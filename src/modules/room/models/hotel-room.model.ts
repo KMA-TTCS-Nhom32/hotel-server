@@ -2,6 +2,7 @@ import { AbstractModel } from 'libs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { HotelRoomStatus } from '@prisma/client';
 import { RoomDetail } from '@/modules/room-detail/models';
+import { Branch } from '@/modules/branch/models/branch.model';
 // import { RoomPriceHistory } from '@/modules/room-price/models';
 // import { RoomPromotion } from '@/modules/promotions/models';
 // import { Booking } from '@/modules/bookings/models';
@@ -43,7 +44,7 @@ export class HotelRoom extends AbstractModel {
   detailId: string;
 
   @ApiProperty({
-    type: RoomDetail,
+    type: () => RoomDetail,
     description: 'Room detail',
   })
   detail?: RoomDetail;
