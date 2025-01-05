@@ -185,13 +185,14 @@ model Booking {
     id               String         @id @default(cuid())
     code             String         @unique
     type             BookingType
+    create_type      BookingCreateType
     start_date       DateTime
     end_date         DateTime
-    start_time       DateTime?
-    end_time         DateTime?
+    start_time       String?
+    end_time         String?
     roomId           String
     room             HotelRoom      @relation(fields: [roomId], references: [id])
-    total_amount     Float
+    total_amount     Decimal        @db.Decimal(9, 0)
     status           BookingStatus  @default(PENDING)
     cancel_reason    String?
     payment_method   PaymentMethod?
@@ -218,6 +219,11 @@ enum BookingType {
     HOURLY
     NIGHTLY
     DAILY
+}
+
+enum BookingCreateType {
+    ONLINE_BOOKING
+    AT_HOTEL
 }
 
 model Review {

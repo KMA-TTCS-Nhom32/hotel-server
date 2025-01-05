@@ -27,6 +27,7 @@ import { ProvincesModule } from './modules/provinces/provinces.module';
 import { RoomDetailModule } from './modules/room-detail/room-detail.module';
 import { RoomModule } from './modules/room/room.module';
 import { CleanupModule } from './common/modules/cleanup.module';
+import { BookingModule } from './modules/booking/booking.module';
 
 @Module({
   imports: [
@@ -46,16 +47,17 @@ import { CleanupModule } from './common/modules/cleanup.module';
     DatabaseModule,
     CloudinaryModule,
     AuthModule,
+    CleanupModule,
     UsersModule,
     AmenitiesModule,
+    ProvincesModule,
     BranchModule,
     ImagesModule,
     VerificationModule,
     EmailModule,
-    ProvincesModule,
     RoomDetailModule,
     RoomModule,
-    CleanupModule,
+    BookingModule,
   ],
   controllers: [AppController],
   providers: [

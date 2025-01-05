@@ -51,7 +51,7 @@ export class RoomDetail extends AbstractModel {
   @ApiProperty({ enum: HotelRoomBedType })
   bed_type: HotelRoomBedType;
 
-  @ApiProperty({ type: () => [Amenity] })
+  @ApiProperty({ type: [Amenity] })
   amenities?: Amenity[];
 
   @ApiProperty({ example: 2 })
@@ -108,6 +108,6 @@ export class RoomDetail extends AbstractModel {
   })
   special_price_per_day?: Decimal;
 
-  @ApiProperty({ type: () => [HotelRoom] })
+  @ApiProperty({ type: [HotelRoom] })
   flat_rooms?: HotelRoom[];
 }

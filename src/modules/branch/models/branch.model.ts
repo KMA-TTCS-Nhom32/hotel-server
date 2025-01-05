@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Image } from '@/modules/images/models';
 import { AbstractModel } from 'libs/common/abstract';
-import { Nullable } from 'libs/common/types';
 import { HotelRoom } from '@/modules/room/models';
 import { Province } from '@/modules/provinces/models';
 import { Amenity } from '@/modules/amenities/models';
@@ -21,7 +20,7 @@ export class NearBy {
 }
 
 export class Branch extends AbstractModel {
-  constructor(data: Nullable<Branch>) {
+  constructor(data: Branch) {
     super();
     Object.assign(this, data);
   }
@@ -110,7 +109,7 @@ export class Branch extends AbstractModel {
 }
 
 export class BranchDetail extends Branch {
-  constructor(data: Nullable<BranchDetail>) {
+  constructor(data: BranchDetail) {
     super(data);
     Object.assign(this, data);
   }
