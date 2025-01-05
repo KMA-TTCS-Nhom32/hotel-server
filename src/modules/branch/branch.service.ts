@@ -20,7 +20,7 @@ import {
   createInfinityPaginationResponse,
 } from 'libs/common/utils';
 import { Amenity } from '../amenities/models';
-import { HotelRoom } from '../room/models';
+import { RoomDetail } from '../room-detail/models';
 
 @Injectable()
 export class BranchService extends BaseService {
@@ -231,7 +231,7 @@ export class BranchService extends BaseService {
         thumbnail: branch.thumbnail as unknown as Image,
         images: branch.images as unknown as Image[],
         // location: branch.location as { latitude: number; longitude: number },
-        rooms: branch.rooms as unknown as HotelRoom[],
+        rooms: branch.rooms as unknown as RoomDetail[],
         amenities: branch.amenities as unknown as Amenity[],
         nearBy: branch.nearBy as unknown as NearBy[],
       });
@@ -308,7 +308,7 @@ export class BranchService extends BaseService {
           thumbnail: updatedBranch.thumbnail as unknown as Image,
           images: updatedBranch.images as unknown as Image[],
           //   location: updatedBranch.location as { latitude: number; longitude: number },
-          rooms: updatedBranch.rooms as unknown as HotelRoom[],
+          rooms: updatedBranch.rooms as unknown as RoomDetail[],
           amenities: updatedBranch.amenities as unknown as Amenity[],
           nearBy: updatedBranch.nearBy as unknown as NearBy[],
         });
