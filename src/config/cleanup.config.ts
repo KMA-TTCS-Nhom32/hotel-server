@@ -7,7 +7,7 @@ export const getCleanupConfig = (configService: ConfigService): CleanupConfig =>
 
   return {
     retentionPeriod: configService.get<number>('CLEANUP_RETENTION_PERIOD', 30),
-    models: ['province', 'hotelBranch'],
+    models: ['province', 'hotelBranch', 'roomDetail', 'hotelRoom', 'booking'],
     scheduleTime: isProduction 
       ? CronExpression.EVERY_DAY_AT_MIDNIGHT 
       : CronExpression.EVERY_30_SECONDS,

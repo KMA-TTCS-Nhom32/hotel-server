@@ -20,6 +20,7 @@ export class CleanupService implements OnModuleInit {
     'booking',       // Delete bookings first
     'review',        // Then reviews
     'hotelRoom',     // Then rooms
+    'roomDetail',    // Then room details
     'hotelBranch',   // Then branches
     'province',      // Finally provinces
   ];

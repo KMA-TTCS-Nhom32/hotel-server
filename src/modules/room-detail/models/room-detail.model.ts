@@ -52,7 +52,7 @@ export class RoomDetail extends AbstractModel {
   bed_type: HotelRoomBedType;
 
   @ApiProperty({ type: () => [Amenity] })
-  amenities: Amenity[];
+  amenities?: Amenity[];
 
   @ApiProperty({ example: 2 })
   max_adults: number;

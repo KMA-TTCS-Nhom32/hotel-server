@@ -15,7 +15,7 @@ import { RoomDetailService } from './room-detail.service';
 import { CreateRoomDetailDto, UpdateRoomDetailDto } from './dtos/create-update-room-detail.dto';
 import { UserRole } from '@prisma/client';
 import { RolesGuard } from '@/modules/auth/guards';
-import { Roles } from '@/modules/auth/decorators';
+import { Public, Roles } from '@/modules/auth/decorators';
 import { RoomDetail } from './models';
 import {
   FilterRoomDetailDto,
@@ -39,10 +39,19 @@ export class RoomDetailController {
     description: 'Room detail has been successfully created.',
     type: RoomDetail,
   })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
   create(@Body() createRoomDetailDto: CreateRoomDetailDto): Promise<RoomDetail> {
     return this.roomDetailService.create(createRoomDetailDto);
   }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Get all room details with pagination and filters' })
   @ApiResponse({
@@ -55,12 +64,17 @@ export class RoomDetailController {
     return this.roomDetailService.findMany({ page, pageSize }, filters, sort);
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get a room detail by id' })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Room detail found',
     type: RoomDetail,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Room detail not found.',
   })
   findOne(@Param('id') id: string): Promise<RoomDetail> {
     return this.roomDetailService.findById(id);
@@ -75,6 +89,14 @@ export class RoomDetailController {
     description: 'Room detail has been successfully updated.',
     type: RoomDetail,
   })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Room detail not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
   update(
     @Param('id') id: string,
     @Body() updateRoomDetailDto: UpdateRoomDetailDto,
@@ -85,12 +107,50 @@ export class RoomDetailController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Delete a room detail' })
+  @ApiOperation({ summary: 'Soft delete a room detail' })
   @ApiResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'Room detail has been successfully deleted.',
   })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Room detail not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Cannot delete room detail with active bookings.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
   remove(@Param('id') id: string): Promise<void> {
     return this.roomDetailService.remove(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore a soft-deleted room detail' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Room detail restored successfully',
+    type: RoomDetail,
+  })
+  async restore(@Param('id') id: string) {
+    return this.roomDetailService.restore(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('deleted')
+  @ApiOperation({ summary: 'Get all soft-deleted room details' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns all soft-deleted room details',
+    type: [RoomDetail],
+  })
+  async findDeleted() {
+    return this.roomDetailService.findDeleted();
   }
 }

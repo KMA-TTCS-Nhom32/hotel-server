@@ -184,8 +184,13 @@ export class RoomDetailService extends BaseService {
       const roomDetail = await this.databaseService.roomDetail.findUnique({
         where: { id },
         include: {
+          branch: true,
           amenities: true,
-          flat_rooms: true,
+          flat_rooms: {
+            where: {
+              isDeleted: false,
+            },
+          },
         },
       });
 
