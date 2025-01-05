@@ -2,7 +2,9 @@ import { InfinityPaginationResultType } from 'libs/common';
 import { RoomDetail } from '../models';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class InfiniteRoomDetailResultDto implements InfinityPaginationResultType<RoomDetail> {
+export class RoomDetailInfinitePaginationResultDto
+  implements InfinityPaginationResultType<RoomDetail>
+{
   @ApiProperty({ type: [RoomDetail] })
   data: RoomDetail[];
 

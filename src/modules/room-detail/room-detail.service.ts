@@ -31,11 +31,35 @@ export class RoomDetailService extends BaseService {
     };
   }
 
+  private async checkSlugExisted (slug: string, branchId: string) {
+    const existedSlug = await this.databaseService.roomDetail.findFirst({
+      where: {
+        slug,
+        branch: {
+          id: branchId,
+        },
+      },
+    });
+
+    if (existedSlug) {
+      throw new HttpException(
+        {
+          status: HttpStatus.CONFLICT,
+          message: 'Room detail with this slug already exists',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+  };
+
   async create(createRoomDetailDto: CreateRoomDetailDto): Promise<RoomDetail> {
     try {
       const { amenityIds, thumbnail, images, ...data } = createRoomDetailDto;
       const formattedThumbnail = this.formatImage(thumbnail);
       const formattedImages = images.map(this.formatImage);
+
+      await this.checkSlugExisted(data.slug, data.branchId);
+
       const roomDetail = await this.databaseService.roomDetail.create({
         data: {
           ...data,
@@ -236,6 +260,10 @@ export class RoomDetailService extends BaseService {
       return await this.databaseService.$transaction(async (prisma) => {
         await this.findById(id);
 
+        if (updateRoomDetailDto.slug) {
+          await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId);
+        }
+
         const updatedRoomDetail = await prisma.roomDetail.update({
           where: { id },
           data: this.prepareUpdateData(updateRoomDetailDto),
@@ -352,11 +380,7 @@ export class RoomDetailService extends BaseService {
         include: {
           amenities: true,
           branch: true,
-          flat_rooms: {
-            where: {
-              isDeleted: false,
-            },
-          },
+          flat_rooms: true,
         },
       });
 

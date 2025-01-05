@@ -12,17 +12,19 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
 import { RoomDetailService } from './room-detail.service';
-import { CreateRoomDetailDto, UpdateRoomDetailDto } from './dtos/create-update-room-detail.dto';
 import { UserRole } from '@prisma/client';
 import { RolesGuard } from '@/modules/auth/guards';
 import { Public, Roles } from '@/modules/auth/decorators';
 import { RoomDetail } from './models';
 import {
+    CreateRoomDetailDto,
   FilterRoomDetailDto,
   QueryRoomDetailDto,
   RoomDetailPaginationResultDto,
   SortRoomDetailDto,
+  UpdateRoomDetailDto,
 } from './dtos';
+import { RoomDetailInfinitePaginationResultDto } from './dtos/room-detail-infinite-result.dto';
 
 @ApiTags('Room Details')
 @ApiExtraModels(QueryRoomDetailDto, FilterRoomDetailDto, SortRoomDetailDto)
@@ -62,6 +64,19 @@ export class RoomDetailController {
   findMany(@Query() query: QueryRoomDetailDto) {
     const { page, pageSize, filters, sort } = query;
     return this.roomDetailService.findMany({ page, pageSize }, filters, sort);
+  }
+
+  @Public()
+  @Get('infinite')
+  @ApiOperation({ summary: 'Get all room details with infinite pagination and filters' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns paginated room details list',
+    type: RoomDetailInfinitePaginationResultDto,
+  })
+  findManyInfinite(@Query() query: QueryRoomDetailDto) {
+    const { page, pageSize, filters, sort } = query;
+    return this.roomDetailService.findManyInfinite(page, pageSize, filters, sort);
   }
 
   @Public()
