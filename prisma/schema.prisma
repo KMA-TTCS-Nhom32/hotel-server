@@ -182,8 +182,8 @@ enum HotelRoomStatus {
 }
 
 model Booking {
-    id               String         @id @default(cuid())
-    code             String         @unique
+    id               String            @id @default(cuid())
+    code             String            @unique
     type             BookingType
     create_type      BookingCreateType
     start_date       DateTime
@@ -191,28 +191,30 @@ model Booking {
     start_time       String?
     end_time         String?
     roomId           String
-    room             HotelRoom      @relation(fields: [roomId], references: [id])
-    total_amount     Decimal        @db.Decimal(9, 0)
-    status           BookingStatus  @default(PENDING)
+    room             HotelRoom         @relation(fields: [roomId], references: [id])
+    promotion_code   String?
+    total_amount     Decimal           @db.Decimal(9, 0)
+    status           BookingStatus     @default(PENDING)
     cancel_reason    String?
     payment_method   PaymentMethod?
     number_of_guests Int
-    adults           Int            @default(1)
-    children         Int            @default(0)
-    infants          Int            @default(0)
+    adults           Int               @default(1)
+    children         Int               @default(0)
+    infants          Int               @default(0)
     special_requests String?
     check_in_time    DateTime?
     check_out_time   DateTime?
-    payment_status   PaymentStatus  @default(UNPAID)
+    payment_status   PaymentStatus     @default(UNPAID)
     payment_details  Json?
+    refund_details   Json?
     userId           String
-    user             User           @relation(fields: [userId], references: [id])
+    user             User              @relation(fields: [userId], references: [id])
     guest_details    Json? // Store additional guest information
-    is_business_trip Boolean        @default(false)
-    isDeleted        Boolean        @default(false)
+    is_business_trip Boolean           @default(false)
+    isDeleted        Boolean           @default(false)
     deletedAt        DateTime?
-    createdAt        DateTime       @default(now())
-    updatedAt        DateTime       @updatedAt
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
 }
 
 enum BookingType {
@@ -263,6 +265,7 @@ enum PaymentMethod {
     ZALOPAY
     MOMO
     VN_PAY
+    VIET_QR
 }
 
 model RoomPriceHistory {
