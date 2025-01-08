@@ -109,6 +109,13 @@ export class AuthService {
       // Log the error for debugging
       console.error('Refresh token error:', error);
 
+      // Add logging for failed attempts
+      console.error('Failed refresh token attempt:', {
+        error: error.message,
+        token: refreshToken.substring(0, 10) + '...', // Log partial token for tracking
+        timestamp: new Date().toISOString(),
+      });
+
       // If it's already an HTTP exception, rethrow it
       if (error instanceof HttpException) {
         throw error;

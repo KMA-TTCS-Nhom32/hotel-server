@@ -50,3 +50,7 @@ export enum ImageErrorMessagesEnum {
   ImageDeleteFailed = 'imageDeleteFailed',
   ImageNotFound = 'imageNotFound',
 }
+
+export enum BookingErrorMessagesEnum {
+  maximumGuestsExceeded = 'maximumGuestsExceeded',
+}

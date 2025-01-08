@@ -20,11 +20,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { RolesGuard } from './guards/roles.guard';
+import { LoginThrottlerGuard, RefreshThrottlerGuard, RolesGuard } from './guards';
 import { AccountIdentifier, UserRole } from '@prisma/client';
 import { Request } from 'express';
 
-import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 import { AuthService } from './auth.service';
 import {
   LoginDto,
@@ -70,6 +69,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(RefreshThrottlerGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

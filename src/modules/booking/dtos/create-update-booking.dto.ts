@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { BookingStatus, BookingType, PaymentMethod } from '@prisma/client';
+import { BookingCreateType, BookingStatus, BookingType, PaymentMethod } from '@prisma/client';
 import {
   IsBoolean,
   IsDateString,
@@ -12,7 +12,17 @@ import {
 import { GuestDetail } from '../models';
 import { Type } from 'class-transformer';
 
-export class CreateBookingDto {
+export class PrepareBookingDto {
+  @ApiProperty({
+    type: String,
+    enum: BookingCreateType,
+    example: BookingCreateType.ONLINE_BOOKING,
+    description: 'Booking create type',
+  })
+  @IsNotEmpty()
+  @IsEnum(BookingCreateType)
+  create_type: BookingCreateType;
+
   @ApiProperty({
     type: String,
     enum: BookingType,
@@ -23,6 +33,17 @@ export class CreateBookingDto {
   @IsEnum(BookingType)
   type: BookingType;
 
+  @ApiProperty({
+    type: String,
+    example: 'user-id-123',
+    description: 'ID of the user making the booking',
+  })
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+}
+
+export class CreateBookingDto {
   @ApiProperty({
     type: String,
     example: '20-01-2025',
@@ -58,15 +79,6 @@ export class CreateBookingDto {
   @IsNotEmpty()
   @IsString()
   end_time: string;
-
-  @ApiProperty({
-    type: String,
-    example: 'user-id-123',
-    description: 'ID of the user making the booking',
-  })
-  @IsNotEmpty()
-  @IsString()
-  userId: string;
 
   @ApiProperty({
     type: Number,
