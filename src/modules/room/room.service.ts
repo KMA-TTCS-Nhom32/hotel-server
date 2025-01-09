@@ -17,6 +17,7 @@ import {
   createPaginatedResponse,
   getPaginationParams,
   PaginationParams,
+  RoomErrorMessagesEnum,
 } from 'libs/common';
 import { HotelRoom } from './models';
 
@@ -123,19 +124,22 @@ export class RoomService extends BaseService {
     try {
       const room = await this.databaseService.hotelRoom.findUnique({
         where: { id },
+        include: {
+          detail: true,
+        },
       });
 
       if (!room) {
         throw new HttpException(
           {
             status: HttpStatus.NOT_FOUND,
-            message: 'Room detail not found',
+            message: RoomErrorMessagesEnum.NotFound,
           },
           HttpStatus.NOT_FOUND,
         );
       }
 
-      return new HotelRoom(room);
+      return new HotelRoom(room as any);
     } catch (error) {
       console.error('Find room by ID error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -178,7 +182,7 @@ export class RoomService extends BaseService {
 
         if (!room) {
           throw new HttpException(
-            { status: HttpStatus.NOT_FOUND, message: 'Room not found' },
+            { status: HttpStatus.NOT_FOUND, message: RoomErrorMessagesEnum.NotFound },
             HttpStatus.NOT_FOUND,
           );
         }

@@ -6,17 +6,30 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { CreateBookingOnlineDto, PrepareBookingDto } from './dtos';
-import { BookingErrorMessagesEnum, CommonErrorMessagesEnum } from 'libs/common';
+import {
+  CreateBookingAtHotelDto,
+  CreateBookingOnlineDto,
+  PrepareBookingDto,
+  SelectBookingTimeDto,
+} from './dtos';
+import {
+  BookingErrorMessagesEnum,
+  CommonErrorMessagesEnum,
+  RoomErrorMessagesEnum,
+} from 'libs/common';
 import Decimal from 'decimal.js';
-import { RoomDetailService } from '../room-detail/room-detail.service';
-import { BookingType } from '@prisma/client';
+import { RoomDetailService } from '@/modules/room-detail/room-detail.service';
+import { RoomService } from '@/modules/room/room.service';
+import { BookingType, HotelRoomStatus } from '@prisma/client';
+import { Booking } from './models';
+import { RoomDetail } from '../room-detail/models';
 
 @Injectable()
 export class BookingService extends BaseService {
   constructor(
     protected readonly databaseService: DatabaseService,
     private readonly roomDetailService: RoomDetailService,
+    private readonly roomService: RoomService,
   ) {
     super(databaseService);
   }
@@ -60,24 +73,71 @@ export class BookingService extends BaseService {
     return total_days;
   }
 
+  private calculateTotalAmount(
+    selectTimeDto: SelectBookingTimeDto,
+    type: BookingType,
+    room: RoomDetail,
+  ) {
+    const { start_date, end_date, start_time, end_time } = selectTimeDto;
+    const {
+      base_price_per_hour,
+      special_price_per_hour,
+      base_price_per_night,
+      special_price_per_night,
+      base_price_per_day,
+      special_price_per_day,
+    } = room;
+
+    // Calculate the total amount
+    let total_amount: Decimal;
+
+    switch (type) {
+      case BookingType.HOURLY: {
+        const total_hours = this.calculateHours(start_time, end_time);
+        total_amount = new Decimal(special_price_per_hour ?? base_price_per_hour).mul(total_hours);
+        break;
+      }
+
+      case BookingType.DAILY: {
+        const total_days = this.calculateDays(start_date, end_date);
+        total_amount = new Decimal(special_price_per_day ?? base_price_per_day).mul(total_days);
+        break;
+      }
+
+      case BookingType.NIGHTLY: {
+        total_amount = new Decimal(special_price_per_night ?? base_price_per_night);
+        break;
+      }
+
+      default:
+        throw new HttpException(
+          {
+            status: HttpStatus.BAD_REQUEST,
+            error: 'Invalid booking type',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+    }
+
+    return total_amount;
+  }
+
   async createOnline(createDto: CreateBookingOnlineDto, prepareDto: PrepareBookingDto) {
     try {
-      const { detailId, start_date, end_date, guest_details, ...createBookingDto } = createDto;
+      const {
+        detailId,
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        guest_details,
+        ...createBookingDto
+      } = createDto;
 
       const currentRoomDetail = await this.roomDetailService.findById(detailId);
 
-      const {
-        base_price_per_hour,
-        special_price_per_hour,
-        base_price_per_night,
-        special_price_per_night,
-        base_price_per_day,
-        special_price_per_day,
-        max_adults,
-      } = currentRoomDetail;
-
       // check number of guests
-      if (createDto.number_of_guests > max_adults) {
+      if (createDto.number_of_guests > currentRoomDetail.max_adults) {
         throw new HttpException(
           {
             status: HttpStatus.BAD_REQUEST,
@@ -90,6 +150,7 @@ export class BookingService extends BaseService {
       const firstAvailableRoom = await this.databaseService.hotelRoom.findFirst({
         where: {
           detailId,
+          status: HotelRoomStatus.AVAILABLE,
           isDeleted: false,
         },
       });
@@ -98,27 +159,67 @@ export class BookingService extends BaseService {
         throw new HttpException(
           {
             status: HttpStatus.NOT_FOUND,
-            error: CommonErrorMessagesEnum.NotFound,
+            error: RoomErrorMessagesEnum.NotFound,
           },
           HttpStatus.NOT_FOUND,
         );
       }
 
-      // Calculate the total amount
-      let total_amount = new Decimal(special_price_per_hour ?? base_price_per_hour);
+      const total_amount = this.calculateTotalAmount(
+        { start_date, end_date, start_time, end_time },
+        prepareDto.type,
+        currentRoomDetail,
+      );
 
-      if (prepareDto.type === BookingType.HOURLY) {
-        const total_hours = this.calculateHours(
-          createBookingDto.start_time,
-          createBookingDto.end_time,
+      const booking = await this.databaseService.booking.create({
+        data: {
+          code: this.generateBookingCode(),
+          ...prepareDto,
+          ...createBookingDto,
+          roomId: firstAvailableRoom.id,
+          start_date: this.formatStringDate(start_date),
+          end_date: this.formatStringDate(end_date),
+          start_time,
+          end_time,
+          total_amount,
+          guest_details: guest_details as any,
+        },
+      });
+
+      return new Booking(booking as any);
+    } catch (error) {
+      console.error('BookingService -> createOnline -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async createAtHotel(createDto: CreateBookingAtHotelDto, prepareDto: PrepareBookingDto) {
+    try {
+      const currentRoom = await this.roomService.findById(createDto.roomId);
+
+      if (currentRoom.status !== HotelRoomStatus.AVAILABLE) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: RoomErrorMessagesEnum.NotFound,
+          },
+          HttpStatus.NOT_FOUND,
         );
-        total_amount = total_amount.mul(total_hours);
-      } else if (prepareDto.type === BookingType.DAILY) {
-        const total_days = this.calculateDays(start_date, end_date);
-        total_amount = new Decimal(special_price_per_day ?? base_price_per_day).mul(total_days);
-      } else if (prepareDto.type === BookingType.NIGHTLY) {
-        total_amount = new Decimal(special_price_per_night ?? base_price_per_night);
       }
+
+      const { start_date, end_date, start_time, end_time, guest_details, ...createBookingDto } =
+        createDto;
+
+      const total_amount = this.calculateTotalAmount(
+        {
+          start_date,
+          end_date,
+          start_time,
+          end_time,
+        },
+        prepareDto.type,
+        currentRoom.detail,
+      );
 
       const booking = await this.databaseService.booking.create({
         data: {
@@ -127,15 +228,16 @@ export class BookingService extends BaseService {
           ...createBookingDto,
           start_date: this.formatStringDate(start_date),
           end_date: this.formatStringDate(end_date),
-          roomId: firstAvailableRoom.id,
+          start_time,
+          end_time,
           total_amount,
           guest_details: guest_details as any,
         },
       });
 
-      return booking;
+      return new Booking(booking as any);
     } catch (error) {
-      console.error('BookingService -> createOnline -> error', error);
+      console.error('BookingService -> createAtHotel -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

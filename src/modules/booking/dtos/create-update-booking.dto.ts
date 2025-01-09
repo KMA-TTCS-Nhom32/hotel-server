@@ -43,7 +43,7 @@ export class PrepareBookingDto {
   userId: string;
 }
 
-export class CreateBookingDto {
+export class SelectBookingTimeDto {
   @ApiProperty({
     type: String,
     example: '20-01-2025',
@@ -79,7 +79,9 @@ export class CreateBookingDto {
   @IsNotEmpty()
   @IsString()
   end_time: string;
+}
 
+export class CreateBookingDto extends SelectBookingTimeDto {
   @ApiProperty({
     type: Number,
     example: 10,

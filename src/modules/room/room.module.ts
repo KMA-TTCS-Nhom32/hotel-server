@@ -7,5 +7,6 @@ import { DatabaseModule } from '@/database/database.module';
   imports: [DatabaseModule],
   controllers: [RoomController],
   providers: [RoomService],
+  exports: [RoomService],
 })
 export class RoomModule {}
