@@ -24,6 +24,7 @@ import {
   SortBranchDto,
   BranchesPaginationResultDto,
   BranchesInfinitePaginationResultDto,
+  GetLastestBranchesDto,
 } from './dtos';
 
 @ApiTags('Branches')
@@ -61,8 +62,8 @@ export class BranchController {
     description: 'Returns latest branches',
     type: [Branch],
   })
-  getLatestBranches(@Query() limit?: number) {
-    return this.branchService.getLatestBranches(limit);
+  getLatestBranches(@Query() getLastestBranchesDto: GetLastestBranchesDto) {
+    return this.branchService.getLatestBranches(getLastestBranchesDto.limit);
   }
 
   @Public()

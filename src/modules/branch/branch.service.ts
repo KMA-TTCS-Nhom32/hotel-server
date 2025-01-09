@@ -77,11 +77,11 @@ export class BranchService extends BaseService {
     }
   }
 
-  async getLatestBranches(limit: number = 3) {
+  async getLatestBranches(limit?: number) {
     try {
       const branches = await this.databaseService.hotelBranch.findMany({
         where: { is_active: true, isDeleted: false },
-        take: limit,
+        take: limit ?? 3,
         orderBy: {
           createdAt: 'desc',
         },

@@ -11,6 +11,18 @@ import {
 } from 'class-validator';
 import { JsonTransform } from 'libs/common';
 
+export class GetLastestBranchesDto {
+  @ApiPropertyOptional({
+    type: Number,
+    example: 3,
+    default: 3,
+    description: 'Number of branches to get',
+  })
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  limit?: number;
+}
+
 export class FilterBranchesDto {
   @ApiPropertyOptional({
     type: String,
