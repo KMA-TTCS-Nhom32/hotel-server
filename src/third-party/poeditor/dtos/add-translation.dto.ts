@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, IsString, ValidateNested, IsOptional } from 'class-validator';
+import { IsArray, IsString, ValidateNested, IsOptional } from 'class-validator';
 
 class TranslationData {
   @ApiProperty({
@@ -11,11 +11,14 @@ class TranslationData {
   term: string;
 
   @ApiProperty({
-    example: 'bonjour',
     description: 'The translation of the term',
+    type: 'object',
+    properties: { content: { type: String } },
   })
   @IsString()
-  translation: string;
+  translation: {
+    content: string;
+  };
 
   @ApiProperty({
     example: 'greeting',

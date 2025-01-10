@@ -23,15 +23,16 @@ export class ProvincesService extends BaseService {
 
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
     try {
-      const { name } = createProvinceDto;
-
       // Add translation to POEditor
       await this.poeditorService.addTranslation({
         language: 'vi',
         data: [
           {
-            term: `province_name.${createProvinceDto.slug}`,
-            translation: name,
+            term: 'province_name',
+            context: createProvinceDto.slug,
+            translation: {
+              content: createProvinceDto.name,
+            },
           },
         ],
       });
