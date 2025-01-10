@@ -29,12 +29,13 @@ export class PoeditorService {
         {
           term,
           context,
+          reference: '',
         },
       ]),
     );
 
-    console.log('add term', term, context);
     try {
+      console.log('add term', term, context);
       const response = await fetch(`${this.apiUrl}/terms/add`, {
         method: 'POST',
         body: form as any,
@@ -46,6 +47,7 @@ export class PoeditorService {
 
       return await response.json();
     } catch (error) {
+      console.error('add term error', error);
       throw new Error(`POEditor API Error: ${error.message}`);
     }
   }
