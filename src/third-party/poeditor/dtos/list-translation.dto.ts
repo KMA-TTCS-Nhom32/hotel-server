@@ -1,11 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class GetTranslationsRequestDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'en',
     description: 'Language code to fetch translations for'
   })
-  language: string;
+  @IsOptional()
+  @IsString()
+  language?: string;
 }
 
 export class DetailTranslationContent {

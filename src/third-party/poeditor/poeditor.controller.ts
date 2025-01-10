@@ -41,7 +41,7 @@ export class PoeditorController {
   })
   async getTranslations(
     @Body() dto: GetTranslationsRequestDto,
-  ): Promise<ListTranslationResponseDto> {
+  ) {
     return this.poeditorService.getTranslations(dto.language);
   }
 }

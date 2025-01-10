@@ -22,19 +22,19 @@ export class PoeditorService {
   private async handlePoEditorResponse(response: Response) {
     const data = await response.json();
     this.logger.debug('POEditor response:', data);
-    
+
     if (!response.ok || data.response.status !== 'success') {
       this.logger.error('POEditor API Error:', data);
       throw new Error(data.response.message || `HTTP error! status: ${response.status}`);
     }
-    
+
     return data;
   }
 
   async addTerms(terms: Array<{ term: string; context?: string }>) {
     try {
       this.logger.debug('Adding terms:', terms);
-      
+
       // Create URLSearchParams instead of FormData
       const formData = new URLSearchParams();
       formData.append('api_token', this.apiKey);
@@ -59,11 +59,11 @@ export class PoeditorService {
   async addTranslation(dto: AddTranslationDto) {
     try {
       // First add all terms in a single batch request
-      const terms = dto.data.map(item => ({
+      const terms = dto.data.map((item) => ({
         term: item.term,
         context: item.context,
       }));
-      
+
       await this.addTerms(terms);
       this.logger.debug('Terms added successfully');
 
@@ -91,12 +91,12 @@ export class PoeditorService {
     }
   }
 
-  async getTranslations(language: string) {
+  async getTranslations(language?: string) {
     try {
       const formData = new URLSearchParams();
       formData.append('api_token', this.apiKey);
       formData.append('id', this.projectId.toString());
-      formData.append('language', language);
+      formData.append('language', language ?? 'vi');
 
       const response = await fetch(`${this.apiUrl}/terms/list`, {
         method: 'POST',
