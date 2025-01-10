@@ -57,36 +57,14 @@ export class PoeditorService {
     form.append('data', JSON.stringify(dto.data));
 
     try {
+      for (const translation of dto.data) {
+        await this.addTerm(translation.term, translation.context);
+      }
+
       const response = await fetch(`${this.apiUrl}/translations/add`, {
         method: 'POST',
         body: form as any,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        // If error is due to missing terms, add them and retry
-        if (this.isMissingTermError(errorData)) {
-          console.log('Missing terms, adding them and retrying...');
-          // Add all terms first
-          const addTermPromises = dto.data.map((item) =>
-            this.addTerm(item.term, item.context || ''),
-          );
-          await Promise.all(addTermPromises);
-
-          // Retry the translation request
-          const retryResponse = await fetch(`${this.apiUrl}/translations/add`, {
-            method: 'POST',
-            body: form as any,
-          });
-
-          if (!retryResponse.ok) {
-            throw new Error(`HTTP error! status: ${retryResponse.status}`);
-          }
-
-          return await retryResponse.json();
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       return await response.json();
     } catch (error) {
