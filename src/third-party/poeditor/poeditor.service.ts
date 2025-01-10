@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AddTranslationDto } from './dtos/add-translation.dto';
-import * as FormData from 'form-data';
 
 @Injectable()
 export class PoeditorService {
@@ -33,17 +32,21 @@ export class PoeditorService {
   }
 
   async addTerms(terms: Array<{ term: string; context?: string }>) {
-    const form = new FormData();
-    form.append('api_token', this.apiKey);
-    form.append('id', this.projectId.toString());
-    form.append('data', JSON.stringify(terms));
-
     try {
       this.logger.debug('Adding terms:', terms);
       
+      // Create URLSearchParams instead of FormData
+      const formData = new URLSearchParams();
+      formData.append('api_token', this.apiKey);
+      formData.append('id', this.projectId.toString());
+      formData.append('data', JSON.stringify(terms));
+
       const response = await fetch(`${this.apiUrl}/terms/add`, {
         method: 'POST',
-        body: form as any,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
       });
 
       return await this.handlePoEditorResponse(response);
@@ -64,16 +67,19 @@ export class PoeditorService {
       await this.addTerms(terms);
       this.logger.debug('Terms added successfully');
 
-      // Then add translations
-      const form = new FormData();
-      form.append('api_token', this.apiKey);
-      form.append('id', this.projectId.toString());
-      form.append('language', dto.language);
-      form.append('data', JSON.stringify(dto.data));
+      // Create URLSearchParams for translations
+      const formData = new URLSearchParams();
+      formData.append('api_token', this.apiKey);
+      formData.append('id', this.projectId.toString());
+      formData.append('language', dto.language);
+      formData.append('data', JSON.stringify(dto.data));
 
       const response = await fetch(`${this.apiUrl}/translations/add`, {
         method: 'POST',
-        body: form as any,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
       });
 
       const result = await this.handlePoEditorResponse(response);
@@ -86,23 +92,23 @@ export class PoeditorService {
   }
 
   async getTranslations(language: string) {
-    const form = new FormData();
-    form.append('api_token', this.apiKey);
-    form.append('id', this.projectId.toString());
-    form.append('language', language);
-
     try {
+      const formData = new URLSearchParams();
+      formData.append('api_token', this.apiKey);
+      formData.append('id', this.projectId.toString());
+      formData.append('language', language);
+
       const response = await fetch(`${this.apiUrl}/terms/list`, {
         method: 'POST',
-        body: form as any,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
+      return await this.handlePoEditorResponse(response);
     } catch (error) {
+      this.logger.error('Failed to get translations:', error);
       throw new Error(`POEditor API Error: ${error.message}`);
     }
   }
