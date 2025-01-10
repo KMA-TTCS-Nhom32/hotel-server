@@ -1,14 +1,18 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PoeditorService } from './poeditor.service';
 import { AddTranslationDto, GetTranslationsRequestDto, ListTranslationResponseDto } from './dtos';
-import { Public } from '@/modules/auth/decorators';
+import { Public, Roles } from '@/modules/auth/decorators';
+import { RolesGuard } from '@/modules/auth/guards';
+import { UserRole } from '@prisma/client';
 
 @ApiTags('POEditor')
 @Controller('poeditor')
 export class PoeditorController {
   constructor(private readonly poeditorService: PoeditorService) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
   @Post('translations')
   @ApiOperation({ summary: 'Add translations to POEditor project' })
   @ApiResponse({
@@ -39,5 +43,11 @@ export class PoeditorController {
     @Body() dto: GetTranslationsRequestDto,
   ): Promise<ListTranslationResponseDto> {
     return this.poeditorService.getTranslations(dto.language);
+  }
+
+  @Get('test')
+  @ApiOperation({ summary: 'Test POEditor connection' })
+  async testConnection() {
+    return this.poeditorService.addTerm('test_term', 'test_context');
   }
 }
