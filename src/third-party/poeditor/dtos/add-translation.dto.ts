@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsString, ValidateNested, IsOptional } from 'class-validator';
 
@@ -20,7 +20,7 @@ class TranslationData {
     content: string;
   };
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'greeting',
     description: 'Optional context for the translation',
     required: false,
@@ -49,8 +49,8 @@ export class AddTranslationDto {
     type: [TranslationData],
     description: 'Array of translations to add',
   })
-  @IsArray()
-  @ValidateNested({ each: true })
+  @ValidateNested()
   @Type(() => TranslationData)
+  @IsArray()
   data: TranslationData[];
 }

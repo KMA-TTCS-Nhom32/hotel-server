@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class GetTranslationsRequestDto {
   @ApiProperty({
@@ -47,29 +47,29 @@ class Term {
   })
   context: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'messages',
     description: 'Plural form',
   })
-  plural: string;
+  plural?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '2023-11-20 10:30:15',
     description: 'Creation timestamp',
   })
-  created: string;
+  created?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '2023-11-20 10:30:15',
     description: 'Last update timestamp',
   })
-  updated: string;
+  updated?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'welcome.component.ts',
     description: 'Reference file or location',
   })
-  reference: string;
+  reference?: string;
 
   @ApiProperty({
     type: () => TranslationContent,
