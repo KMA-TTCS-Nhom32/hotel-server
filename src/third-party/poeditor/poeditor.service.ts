@@ -33,6 +33,7 @@ export class PoeditorService {
       ]),
     );
 
+    console.log('add term', term, context);
     try {
       const response = await fetch(`${this.apiUrl}/terms/add`, {
         method: 'POST',
@@ -56,6 +57,7 @@ export class PoeditorService {
     form.append('language', dto.language);
     form.append('data', JSON.stringify(dto.data));
 
+    console.log('add translation', dto);
     try {
       for (const translation of dto.data) {
         await this.addTerm(translation.term, translation.context);
