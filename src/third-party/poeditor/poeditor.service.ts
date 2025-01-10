@@ -8,6 +8,12 @@ export class PoeditorService {
   private readonly apiUrl: string;
   private readonly apiKey: string;
   private readonly projectId: number;
+  private readonly baseOptions: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  };
 
   constructor(private readonly configService: ConfigService) {
     this.apiUrl = this.configService.get<string>('POEDITOR_API_URL');
@@ -42,10 +48,7 @@ export class PoeditorService {
       formData.append('data', JSON.stringify(terms));
 
       const response = await fetch(`${this.apiUrl}/terms/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        ...this.baseOptions,
         body: formData,
       });
 
@@ -75,10 +78,7 @@ export class PoeditorService {
       formData.append('data', JSON.stringify(dto.data));
 
       const response = await fetch(`${this.apiUrl}/translations/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        ...this.baseOptions,
         body: formData,
       });
 
@@ -99,10 +99,7 @@ export class PoeditorService {
       formData.append('language', language ?? 'vi');
 
       const response = await fetch(`${this.apiUrl}/terms/list`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        ...this.baseOptions,
         body: formData,
       });
 
