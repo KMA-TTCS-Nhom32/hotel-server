@@ -66,9 +66,10 @@ export class PoeditorService {
         const errorData = await response.json();
         // If error is due to missing terms, add them and retry
         if (this.isMissingTermError(errorData)) {
+          console.log('Missing terms, adding them and retrying...');
           // Add all terms first
-          const addTermPromises = dto.data.map(item => 
-            this.addTerm(item.term, item.context || '')
+          const addTermPromises = dto.data.map((item) =>
+            this.addTerm(item.term, item.context || ''),
           );
           await Promise.all(addTermPromises);
 
