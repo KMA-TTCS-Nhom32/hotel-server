@@ -25,16 +25,6 @@ export class PrepareBookingDto {
 
   @ApiProperty({
     type: String,
-    enum: BookingType,
-    example: BookingType.HOURLY,
-    description: 'Booking code',
-  })
-  @IsNotEmpty()
-  @IsEnum(BookingType)
-  type: BookingType;
-
-  @ApiProperty({
-    type: String,
     example: 'user-id-123',
     description: 'ID of the user making the booking',
   })
@@ -44,6 +34,16 @@ export class PrepareBookingDto {
 }
 
 export class SelectBookingTimeDto {
+  @ApiProperty({
+    type: String,
+    enum: BookingType,
+    example: BookingType.HOURLY,
+    description: 'Booking type',
+  })
+  @IsNotEmpty()
+  @IsEnum(BookingType)
+  type: BookingType;
+
   @ApiProperty({
     type: String,
     example: '20-01-2025',

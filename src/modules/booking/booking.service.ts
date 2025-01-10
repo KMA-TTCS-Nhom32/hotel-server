@@ -9,18 +9,25 @@ import {
 import {
   CreateBookingAtHotelDto,
   CreateBookingOnlineDto,
+  FilterBookingsDto,
+  FilterMyBookingsDto,
   PrepareBookingDto,
   SelectBookingTimeDto,
+  SortBookingsDto,
+  UpdateBookingDto,
 } from './dtos';
 import {
   BookingErrorMessagesEnum,
   CommonErrorMessagesEnum,
+  createPaginatedResponse,
+  getPaginationParams,
+  PaginationParams,
   RoomErrorMessagesEnum,
 } from 'libs/common';
 import Decimal from 'decimal.js';
 import { RoomDetailService } from '@/modules/room-detail/room-detail.service';
 import { RoomService } from '@/modules/room/room.service';
-import { BookingType, HotelRoomStatus } from '@prisma/client';
+import { BookingStatus, BookingType, HotelRoomStatus } from '@prisma/client';
 import { Booking } from './models';
 import { RoomDetail } from '../room-detail/models';
 
@@ -34,6 +41,37 @@ export class BookingService extends BaseService {
     super(databaseService);
   }
 
+  private baseBookingInclude = {
+    room: {
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        detail: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            branch: {
+              select: {
+                id: true,
+                slug: true,
+                name: true,
+                province: {
+                  select: {
+                    id: true,
+                    slug: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
   formatStringDate(dateString: string): Date {
     // Split the date string into parts (assuming format "DD-MM-YYYY")
     const [day, month, year] = dateString.split('-').map((num) => parseInt(num, 10));
@@ -44,9 +82,19 @@ export class BookingService extends BaseService {
     return date;
   }
 
-  private generateBookingCode(): string {
+  private async generateBookingCode(): Promise<string> {
     // Generate a random 9-digit number
     const code = Math.floor(100000000 + Math.random() * 900000000).toString();
+
+    // Check if the code already exists
+    const booking = await this.databaseService.booking.findFirst({
+      where: { code },
+    });
+
+    // If the code already exists, generate a new one
+    if (booking) {
+      return this.generateBookingCode();
+    }
 
     return code;
   }
@@ -73,12 +121,8 @@ export class BookingService extends BaseService {
     return total_days;
   }
 
-  private calculateTotalAmount(
-    selectTimeDto: SelectBookingTimeDto,
-    type: BookingType,
-    room: RoomDetail,
-  ) {
-    const { start_date, end_date, start_time, end_time } = selectTimeDto;
+  private calculateTotalAmount(selectTimeDto: SelectBookingTimeDto, room: RoomDetail) {
+    const { type, start_date, end_date, start_time, end_time } = selectTimeDto;
     const {
       base_price_per_hour,
       special_price_per_hour,
@@ -126,6 +170,7 @@ export class BookingService extends BaseService {
     try {
       const {
         detailId,
+        type,
         start_date,
         end_date,
         start_time,
@@ -141,7 +186,7 @@ export class BookingService extends BaseService {
         throw new HttpException(
           {
             status: HttpStatus.BAD_REQUEST,
-            error: BookingErrorMessagesEnum.maximumGuestsExceeded,
+            error: BookingErrorMessagesEnum.MaxPriceaximumGuestsExceeded,
           },
           HttpStatus.BAD_REQUEST,
         );
@@ -166,14 +211,22 @@ export class BookingService extends BaseService {
       }
 
       const total_amount = this.calculateTotalAmount(
-        { start_date, end_date, start_time, end_time },
-        prepareDto.type,
+        {
+          type,
+          start_date,
+          end_date,
+          start_time,
+          end_time,
+        },
         currentRoomDetail,
       );
 
+      const code = await this.generateBookingCode();
+
       const booking = await this.databaseService.booking.create({
         data: {
-          code: this.generateBookingCode(),
+          code,
+          type,
           ...prepareDto,
           ...createBookingDto,
           roomId: firstAvailableRoom.id,
@@ -207,23 +260,33 @@ export class BookingService extends BaseService {
         );
       }
 
-      const { start_date, end_date, start_time, end_time, guest_details, ...createBookingDto } =
-        createDto;
+      const {
+        type,
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        guest_details,
+        ...createBookingDto
+      } = createDto;
 
       const total_amount = this.calculateTotalAmount(
         {
+          type,
           start_date,
           end_date,
           start_time,
           end_time,
         },
-        prepareDto.type,
         currentRoom.detail,
       );
 
+      const code = await this.generateBookingCode();
+
       const booking = await this.databaseService.booking.create({
         data: {
-          code: this.generateBookingCode(),
+          code,
+          type,
           ...prepareDto,
           ...createBookingDto,
           start_date: this.formatStringDate(start_date),
@@ -238,6 +301,260 @@ export class BookingService extends BaseService {
       return new Booking(booking as any);
     } catch (error) {
       console.error('BookingService -> createAtHotel -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findById(id: string) {
+    try {
+      const booking = await this.databaseService.booking.findUnique({
+        where: { id },
+        include: {
+          room: {
+            include: {
+              detail: {
+                include: {
+                  branch: {
+                    include: {
+                      province: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!booking) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: BookingErrorMessagesEnum.NotFound,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return new Booking(booking as any);
+    } catch (error) {
+      console.error('BookingService -> findById -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async getMyBookings(
+    myId: string,
+    paginationOptions: PaginationParams,
+    filterOptions: FilterMyBookingsDto,
+  ) {
+    try {
+      const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
+
+      const status = filterOptions.status ?? [BookingStatus.PENDING];
+      const where = this.mergeWithBaseWhere({
+        userId: myId,
+        status: {
+          in: status,
+        },
+      });
+
+      const [bookings, total] = await this.databaseService.$transaction([
+        this.databaseService.booking.findMany({
+          where,
+          orderBy: {
+            updatedAt: 'desc',
+          },
+          skip,
+          take,
+          include: this.baseBookingInclude,
+        }),
+        this.databaseService.booking.count({ where }),
+      ]);
+
+      return createPaginatedResponse(
+        bookings.map((booking) => new Booking(booking as any)),
+        total,
+        page,
+        pageSize,
+      );
+    } catch (error) {
+      console.error('BookingService -> getMyBookings -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  private prepareFilterOptions(filterOptions: FilterBookingsDto) {
+    const {
+      keyword,
+      type,
+      branchId,
+      detailId,
+      roomId,
+      status,
+      start_date,
+      end_date,
+      payment_method,
+      payment_status,
+      userId,
+    } = filterOptions;
+
+    const where: any = {
+      ...(keyword && {
+        OR: [
+          {
+            room: {
+              detail: { name: { contains: keyword, mode: 'insensitive' } },
+            },
+          },
+          {
+            room: {
+              detail: {
+                branch: { name: { contains: keyword, mode: 'insensitive' } },
+              },
+            },
+          },
+          {
+            room: {
+              detail: {
+                branch: {
+                  province: { name: { contains: keyword, mode: 'insensitive' } },
+                },
+              },
+            },
+          },
+        ],
+      }),
+      ...(type && { type }),
+      ...(roomId && { roomId }),
+      ...(detailId && { room: { detailId } }),
+      ...(branchId && { room: { detail: { branchId } } }),
+      ...(status && { status }),
+      ...(payment_status && { payment_status }),
+      ...(payment_method && { payment_method }),
+      ...(userId && { userId }),
+      ...(start_date && {
+        start_date: {
+          gte: this.formatStringDate(start_date),
+        },
+      }),
+      ...(end_date && {
+        end_date: {
+          lte: this.formatStringDate(end_date),
+        },
+      }),
+    };
+
+    return this.mergeWithBaseWhere(where);
+  }
+
+  private prepareSortOptions(sortOptions: SortBookingsDto[]) {
+    return sortOptions.reduce(
+      (acc, { orderBy: field, order }) =>
+        field !== 'branchName'
+          ? {
+              ...acc,
+              [field]: order.toLowerCase(),
+            }
+          : {
+              detail: {
+                branch: {
+                  name: order.toLowerCase(),
+                },
+              },
+            },
+      {},
+    );
+  }
+
+  async findMany(
+    paginationOptions: PaginationParams,
+    filterOptions?: FilterBookingsDto,
+    sortOptions?: SortBookingsDto[],
+  ) {
+    try {
+      const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
+
+      const where = this.prepareFilterOptions(filterOptions);
+
+      const orderBy = this.prepareSortOptions(sortOptions);
+
+      const [bookings, total] = await this.databaseService.$transaction([
+        this.databaseService.booking.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          include: this.baseBookingInclude,
+        }),
+        this.databaseService.booking.count({ where }),
+      ]);
+
+      return createPaginatedResponse(
+        bookings.map((booking) => new Booking(booking as any)),
+        total,
+        page,
+        pageSize,
+      );
+    } catch (error) {
+      console.error('BookingService -> findMany -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  private prepareUpdateData(updateDto: UpdateBookingDto) {
+    const updateData = {
+      ...updateDto,
+      ...(updateDto.start_date && {
+        start_date: this.formatStringDate(updateDto.start_date),
+      }),
+      ...(updateDto.end_date && {
+        end_date: this.formatStringDate(updateDto.end_date),
+      }),
+      ...(updateDto.roomId && {
+        room: { connect: { id: updateDto.roomId } },
+      }),
+    };
+
+    delete updateData.roomId;
+
+    return updateData as any;
+  }
+
+  async update(id: string, updateDto: UpdateBookingDto) {
+    try {
+      await this.findById(id);
+
+      const updatedBooking = await this.databaseService.booking.update({
+        where: { id },
+        data: this.prepareUpdateData(updateDto),
+        include: {
+          room: true,
+        },
+      });
+
+      return new Booking(updatedBooking as any);
+    } catch (error) {
+      console.error('BookingService -> update -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async updateStatus(id: string, status: BookingStatus) {
+    try {
+      await this.findById(id);
+
+      const updatedBooking = await this.databaseService.booking.update({
+        where: { id },
+        data: { status },
+        include: {
+          room: true,
+        },
+      });
+
+      return new Booking(updatedBooking as any);
+    } catch (error) {
+      console.error('BookingService -> updateStatus -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

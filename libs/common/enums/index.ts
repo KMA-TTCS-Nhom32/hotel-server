@@ -56,5 +56,6 @@ export enum RoomErrorMessagesEnum {
 }
 
 export enum BookingErrorMessagesEnum {
-  maximumGuestsExceeded = 'maximumGuestsExceeded',
+  MaxPriceaximumGuestsExceeded = 'maximumGuestsExceeded',
+  NotFound = 'bookingNotFound',
 }

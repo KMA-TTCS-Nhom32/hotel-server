@@ -31,7 +31,7 @@ export class RoomDetailService extends BaseService {
     };
   }
 
-  private async checkSlugExisted (slug: string, branchId: string) {
+  private async checkSlugExisted(slug: string, branchId: string) {
     const existedSlug = await this.databaseService.roomDetail.findFirst({
       where: {
         slug,
@@ -50,7 +50,7 @@ export class RoomDetailService extends BaseService {
         HttpStatus.CONFLICT,
       );
     }
-  };
+  }
 
   async create(createRoomDetailDto: CreateRoomDetailDto): Promise<RoomDetail> {
     try {
@@ -246,6 +246,9 @@ export class RoomDetailService extends BaseService {
       }),
       ...(updateRoomDetailDto.amenityIds && {
         amenities: { set: updateRoomDetailDto.amenityIds.map((id) => ({ id })) },
+      }),
+      ...(updateRoomDetailDto.branchId && {
+        branch: { connect: { id: updateRoomDetailDto.branchId } },
       }),
     };
 
