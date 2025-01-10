@@ -1,120 +1,70 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class GetTranslationsRequestDto {
   @ApiProperty({
     example: 'en',
-    description: 'Language code to fetch translations for',
+    description: 'Language code to fetch translations for'
   })
   language: string;
 }
 
-class TranslationContent {
-  @ApiProperty({
-    example: 'Hello world',
-    description: 'Translated content',
-  })
+export class DetailTranslationContent {
+  @ApiProperty()
   content: string;
 
-  @ApiProperty({
-    example: 0,
-    description: 'Fuzzy translation flag',
-  })
+  @ApiProperty()
   fuzzy: number;
 
-  @ApiProperty({
-    example: 1,
-    description: 'Proofread status',
-  })
+  @ApiProperty()
   proofread: number;
 
-  @ApiProperty({
-    example: '2023-11-20 10:30:15',
-    description: 'Last update timestamp',
-  })
+  @ApiProperty()
   updated: string;
 }
 
-class Term {
-  @ApiProperty({
-    example: 'welcome_message',
-    description: 'Translation term key',
-  })
+export class Term {
+  @ApiProperty()
   term: string;
 
-  @ApiProperty({
-    example: 'homepage',
-    description: 'Context where the term is used',
-  })
+  @ApiProperty()
   context: string;
 
-  @ApiPropertyOptional({
-    example: 'messages',
-    description: 'Plural form',
-  })
-  plural?: string;
+  @ApiProperty({ required: false })
+  plural: string;
 
-  @ApiPropertyOptional({
-    example: '2023-11-20 10:30:15',
-    description: 'Creation timestamp',
-  })
-  created?: string;
+  @ApiProperty({ required: false })
+  created: string;
 
-  @ApiPropertyOptional({
-    example: '2023-11-20 10:30:15',
-    description: 'Last update timestamp',
-  })
-  updated?: string;
+  @ApiProperty({ required: false })
+  updated: string;
 
-  @ApiPropertyOptional({
-    example: 'welcome.component.ts',
-    description: 'Reference file or location',
-  })
-  reference?: string;
+  @ApiProperty({ required: false })
+  reference: string;
 
-  @ApiProperty({
-    type: () => TranslationContent,
-    description: 'Translation details',
-  })
-  translation: TranslationContent;
+  @ApiProperty({ type: () => DetailTranslationContent })
+  translation: DetailTranslationContent;
 }
 
-class ResponseStatus {
-  @ApiProperty({
-    example: 'success',
-    description: 'Response status',
-  })
+export class ResponseStatus {
+  @ApiProperty()
   status: string;
 
-  @ApiProperty({
-    example: '200',
-    description: 'Response code',
-  })
+  @ApiProperty()
   code: string;
 
-  @ApiProperty({
-    example: 'OK',
-    description: 'Response message',
-  })
+  @ApiProperty()
   message: string;
 }
 
+export class ListTranslationResult {
+  @ApiProperty({ type: [Term] })
+  terms: Term[];
+}
+
 export class ListTranslationResponseDto {
-  @ApiProperty({
-    type: ResponseStatus,
-    description: 'API response status information',
-  })
+  @ApiProperty({ type: ResponseStatus })
   response: ResponseStatus;
 
-  @ApiProperty({
-    type: 'object',
-    properties: {
-      terms: {
-        type: () => [Term],
-      },
-    },
-    description: 'Translation terms and their details',
-  })
-  result: {
-    terms: Term[];
-  };
+  @ApiProperty({ type: ListTranslationResult })
+  result: ListTranslationResult;
 }

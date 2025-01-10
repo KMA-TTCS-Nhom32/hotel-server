@@ -44,10 +44,4 @@ export class PoeditorController {
   ): Promise<ListTranslationResponseDto> {
     return this.poeditorService.getTranslations(dto.language);
   }
-
-  @Get('test')
-  @ApiOperation({ summary: 'Test POEditor connection' })
-  async testConnection() {
-    return this.poeditorService.addTerm('test_term', 'test_context');
-  }
 }

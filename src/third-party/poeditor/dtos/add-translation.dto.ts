@@ -2,7 +2,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsString, ValidateNested, IsOptional } from 'class-validator';
 
-class TranslationData {
+export class TranslationContent {
+  @ApiProperty()
+  @IsString()
+  content: string;
+}
+
+export class TranslationData {
   @ApiProperty({
     example: 'hello',
     description: 'The term to translate',
@@ -10,15 +16,10 @@ class TranslationData {
   @IsString()
   term: string;
 
-  @ApiProperty({
-    description: 'The translation of the term',
-    type: 'object',
-    properties: { content: { type: String } },
-  })
-  @IsString()
-  translation: {
-    content: string;
-  };
+  @ApiProperty({ type: TranslationContent })
+  @ValidateNested()
+  @Type(() => TranslationContent)
+  translation: TranslationContent;
 
   @ApiPropertyOptional({
     example: 'greeting',
@@ -31,13 +32,6 @@ class TranslationData {
 }
 
 export class AddTranslationDto {
-  //   @ApiProperty({
-  //     example: 123456,
-  //     description: 'The POEditor project ID',
-  //   })
-  //   @IsNumber()
-  //   id: number;
-
   @ApiProperty({
     example: 'fr',
     description: 'The language code for the translations',
@@ -49,8 +43,8 @@ export class AddTranslationDto {
     type: [TranslationData],
     description: 'Array of translations to add',
   })
-  @ValidateNested()
-  @Type(() => TranslationData)
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TranslationData)
   data: TranslationData[];
 }
