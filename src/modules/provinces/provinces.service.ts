@@ -11,17 +11,36 @@ import { Province } from './models';
 import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 import { BaseService } from '@/common/services/base.service';
-
+import { PoeditorService } from '@/third-party/poeditor/poeditor.service';
 @Injectable()
 export class ProvincesService extends BaseService {
-  constructor(protected readonly databaseService: DatabaseService) {
+  constructor(
+    protected readonly databaseService: DatabaseService,
+    private readonly poeditorService: PoeditorService,
+  ) {
     super(databaseService);
   }
 
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
     try {
+      const { name } = createProvinceDto;
+
+      // Add translation to POEditor
+      await this.poeditorService.addTranslation({
+        language: 'vi',
+        data: [
+          {
+            term: `province_name.${createProvinceDto.slug}`,
+            translation: name,
+          },
+        ],
+      });
+
       const province = await this.databaseService.province.create({
-        data: createProvinceDto,
+        data: {
+          ...createProvinceDto,
+          name: `province_name.${createProvinceDto.slug}`,
+        },
         include: {
           _count: true,
         },
