@@ -4,18 +4,23 @@ import { AbstractModel } from 'libs/common/abstract';
 import { Province } from '@/modules/provinces/models';
 import { Amenity } from '@/modules/amenities/models';
 import { RoomDetail } from '@/modules/room-detail/models';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class NearBy {
   @ApiProperty({
     type: String,
     description: 'Name of the nearby location',
   })
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiProperty({
     type: String,
     description: 'Distance from the branch',
   })
+  @IsNotEmpty()
+  @IsString()
   distance: string;
 }
 

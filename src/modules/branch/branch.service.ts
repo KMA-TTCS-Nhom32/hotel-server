@@ -242,6 +242,7 @@ export class BranchService extends BaseService {
   }
 
   private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
+    console.log('nearBy', updateBranchDto.nearBy);
     const updateData = {
       ...(updateBranchDto.thumbnail && {
         thumbnail: this.formatImage(updateBranchDto.thumbnail),
