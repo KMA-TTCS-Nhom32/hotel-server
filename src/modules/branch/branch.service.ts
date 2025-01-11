@@ -35,12 +35,12 @@ export class BranchService extends BaseService {
     };
   }
 
-  private formatNearBy(nearBy: NearBy[]): Record<string, any>[] {
-    return nearBy.map((item) => ({
-      name: item.name,
-      distance: item.distance,
-    }));
-  }
+  //   private formatNearBy(nearBy: NearBy[]): Record<string, any>[] {
+  //     return nearBy.map((item) => ({
+  //       name: item.name,
+  //       distance: item.distance,
+  //     }));
+  //   }
 
   //   private formatLocation(location: {
   //     latitude: number;
@@ -253,7 +253,7 @@ export class BranchService extends BaseService {
         amenities: { set: updateBranchDto.amenityIds.map((id) => ({ id })) },
       }),
       ...(updateBranchDto.nearBy && {
-        nearBy: this.formatNearBy(updateBranchDto.nearBy),
+        nearBy: updateBranchDto.nearBy,
       }),
       ...(updateBranchDto.provinceId && {
         province: { connect: { id: updateBranchDto.provinceId } },

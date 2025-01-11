@@ -8,6 +8,7 @@ import { JsonTransform } from 'libs/common';
 export class FilterAmenityDto {
   @ApiPropertyOptional({
     enum: AmenityType,
+    isArray: true,
     example: [AmenityType.ROOM, AmenityType.SERVICE],
   })
   @IsOptional()
