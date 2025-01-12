@@ -266,6 +266,7 @@ export class RoomDetailService extends BaseService {
 
   async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto) {
     try {
+      console.log('updateRoomDetailDto', updateRoomDetailDto);
       return await this.databaseService.$transaction(async (prisma) => {
         await this.findById(id);
 
