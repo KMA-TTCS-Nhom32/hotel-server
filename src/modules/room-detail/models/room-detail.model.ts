@@ -1,11 +1,12 @@
 import { AbstractModel } from 'libs/common';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HotelRoomType, HotelRoomBedType } from '@prisma/client';
 import { Amenity } from '@/modules/amenities/models';
 import { HotelRoom } from '@/modules/room/models';
 import { Image } from '@/modules/images/models';
 import { Branch } from '@/modules/branch/models';
 import Decimal from 'decimal.js';
+import { RoomPriceHistory } from '@/modules/room-price-history/models.ts';
 
 export class RoomDetail extends AbstractModel {
   constructor(data: RoomDetail) {
@@ -113,4 +114,10 @@ export class RoomDetail extends AbstractModel {
 
   @ApiProperty({ type: () => [HotelRoom] })
   flat_rooms?: HotelRoom[];
+
+  @ApiPropertyOptional({
+    type: () => [RoomPriceHistory],
+    description: 'Price history of this room',
+  })
+  roomPriceHistories?: RoomPriceHistory[];
 }
