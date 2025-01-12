@@ -9,7 +9,7 @@ export class VerificationService {
   private generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
-  
+
   async createVerification(userId: string, type: AccountIdentifier) {
     const code = this.generateOTP();
     const expires_at = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
@@ -67,5 +67,25 @@ export class VerificationService {
       userId,
       type,
     };
+  }
+
+  async verifyEmailCode(email: string, code: string) {
+    const user = await this.databaseService.user.findFirst({
+      where: {
+        email,
+      },
+    });
+
+    if (!user) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: 'User not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return this.verifyCode(user.id, code, AccountIdentifier.EMAIL);
   }
 }
