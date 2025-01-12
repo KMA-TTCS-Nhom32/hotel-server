@@ -19,15 +19,15 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
-  
+
   // Updated CORS configuration
   app.enableCors({
     // For development (accepts all origins):
     origin: true,
-    
+
     // OR for production (more secure):
     // origin: ['http://localhost:3000', 'https://your-production-domain.com'],
-    
+
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -46,6 +46,5 @@ async function bootstrap() {
   const port = configService.get('PORT');
 
   await app.listen(port);
-
 }
 bootstrap();

@@ -125,11 +125,11 @@ model RoomDetail {
     bed_type                HotelRoomBedType
     amenities               Amenity[]
     base_price_per_hour     Decimal            @db.Decimal(9, 0)
-    special_price_per_hour  Decimal?           @default(0) @db.Decimal(9, 0)
+    special_price_per_hour  Decimal?           @db.Decimal(9, 0)
     base_price_per_night    Decimal            @db.Decimal(9, 0)
-    special_price_per_night Decimal?           @default(0) @db.Decimal(9, 0)
+    special_price_per_night Decimal?           @db.Decimal(9, 0)
     base_price_per_day      Decimal            @db.Decimal(9, 0)
-    special_price_per_day   Decimal?           @default(0) @db.Decimal(9, 0)
+    special_price_per_day   Decimal?           @db.Decimal(9, 0)
     roomPriceHistories      RoomPriceHistory[]
     promotions              RoomPromotion[]
     max_adults              Int                @default(2)
@@ -269,14 +269,19 @@ enum PaymentMethod {
 }
 
 model RoomPriceHistory {
-    id             String        @id @default(cuid())
-    roomDetailId   String
-    roomDetail     RoomDetail    @relation(fields: [roomDetailId], references: [id])
-    price_type     RoomPriceType
-    price          Float
-    effective_from DateTime
-    effective_to   DateTime?
-    createdAt      DateTime      @default(now())
+    id              String     @id @default(cuid())
+    name            String
+    description     String     @default("")
+    roomDetailId    String
+    roomDetail      RoomDetail @relation(fields: [roomDetailId], references: [id])
+    price_per_hour  Decimal?   @db.Decimal(9, 0)
+    price_per_night Decimal?   @db.Decimal(9, 0)
+    price_per_day   Decimal?   @db.Decimal(9, 0)
+    effective_from  String
+    effective_to    String?
+    is_applied      Boolean    @default(false)
+    createdAt       DateTime   @default(now())
+    updatedAt       DateTime   @updatedAt
 }
 
 enum RoomPriceType {

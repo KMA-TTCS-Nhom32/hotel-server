@@ -252,6 +252,12 @@ export class RoomDetailService extends BaseService {
       }),
     };
 
+    if (updateData.special_price_per_hour?.equals(0)) updateData.special_price_per_hour = null;
+
+    if (updateData.special_price_per_night?.equals(0)) updateData.special_price_per_night = null;
+
+    if (updateData.special_price_per_day?.equals(0)) updateData.special_price_per_day = null;
+
     delete updateData.amenityIds;
     delete updateData.branchId;
 

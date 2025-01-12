@@ -94,6 +94,35 @@ export class CreateRoomDetailDto {
   base_price_per_hour: Decimal;
 
   @ApiProperty({
+    type: String,
+    example: '500000',
+    description: "Hotel Room's base price per night",
+  })
+  @IsNotEmpty()
+  @IsDecimal()
+  base_price_per_night: Decimal;
+
+  @ApiProperty({
+    type: String,
+    example: '1000000',
+    description: "Hotel Room's base price per day",
+  })
+  @IsNotEmpty()
+  @IsDecimal()
+  base_price_per_day: Decimal;
+}
+
+export class UpdateRoomDetailDto extends PartialType(CreateRoomDetailDto) {
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Branch amenities',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  amenityIds?: string[];
+
+  @ApiProperty({
     required: false,
     type: String,
     example: '200000',
@@ -102,15 +131,6 @@ export class CreateRoomDetailDto {
   @IsOptional()
   @IsDecimal()
   special_price_per_hour?: Decimal;
-
-  @ApiProperty({
-    type: String,
-    example: '500000',
-    description: "Hotel Room's base price per night",
-  })
-  @IsNotEmpty()
-  @IsDecimal()
-  base_price_per_night: Decimal;
 
   @ApiProperty({
     required: false,
@@ -123,15 +143,6 @@ export class CreateRoomDetailDto {
   special_price_per_night?: Decimal;
 
   @ApiProperty({
-    type: String,
-    example: '1000000',
-    description: "Hotel Room's base price per day",
-  })
-  @IsNotEmpty()
-  @IsDecimal()
-  base_price_per_day: Decimal;
-
-  @ApiProperty({
     required: false,
     type: String,
     example: '900000',
@@ -140,15 +151,4 @@ export class CreateRoomDetailDto {
   @IsOptional()
   @IsDecimal()
   special_price_per_day?: Decimal;
-}
-
-export class UpdateRoomDetailDto extends PartialType(CreateRoomDetailDto) {
-  @ApiPropertyOptional({
-    type: [String],
-    description: 'Branch amenities',
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  amenityIds?: string[];
 }
