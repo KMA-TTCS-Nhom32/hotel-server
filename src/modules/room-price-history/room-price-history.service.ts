@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { CreateRoomPriceHistoryDto, UpdateRoomPriceHistoryDto } from './dtos';
 import { CommonErrorMessagesEnum } from 'libs/common';
-import Decimal from 'decimal.js';
 import { RoomPriceHistory } from './models.ts';
 
 @Injectable()
@@ -99,7 +98,12 @@ export class RoomPriceHistoryService {
       }
 
       const priceHistory = await this.databaseService.roomPriceHistory.create({
-        data,
+        data: {
+          ...data,
+          price_per_hour,
+          price_per_night,
+          price_per_day,
+        },
       });
 
       const isDateToApplied = this.checkIsDateToApply(
@@ -141,11 +145,9 @@ export class RoomPriceHistoryService {
     }
   }
 
-  async update(id: string, updateDto: UpdateRoomPriceHistoryDto) {
+  async update(id: string, data: UpdateRoomPriceHistoryDto) {
     try {
       await this.findById(id);
-
-      const { price_per_hour, price_per_night, price_per_day, ...data } = updateDto;
 
       const priceHistory = await this.databaseService.roomPriceHistory.update({
         where: { id },
