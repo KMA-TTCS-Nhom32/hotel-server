@@ -85,6 +85,15 @@ export class CreateRoomDetailDto {
   max_children: number;
 
   @ApiProperty({
+    type: Number,
+    example: 25,
+    description: 'Room area(m2)',
+  })
+  @IsInt()
+  @Min(1)
+  area: number;
+
+  @ApiProperty({
     type: String,
     example: '300000',
     description: "Hotel Room's base price per hour",

@@ -51,6 +51,9 @@ export class RoomDetail extends AbstractModel {
   @ApiProperty({ enum: HotelRoomBedType })
   bed_type: HotelRoomBedType;
 
+  @ApiProperty({ example: 30, description: 'Room area in square meters' })
+  area: number;
+
   @ApiProperty({ type: [Amenity] })
   amenities?: Amenity[];
 

@@ -123,6 +123,7 @@ model RoomDetail {
     images                  Json[]
     room_type               HotelRoomType
     bed_type                HotelRoomBedType
+    area                    Int
     amenities               Amenity[]
     base_price_per_hour     Decimal            @db.Decimal(9, 0)
     special_price_per_hour  Decimal?           @db.Decimal(9, 0)
