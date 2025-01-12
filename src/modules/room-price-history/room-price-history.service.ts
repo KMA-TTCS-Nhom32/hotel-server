@@ -99,12 +99,7 @@ export class RoomPriceHistoryService {
       }
 
       const priceHistory = await this.databaseService.roomPriceHistory.create({
-        data: {
-          ...data,
-          price_per_hour: new Decimal(price_per_hour),
-          price_per_night: new Decimal(price_per_night),
-          price_per_day: new Decimal(price_per_day),
-        },
+        data,
       });
 
       const isDateToApplied = this.checkIsDateToApply(
@@ -154,12 +149,7 @@ export class RoomPriceHistoryService {
 
       const priceHistory = await this.databaseService.roomPriceHistory.update({
         where: { id },
-        data: {
-          ...data,
-          price_per_hour: new Decimal(price_per_hour),
-          price_per_night: new Decimal(price_per_night),
-          price_per_day: new Decimal(price_per_day),
-        },
+        data,
       });
 
       const isDateToApplied = this.checkIsDateToApply(
