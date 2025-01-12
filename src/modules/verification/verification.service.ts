@@ -69,6 +69,35 @@ export class VerificationService {
     };
   }
 
+  async verifyCodeWithOutDelete(userId: string, code: string, type: AccountIdentifier) {
+    const verification = await this.databaseService.verification.findFirst({
+      where: {
+        userId,
+        code,
+        type,
+        expires_at: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!verification) {
+      throw new HttpException(
+        {
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          message: 'Invalid or expired verification code',
+        },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+
+    return {
+      success: true,
+      userId,
+      type,
+    };
+  }
+
   async verifyEmailCode(email: string, code: string) {
     const user = await this.databaseService.user.findFirst({
       where: {
@@ -86,6 +115,6 @@ export class VerificationService {
       );
     }
 
-    return this.verifyCode(user.id, code, AccountIdentifier.EMAIL);
+    return this.verifyCodeWithOutDelete(user.id, code, AccountIdentifier.EMAIL);
   }
 }
