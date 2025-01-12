@@ -32,9 +32,10 @@ export class RoomDetailService extends BaseService {
     };
   }
 
-  private async checkSlugExisted(slug: string, branchId: string) {
+  private async checkSlugExisted(slug: string, branchId: string, id?: string) {
     const existedSlug = await this.databaseService.roomDetail.findFirst({
       where: {
+        ...(id && { id: { not: id } }),
         slug,
         branch: {
           id: branchId,
@@ -271,25 +272,23 @@ export class RoomDetailService extends BaseService {
   async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto) {
     try {
       console.log('updateRoomDetailDto', updateRoomDetailDto);
-      return await this.databaseService.$transaction(async (prisma) => {
-        await this.findById(id);
+      await this.findById(id);
 
-        if (updateRoomDetailDto.slug) {
-          await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId);
-        }
+      if (updateRoomDetailDto.slug) {
+        await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
+      }
 
-        const updatedRoomDetail = await prisma.roomDetail.update({
-          where: { id },
-          data: this.prepareUpdateData(updateRoomDetailDto),
-          include: {
-            branch: true,
-            amenities: true,
-            flat_rooms: true,
-          },
-        });
-
-        return new RoomDetail(updatedRoomDetail as any);
+      const updatedRoomDetail = await this.databaseService.roomDetail.update({
+        where: { id },
+        data: this.prepareUpdateData(updateRoomDetailDto),
+        include: {
+          branch: true,
+          amenities: true,
+          flat_rooms: true,
+        },
       });
+
+      return new RoomDetail(updatedRoomDetail as any);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
