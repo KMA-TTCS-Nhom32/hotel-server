@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '@/database/database.service';
 import { CreateRoomDetailDto, UpdateRoomDetailDto } from './dtos/create-update-room-detail.dto';
@@ -21,6 +22,8 @@ import Decimal from 'decimal.js';
 
 @Injectable()
 export class RoomDetailService extends BaseService {
+  private readonly logger = new Logger(RoomDetailService.name);
+
   constructor(protected readonly databaseService: DatabaseService) {
     super(databaseService);
   }
@@ -276,7 +279,7 @@ export class RoomDetailService extends BaseService {
       if (updateRoomDetailDto.slug) {
         await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
       }
-      console.log('...updating room detail', updateRoomDetailDto);
+
       const updatedRoomDetail = await this.databaseService.roomDetail.update({
         where: { id },
         data: this.prepareUpdateData(updateRoomDetailDto),
@@ -289,7 +292,7 @@ export class RoomDetailService extends BaseService {
 
       return new RoomDetail(updatedRoomDetail as any);
     } catch (error) {
-      if (error instanceof HttpException) throw error;
+      this.logger.error('RoomDetailService -> update -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
