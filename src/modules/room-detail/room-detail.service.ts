@@ -271,13 +271,12 @@ export class RoomDetailService extends BaseService {
 
   async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto) {
     try {
-      console.log('updateRoomDetailDto', updateRoomDetailDto);
       await this.findById(id);
 
       if (updateRoomDetailDto.slug) {
         await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
       }
-
+      console.log('...updating room detail', updateRoomDetailDto);
       const updatedRoomDetail = await this.databaseService.roomDetail.update({
         where: { id },
         data: this.prepareUpdateData(updateRoomDetailDto),
