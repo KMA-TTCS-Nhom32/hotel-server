@@ -17,6 +17,7 @@ import {
 } from 'libs/common/utils';
 import { Image } from '../images/models';
 import { BaseService } from '@/common/services';
+import Decimal from 'decimal.js';
 
 @Injectable()
 export class RoomDetailService extends BaseService {
@@ -252,11 +253,14 @@ export class RoomDetailService extends BaseService {
       }),
     };
 
-    if (updateData.special_price_per_hour?.equals(0)) updateData.special_price_per_hour = null;
+    if (new Decimal(updateData.special_price_per_hour).equals(0))
+      updateData.special_price_per_hour = null;
 
-    if (updateData.special_price_per_night?.equals(0)) updateData.special_price_per_night = null;
+    if (new Decimal(updateData.special_price_per_night).equals(0))
+      updateData.special_price_per_night = null;
 
-    if (updateData.special_price_per_day?.equals(0)) updateData.special_price_per_day = null;
+    if (new Decimal(updateData.special_price_per_day).equals(0))
+      updateData.special_price_per_day = null;
 
     delete updateData.amenityIds;
     delete updateData.branchId;

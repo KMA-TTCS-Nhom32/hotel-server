@@ -131,8 +131,7 @@ export class UpdateRoomDetailDto extends PartialType(CreateRoomDetailDto) {
   @IsString({ each: true })
   amenityIds?: string[];
 
-  @ApiProperty({
-    required: false,
+  @ApiPropertyOptional({
     type: String,
     example: '200000',
     description: "Hotel Room's special price per hour",
@@ -141,8 +140,7 @@ export class UpdateRoomDetailDto extends PartialType(CreateRoomDetailDto) {
   @IsDecimal()
   special_price_per_hour?: Decimal;
 
-  @ApiProperty({
-    required: false,
+  @ApiPropertyOptional({
     type: String,
     example: '400000',
     description: "Hotel Room's special price per night",
@@ -151,8 +149,7 @@ export class UpdateRoomDetailDto extends PartialType(CreateRoomDetailDto) {
   @IsDecimal()
   special_price_per_night?: Decimal;
 
-  @ApiProperty({
-    required: false,
+  @ApiPropertyOptional({
     type: String,
     example: '900000',
     description: "Hotel Room's special price per day",
