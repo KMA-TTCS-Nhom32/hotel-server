@@ -212,6 +212,10 @@ export class BranchService extends BaseService {
           amenities: true,
           rooms: {
             where: { isDeleted: false },
+            include: {
+              amenities: true,
+              roomPriceHistories: true,
+            },
           },
         },
       });
