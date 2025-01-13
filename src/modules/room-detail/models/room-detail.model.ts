@@ -120,4 +120,11 @@ export class RoomDetail extends AbstractModel {
     description: 'Price history of this room',
   })
   roomPriceHistories?: RoomPriceHistory[];
+
+  @ApiProperty({
+    type: Boolean,
+    example: true,
+    description: 'Whether this room is available for booking',
+  })
+  is_available: boolean;
 }

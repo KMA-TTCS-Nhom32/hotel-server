@@ -35,6 +35,23 @@ export class RoomDetailService extends BaseService {
     };
   }
 
+  //   private async checkAvailableForBooking(detailId: string) {
+  //     let isAvailable = false;
+
+  //     const availableRoom = await this.databaseService.hotelRoom.findFirst({
+  //       where: {
+  //         detailId,
+  //         status: 'AVAILABLE',
+  //       },
+  //     });
+
+  //     if (availableRoom) {
+  //       isAvailable = true;
+  //     }
+
+  //     return isAvailable;
+  //   }
+
   private async checkSlugExisted(slug: string, branchId: string, id?: string) {
     const existedSlug = await this.databaseService.roomDetail.findFirst({
       where: {
@@ -210,7 +227,7 @@ export class RoomDetailService extends BaseService {
 
   async findById(id: string): Promise<RoomDetail> {
     try {
-      const roomDetail = await this.databaseService.roomDetail.findUnique({
+      const roomDetail = await this.databaseService.roomDetail.findFirst({
         where: { id },
         include: {
           branch: true,
@@ -236,6 +253,39 @@ export class RoomDetailService extends BaseService {
       return new RoomDetail(roomDetail as any);
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async checkUpdateRoomDetailAvailable(detailId: string) {
+    try {
+      const roomDetail = await this.findById(detailId);
+
+      let is_available = false;
+
+      for (const room of roomDetail.flat_rooms) {
+        if (room.status === 'AVAILABLE' && room.isDeleted === false) {
+          is_available = true;
+          break;
+        }
+      }
+
+      if (roomDetail.is_available === is_available) {
+        return roomDetail;
+      }
+
+      const updatedRoomDetail = await this.databaseService.roomDetail.update({
+        where: { id: detailId },
+        data: { is_available },
+        include: {
+          amenities: true,
+          flat_rooms: true,
+        },
+      });
+
+      return new RoomDetail(updatedRoomDetail as any);
+    } catch (error) {
+      this.logger.error('RoomDetailService -> checkUpdateRoomDetailAvailable -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

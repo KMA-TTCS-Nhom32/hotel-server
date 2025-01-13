@@ -1,5 +1,5 @@
 import { HotelRoomStatus } from '@prisma/client';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
 
 export class CreateHotelRoomDto {
@@ -40,4 +40,4 @@ export class CreateHotelRoomDto {
   detailId: string;
 }
 
-export class UpdateHotelRoomDto extends PartialType(CreateHotelRoomDto) {}
+export class UpdateHotelRoomDto extends PartialType(OmitType(CreateHotelRoomDto, ['detailId'])) {}

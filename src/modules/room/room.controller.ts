@@ -65,6 +65,23 @@ export class RoomController {
     return this.roomService.findManyPagination({ page, pageSize }, filters, sort);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @Get(':branchId')
+  @ApiOperation({ summary: 'ADMIN - STAFF Get all rooms by branch ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns all rooms by branch ID',
+    type: [HotelRoom],
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  findManyByBranchId(@Param('branchId') branchId: string) {
+    return this.roomService.findManyByBranchId(branchId);
+  }
+
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get a room by id' })

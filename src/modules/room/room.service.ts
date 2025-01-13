@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { BaseService } from '@/common/services';
 import { DatabaseService } from '@/database/database.service';
@@ -20,10 +21,17 @@ import {
   RoomErrorMessagesEnum,
 } from 'libs/common';
 import { HotelRoom } from './models';
+import { HotelRoomStatus } from '@prisma/client';
+import { RoomDetailService } from '../room-detail/room-detail.service';
 
 @Injectable()
 export class RoomService extends BaseService {
-  constructor(protected readonly databaseService: DatabaseService) {
+  private readonly logger = new Logger(RoomService.name);
+
+  constructor(
+    protected readonly databaseService: DatabaseService,
+    private readonly roomDetailService: RoomDetailService,
+  ) {
     super(databaseService);
   }
 
@@ -54,6 +62,32 @@ export class RoomService extends BaseService {
       return new HotelRoom(createdRoom);
     } catch (error) {
       console.error('Create room error:', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async findById(id: string) {
+    try {
+      const room = await this.databaseService.hotelRoom.findUnique({
+        where: { id },
+        include: {
+          detail: true,
+        },
+      });
+
+      if (!room) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            message: RoomErrorMessagesEnum.NotFound,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return new HotelRoom(room as any);
+    } catch (error) {
+      console.error('Find room by ID error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
@@ -120,36 +154,29 @@ export class RoomService extends BaseService {
     }
   }
 
-  async findById(id: string) {
+  async findManyByBranchId(branchId: string) {
     try {
-      const room = await this.databaseService.hotelRoom.findUnique({
-        where: { id },
-        include: {
-          detail: true,
-        },
+      const rooms = await this.databaseService.hotelRoom.findMany({
+        where: { detail: { branchId } },
       });
 
-      if (!room) {
-        throw new HttpException(
-          {
-            status: HttpStatus.NOT_FOUND,
-            message: RoomErrorMessagesEnum.NotFound,
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      return new HotelRoom(room as any);
+      return rooms.map((room) => new HotelRoom(room));
     } catch (error) {
-      console.error('Find room by ID error:', error);
+      this.logger.error('RoomService -> findManyByBranchId -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
 
   async update(id: string, updateHotelRoomDto: UpdateHotelRoomDto) {
     try {
+      const roomToUpdate = await this.findById(id);
+
       if (updateHotelRoomDto.slug) {
-        await this.checkSlugExisted(updateHotelRoomDto.slug, updateHotelRoomDto.detailId);
+        await this.checkSlugExisted(updateHotelRoomDto.slug, roomToUpdate.detailId);
+      }
+
+      if (updateHotelRoomDto.status !== HotelRoomStatus.AVAILABLE) {
+        await this.roomDetailService.checkUpdateRoomDetailAvailable(roomToUpdate.detailId);
       }
 
       const updatedRoom = await this.databaseService.hotelRoom.update({
@@ -196,6 +223,8 @@ export class RoomService extends BaseService {
             HttpStatus.CONFLICT,
           );
         }
+
+        await this.roomDetailService.checkUpdateRoomDetailAvailable(room.detailId);
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -206,6 +235,8 @@ export class RoomService extends BaseService {
   async restore(id: string): Promise<HotelRoom> {
     try {
       const restoredRoom = await this.restoreDeleted<HotelRoom>('hotelRoom', id);
+      await this.roomDetailService.checkUpdateRoomDetailAvailable(restoredRoom.detailId);
+
       return new HotelRoom(restoredRoom);
     } catch (error) {
       if (error instanceof HttpException) throw error;

@@ -1,15 +1,21 @@
 import { QueryManyWithPaginationDto, SortDto } from '@/common/dtos';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HotelRoomStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { JsonTransform } from 'libs/common';
 import { HotelRoom } from '../models';
+
+export class FilterHotelRoomByDetailDto {
+  @ApiProperty({
+    type: String,
+    example: 'detailId',
+    description: 'Filter by hotel branch ID',
+  })
+  @IsString()
+  @IsNotEmpty()
+  branchId: string;
+}
 
 export class FilterHotelRoomDto {
   @ApiPropertyOptional({

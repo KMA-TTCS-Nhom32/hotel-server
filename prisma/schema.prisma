@@ -137,6 +137,7 @@ model RoomDetail {
     max_children            Int                @default(2)
     quantity                Int                @default(1)
     flat_rooms              HotelRoom[]
+    is_available            Boolean            @default(false)
     rating                  Float?
     isDeleted               Boolean            @default(false)
     deletedAt               DateTime?
