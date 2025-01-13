@@ -49,6 +49,10 @@ export class RoomController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized.',
   })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Room with this slug already exists.',
+  })
   create(@Body() createHotelRoomDto: CreateHotelRoomDto) {
     return this.roomService.create(createHotelRoomDto);
   }
@@ -115,6 +119,10 @@ export class RoomController {
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized.',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'Room with this slug already exists.',
   })
   update(@Param('id') id: string, @Body() updateHotelRoomDto: UpdateHotelRoomDto) {
     return this.roomService.update(id, updateHotelRoomDto);
