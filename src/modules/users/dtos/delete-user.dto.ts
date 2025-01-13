@@ -1,13 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class DeleteUserDto {
   @ApiProperty({
-    description: 'Reason for account deletion',
-    required: false,
-    example: 'User requested account deletion'
+    description: 'Reason for deleting the user',
+    example: 'User requested account deletion',
+    required: true,
+    minLength: 10,
   })
-  @IsOptional()
-  @IsString()
-  reason?: string;
+  @IsNotEmpty({ message: 'Reason is required' })
+  @IsString({ message: 'Reason must be a string' })
+  @MinLength(10, { message: 'Reason must be at least 10 characters long' })
+  reason: string;
 }

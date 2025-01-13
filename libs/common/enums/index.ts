@@ -27,6 +27,7 @@ export enum RoleErrorMessagesEnum {
   CannotBeAdmin = 'cannotBeAdmin',
   CannotBeStaff = 'cannotBeStaff',
   CannotBeCustomer = 'cannotBeCustomer',
+  InvalidRoleChange = 'invalidRoleChange',
 }
 
 export enum AuthErrorMessageEnum {

@@ -1,11 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { User, UserRole } from '@prisma/client';
 import { plainToInstance, Transform, Type } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 import { SortCaseEnum } from 'libs/common/enums';
 
 export class FilterUserDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  keyword?: string;
+
   @ApiPropertyOptional({
     type: String,
     enum: UserRole,
@@ -14,6 +19,31 @@ export class FilterUserDto {
   @IsOptional()
   @IsEnum(UserRole, { each: true })
   roles?: UserRole[] | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_blocked?: boolean;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'branchId',
+    description: 'Filter by branch ID',
+  })
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }
 
 export class SortUserDto {

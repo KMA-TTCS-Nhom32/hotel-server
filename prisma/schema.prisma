@@ -15,30 +15,37 @@ datasource db {
 }
 
 model User {
-    id              String            @id @default(cuid())
-    email           String?           @unique
-    phone           String?           @unique
-    name            String
-    avatar          Json?
-    role            UserRole          @default(USER)
-    birth_date      DateTime?
-    gender          UserGender?
-    verified_email  Boolean           @default(false)
-    verified_phone  Boolean           @default(false)
-    identifier_type AccountIdentifier @default(EMAIL)
-    password        String
-    is_blocked      Boolean           @default(false)
-    deleted_at      DateTime?
-    deleted_reason  String?
-    is_active       Boolean           @default(true)
-    reviews         Review[]
-    bookings        Booking[]
-    refreshTokens   RefreshToken[]
-    createdAt       DateTime          @default(now())
-    updatedAt       DateTime          @updatedAt
-    preferences     UserPreference[]
-    loyalty_points  Int               @default(0)
-    verification    Verification[]
+    id               String             @id @default(cuid())
+    email            String?            @unique
+    phone            String?            @unique
+    name             String
+    avatar           Json?
+    role             UserRole           @default(USER)
+    birth_date       DateTime?
+    gender           UserGender?
+    verified_email   Boolean            @default(false)
+    verified_phone   Boolean            @default(false)
+    identifier_type  AccountIdentifier  @default(EMAIL)
+    password         String
+    is_blocked       Boolean            @default(false)
+    blocked_at       DateTime?
+    blocked_reason   String?
+    deleted_at       DateTime?
+    deleted_reason   String?
+    deleted_identity String?
+    is_active        Boolean            @default(true)
+    working_at       HotelBranch?       @relation(fields: [branchId], references: [id])
+    branchId         String?
+    reviews          Review[]
+    bookings         Booking[]
+    refreshTokens    RefreshToken[]
+    createdAt        DateTime           @default(now())
+    updatedAt        DateTime           @updatedAt
+    preferences      UserPreference[]
+    loyalty_points   Int                @default(0)
+    verification     Verification[]
+    blockHistory     UserBlockHistory[] @relation("BlockedUser")
+    blockedByMe      UserBlockHistory[] @relation("BlockedBy")
 
     @@unique([email, phone])
 }
@@ -94,6 +101,7 @@ model HotelBranch {
     updatedAt   DateTime     @updatedAt
     amenities   Amenity[]
     rooms       RoomDetail[]
+    User        User[]
 }
 
 model HotelRoom {
@@ -353,4 +361,24 @@ model Verification {
 
     @@index([userId])
     @@index([code])
+}
+
+model UserBlockHistory {
+    id            String      @id @default(cuid())
+    userId        String
+    user          User        @relation("BlockedUser", fields: [userId], references: [id])
+    blockedBy     String
+    blockedByUser User        @relation("BlockedBy", fields: [blockedBy], references: [id])
+    action        BlockAction
+    reason        String
+    createdAt     DateTime    @default(now())
+    updatedAt     DateTime    @updatedAt
+
+    @@index([userId])
+    @@index([blockedBy])
+}
+
+enum BlockAction {
+    BLOCK
+    UNBLOCK
 }

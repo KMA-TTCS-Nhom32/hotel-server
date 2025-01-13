@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole, UserGender } from '@prisma/client';
 import {
   IsEnum,
@@ -109,4 +109,13 @@ export class AdminUpdateUserDto {
   @IsNotEmpty()
   @IsEnum(UserRole)
   role: UserRole;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'branchId',
+    description: 'Filter by branch ID',
+  })
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }
