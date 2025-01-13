@@ -105,6 +105,7 @@ export class RoomService extends BaseService {
       ...(status && { status }),
       ...(detailId && { detailId }),
       ...(detailSlug && { detail: { slug: detailSlug } }),
+      detail: { isDeleted: false },
     };
 
     return this.mergeWithBaseWhere(where);
@@ -157,7 +158,12 @@ export class RoomService extends BaseService {
   async findManyByBranchId(branchId: string) {
     try {
       const rooms = await this.databaseService.hotelRoom.findMany({
-        where: this.mergeWithBaseWhere({ detail: { branchId } }),
+        where: this.mergeWithBaseWhere({ detail: { branchId, isDeleted: false } }),
+        include: {
+          _count: {
+            select: { bookings: true },
+          },
+        },
       });
 
       return rooms.map((room) => new HotelRoom(room));

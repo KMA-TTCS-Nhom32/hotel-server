@@ -1,11 +1,10 @@
 import { AbstractModel } from 'libs/common';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HotelRoomStatus } from '@prisma/client';
 import { RoomDetail } from '@/modules/room-detail/models';
-import { Branch } from '@/modules/branch/models/branch.model';
+import { Booking } from '@/modules/booking/models';
 // import { RoomPriceHistory } from '@/modules/room-price/models';
 // import { RoomPromotion } from '@/modules/promotions/models';
-// import { Booking } from '@/modules/bookings/models';
 // import { Review } from '@/modules/reviews/models';
 
 export class HotelRoom extends AbstractModel {
@@ -43,11 +42,25 @@ export class HotelRoom extends AbstractModel {
   })
   detailId: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: () => RoomDetail,
     description: 'Room detail',
   })
   detail?: RoomDetail;
+
+  @ApiPropertyOptional({ type: () => [Booking], description: 'List of bookings' })
+  bookings?: Booking[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    properties: {
+      bookings: { type: 'number' },
+    },
+    description: 'Count of bookings',
+  })
+  _count?: {
+    bookings: number;
+  };
 }
 
 //   @ApiProperty({ type: () => [RoomPriceHistory], required: false })
@@ -55,9 +68,6 @@ export class HotelRoom extends AbstractModel {
 
 //   @ApiProperty({ type: () => [RoomPromotion], required: false })
 //   promotions?: RoomPromotion[];
-
-//   @ApiProperty({ type: () => [Booking], required: false })
-//   bookings?: Booking[];
 
 //   @ApiProperty({ type: () => [Review], required: false })
 //   reviews?: Review[];
