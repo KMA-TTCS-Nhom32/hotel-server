@@ -248,16 +248,19 @@ export class AuthService {
     return this.loginService.findUserByIdOrThrow(userId);
   }
 
-  private validateContactUpdate(user: User, updateProfileDto: UpdateProfileDto) {
+  private validateContactUpdate(
+    identifier_type: AccountIdentifier,
+    updateProfileDto: UpdateProfileDto,
+  ) {
     // Combined validation for both email and phone
     if (
-      (updateProfileDto.email && user.identifier_type === AccountIdentifier.EMAIL) ||
-      (updateProfileDto.phone && user.identifier_type === AccountIdentifier.PHONE)
+      (updateProfileDto.email && identifier_type === AccountIdentifier.EMAIL) ||
+      (updateProfileDto.phone && identifier_type === AccountIdentifier.PHONE)
     ) {
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
-          message: `Cannot update ${user.identifier_type.toLowerCase()} when registered with ${user.identifier_type.toLowerCase()}`,
+          message: `Cannot update ${identifier_type.toLowerCase()} when registered with ${identifier_type.toLowerCase()}`,
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -323,7 +326,8 @@ export class AuthService {
       );
     }
 
-    this.validateContactUpdate(user, updateProfileDto);
+    this.validateContactUpdate(user.identifier_type, updateProfileDto);
+    
     await this.validateContactUniqueness(userId, updateProfileDto.email, updateProfileDto.phone);
 
     const updateData = this.prepareUpdateProfile(updateProfileDto) as any;
