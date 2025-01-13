@@ -72,6 +72,7 @@ export class RoomService extends BaseService {
         where: { id },
         include: {
           detail: true,
+          bookings: true,
         },
       });
 
@@ -139,12 +140,18 @@ export class RoomService extends BaseService {
           orderBy,
           skip,
           take,
+          include: {
+            _count: {
+              select: { bookings: true },
+            },
+            detail: true,
+          },
         }),
         this.databaseService.hotelRoom.count({ where }),
       ]);
 
       return createPaginatedResponse(
-        rooms.map((room) => new HotelRoom(room)),
+        rooms.map((room) => new HotelRoom(room as any)),
         total,
         page,
         pageSize,
@@ -163,10 +170,11 @@ export class RoomService extends BaseService {
           _count: {
             select: { bookings: true },
           },
+          detail: true,
         },
       });
 
-      return rooms.map((room) => new HotelRoom(room));
+      return rooms.map((room) => new HotelRoom(room as any));
     } catch (error) {
       this.logger.error('RoomService -> findManyByBranchId -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
