@@ -19,7 +19,7 @@ export class BlockActivity extends AbstractModel {
     type: () => User,
     description: 'Details of user who was blocked/unblocked',
   })
-  user: User;
+  user?: User;
 
   @ApiProperty({
     type: String,
@@ -31,7 +31,7 @@ export class BlockActivity extends AbstractModel {
     type: () => User,
     description: 'Details of user who performed the block/unblock action',
   })
-  blockedByUser: User;
+  blockedByUser?: User;
 
   @ApiProperty({
     enum: BlockAction,

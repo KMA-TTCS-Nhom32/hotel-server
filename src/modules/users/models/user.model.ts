@@ -53,7 +53,7 @@ export class User extends AbstractModel {
     type: Image,
     description: 'User avatar',
   })
-  avatar: Image;
+  avatar?: Image;
 
   @ApiProperty({
     type: Boolean,
@@ -138,7 +138,7 @@ export class UserDetail extends User {
   working_at?: Branch;
 
   @ApiProperty({
-    type: [Booking],
+    type: () => [Booking],
     description: 'User bookings history',
   })
   bookings: Booking[];
@@ -151,13 +151,13 @@ export class UserDetail extends User {
   loyalty_points: number;
 
   @ApiProperty({
-    type: [BlockActivity],
+    type: () => [BlockActivity],
     description: 'History of blocks received by user',
   })
   blockHistory: BlockActivity[];
 
   @ApiProperty({
-    type: [BlockActivity],
+    type: () => [BlockActivity],
     description: 'History of blocks given by user',
   })
   blockedByMe: BlockActivity[];

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { User, UserRole } from '@prisma/client';
 import { plainToInstance, Transform, Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { JsonTransform } from 'libs/common';
 
 import { SortCaseEnum } from 'libs/common/enums';
 
@@ -83,18 +84,22 @@ export class QueryUsersDto {
   @IsOptional()
   pageSize?: number;
 
-  @ApiPropertyOptional({ type: String, description: `JSON string of ${FilterUserDto.name}` })
+  @ApiPropertyOptional({
+    type: String,
+    description: `JSON string of ${FilterUserDto.name}`,
+  })
   @IsOptional()
-  @Transform(({ value }) => (value ? plainToInstance(FilterUserDto, JSON.parse(value)) : undefined))
+  @JsonTransform(FilterUserDto)
   @ValidateNested()
   @Type(() => FilterUserDto)
   filters?: FilterUserDto | null;
 
-  @ApiPropertyOptional({ type: String, description: `JSON string of ${SortUserDto.name}[]` })
-  @IsOptional()
-  @Transform(({ value }) => {
-    return value ? plainToInstance(SortUserDto, JSON.parse(value)) : undefined;
+  @ApiPropertyOptional({
+    type: String,
+    description: `JSON string of ${SortUserDto.name}`,
   })
+  @IsOptional()
+  @JsonTransform(SortUserDto)
   @ValidateNested({ each: true })
   @Type(() => SortUserDto)
   sort?: SortUserDto[] | null;

@@ -62,7 +62,7 @@ export class Booking extends AbstractModel {
   userId: string;
 
   @ApiProperty({
-    type: User,
+    type: () => User,
     description: 'User making the booking',
   })
   user?: User;
