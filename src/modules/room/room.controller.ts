@@ -23,6 +23,7 @@ import {
   HotelRoomPaginationResultDto,
   CreateHotelRoomDto,
   UpdateHotelRoomDto,
+  ImmediateDeleteRoomsDto,
 } from './dtos';
 
 @ApiTags('Rooms')
@@ -167,5 +168,25 @@ export class RoomController {
   })
   findDeleted() {
     return this.roomService.findDeleted();
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Delete('permanent-delete')
+  @ApiOperation({ summary: 'ADMIN - Delete rooms permanently' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Rooms have been successfully deleted permanently.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Rooms not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized.',
+  })
+  async permanentDelete(@Body() dto: ImmediateDeleteRoomsDto) {
+    return this.roomService.immediateDelete(dto.ids);
   }
 }

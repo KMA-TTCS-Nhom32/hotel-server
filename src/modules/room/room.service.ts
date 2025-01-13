@@ -157,7 +157,7 @@ export class RoomService extends BaseService {
   async findManyByBranchId(branchId: string) {
     try {
       const rooms = await this.databaseService.hotelRoom.findMany({
-        where: { detail: { branchId } },
+        where: this.mergeWithBaseWhere({ detail: { branchId } }),
       });
 
       return rooms.map((room) => new HotelRoom(room));
@@ -251,6 +251,36 @@ export class RoomService extends BaseService {
       });
 
       return deletedRooms.map((room) => new HotelRoom(room));
+    } catch (error) {
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async immediateDelete(ids: string[]) {
+    try {
+      let isValidToProceed = true;
+      for (const id of ids) {
+        const room = await this.findById(id);
+
+        if (!room.isDeleted) {
+          isValidToProceed = false;
+          break;
+        }
+      }
+
+      if (!isValidToProceed) {
+        throw new HttpException(
+          {
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Cannot permantly remove non-deleted rooms',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await this.databaseService.hotelRoom.deleteMany({
+        where: { id: { in: ids }, isDeleted: true },
+      });
     } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
