@@ -49,7 +49,7 @@ export class Booking extends AbstractModel {
   roomId: string;
 
   @ApiProperty({
-    type: HotelRoom,
+    type: () => HotelRoom,
     description: 'Room being booked',
   })
   room?: HotelRoom;
