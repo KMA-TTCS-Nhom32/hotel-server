@@ -67,7 +67,7 @@ export class RoomController {
 
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
-  @Get(':branchId')
+  @Get('in-branch/:branchId')
   @ApiOperation({ summary: 'ADMIN - STAFF Get all rooms by branch ID' })
   @ApiResponse({
     status: HttpStatus.OK,
