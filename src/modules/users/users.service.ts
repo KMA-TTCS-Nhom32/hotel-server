@@ -155,6 +155,13 @@ export class UsersService {
           _count: {
             select: { bookings: true },
           },
+          working_at: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       }),
       this.databaseService.user.count({
@@ -317,14 +324,11 @@ export class UsersService {
         password: true,
       },
       include: {
-        bookings: true,
         working_at: true,
-        blockHistory: true,
-        blockedByMe: true,
       },
     });
 
-    return new UserDetail(updatedUser as any);
+    return new User(updatedUser as any);
   }
 
   async;
