@@ -248,7 +248,7 @@ export class RoomDetailService extends BaseService {
 
       const where = this.prepareFilterOptions(filterOptions);
 
-      const orderBy = this.prepareSortOptions(sortOptions);
+      const orderBy = sortOptions ? this.prepareSortOptions(sortOptions) : {};
 
       const [roomDetails, total] = await this.databaseService.$transaction([
         this.databaseService.roomDetail.findMany({
