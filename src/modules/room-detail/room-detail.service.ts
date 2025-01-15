@@ -125,6 +125,8 @@ export class RoomDetailService extends BaseService {
       endDate,
       startTime,
       endTime,
+      adults,
+      children,
     } = filterOptions;
     let where: any = {
       flat_rooms: {
@@ -150,6 +152,8 @@ export class RoomDetailService extends BaseService {
           },
         },
       }),
+      ...(adults && { max_adults: { gte: adults } }),
+      ...(children && { max_children: { gte: children } }),
       ...(branchId && { branchId }),
       ...(branchSlug && { branch: { slug: branchSlug } }),
       ...(provinceId && { branch: { provinceId } }),
