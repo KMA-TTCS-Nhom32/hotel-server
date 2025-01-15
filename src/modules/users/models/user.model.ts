@@ -86,6 +86,23 @@ export class User extends AbstractModel {
     type: String,
   })
   role: UserRole;
+
+  @ApiPropertyOptional({
+    type: () => Branch,
+    description: 'Branch details where user works',
+  })
+  working_at?: Branch;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    properties: {
+      bookings: { type: 'number' },
+    },
+    description: 'Count of bookings',
+  })
+  _count?: {
+    bookings: number;
+  };
 }
 
 export class UserDetail extends User {
@@ -130,12 +147,6 @@ export class UserDetail extends User {
     description: 'ID of the branch where user works (for staff)',
   })
   branchId?: string;
-
-  @ApiPropertyOptional({
-    type: () => Branch,
-    description: 'Branch details where user works',
-  })
-  working_at?: Branch;
 
   @ApiProperty({
     type: () => [Booking],

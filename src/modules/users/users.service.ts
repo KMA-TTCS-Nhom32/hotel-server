@@ -151,6 +151,11 @@ export class UsersService {
         omit: {
           password: true,
         },
+        include: {
+          _count: {
+            select: { bookings: true },
+          },
+        },
       }),
       this.databaseService.user.count({
         where,
