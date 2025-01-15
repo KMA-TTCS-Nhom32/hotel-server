@@ -41,7 +41,7 @@ export class BookingService extends BaseService {
     super(databaseService);
   }
 
-  private baseBookingInclude = {
+  private readonly baseBookingInclude = {
     room: {
       select: {
         id: true,

@@ -108,10 +108,10 @@ model HotelRoom {
     id           String           @id @default(cuid())
     name         String
     slug         String
-    status       HotelRoomStatus
+    status       HotelRoomStatus // Use this for maintenance/general availability
     detailId     String
     detail       RoomDetail       @relation(fields: [detailId], references: [id])
-    bookings     Booking[]
+    bookings     Booking[]        // This will track time-based occupancy
     reviews      Review[]
     favorited_by UserPreference[] @relation("UserFavoriteRooms")
     isDeleted    Boolean          @default(false)
@@ -198,8 +198,8 @@ model Booking {
     create_type      BookingCreateType
     start_date       DateTime
     end_date         DateTime
-    start_time       String?
-    end_time         String?
+    start_time       String
+    end_time         String
     roomId           String
     room             HotelRoom         @relation(fields: [roomId], references: [id])
     promotion_code   String?

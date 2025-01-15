@@ -18,7 +18,6 @@ import {
 } from 'libs/common/utils';
 import { Image } from '../images/models';
 import { BaseService } from '@/common/services';
-import Decimal from 'decimal.js';
 
 @Injectable()
 export class RoomDetailService extends BaseService {
@@ -122,8 +121,12 @@ export class RoomDetailService extends BaseService {
       rating_to,
       maxPrice,
       minPrice,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
     } = filterOptions;
-    const where: any = {
+    let where: any = {
       flat_rooms: {
         some: {
           isDeleted: false,
@@ -167,6 +170,60 @@ export class RoomDetailService extends BaseService {
         ],
       }),
     };
+
+    if (startDate && endDate && startTime && endTime) {
+      where = {
+        ...where,
+        flat_rooms: {
+          some: {
+            isDeleted: false,
+            status: {
+              not: 'MAINTENANCE',
+            },
+            // At least one room should not have overlapping bookings
+            AND: [
+              {
+                bookings: {
+                  none: {
+                    AND: [
+                      {
+                        status: {
+                          in: ['PENDING', 'WAITING_FOR_CHECK_IN', 'CHECKED_IN'],
+                        },
+                      },
+                      {
+                        OR: [
+                          // Check date range overlap
+                          {
+                            AND: [
+                              { start_date: { lte: new Date(endDate) } },
+                              { end_date: { gte: new Date(startDate) } },
+                            ],
+                          },
+                          // Check same-day time overlap
+                          {
+                            AND: [
+                              { start_date: { equals: new Date(startDate) } },
+                              { start_time: { lte: endTime } },
+                            ],
+                          },
+                          {
+                            AND: [
+                              { end_date: { equals: new Date(endDate) } },
+                              { end_time: { gte: startTime } },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      };
+    }
 
     return this.mergeWithBaseWhere(where);
   }
