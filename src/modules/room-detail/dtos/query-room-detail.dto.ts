@@ -7,8 +7,9 @@ import {
   IsArray,
   IsDecimal,
   IsNumber,
+  IsDate,
 } from 'class-validator';
-import { HotelRoomType, HotelRoomBedType } from '@prisma/client';
+import { HotelRoomType, HotelRoomBedType, BookingType } from '@prisma/client';
 import { QueryManyWithPaginationDto, SortDto } from '@/common/dtos';
 import { JsonTransform } from 'libs/common';
 import { Type } from 'class-transformer';
@@ -113,6 +114,52 @@ export class FilterRoomDetailDto {
   @IsOptional()
   @IsDecimal()
   maxPrice?: Decimal;
+
+  @ApiPropertyOptional({
+    type: Date,
+    example: new Date(),
+    description: 'Filter by start date',
+  })
+  @IsOptional()
+  @IsDate()
+  startDate?: Date;
+
+  @ApiPropertyOptional({
+    type: Date,
+    example: new Date(),
+    description: 'Filter by end date',
+  })
+  @IsOptional()
+  @IsDate()
+  endDate?: Date;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '08:00',
+    description: 'Filter by start time',
+  })
+  @IsOptional()
+  @IsString()
+  startTime?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '18:00',
+    description: 'Filter by end time',
+  })
+  @IsOptional()
+  @IsString()
+  endTime?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: BookingType,
+    example: BookingType.HOURLY,
+    description: 'Filter by booking type',
+  })
+  @IsOptional()
+  @IsEnum(BookingType)
+  bookingType?: BookingType;
 }
 
 export class SortRoomDetailDto extends SortDto<RoomDetail> {}

@@ -204,6 +204,11 @@ export class UsersService {
         deleted_reason: true,
         branchId: true,
       },
+      include: {
+        _count: {
+          select: { bookings: true },
+        },
+      },
     });
   }
 
