@@ -160,6 +160,24 @@ export class FilterRoomDetailDto {
   @IsOptional()
   @IsEnum(BookingType)
   bookingType?: BookingType;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Filter by number of adults',
+  })
+  @IsOptional()
+  @IsNumber()
+  adults?: number;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Filter by number of children',
+  })
+  @IsOptional()
+  @IsNumber()
+  children?: number;
 }
 
 export class SortRoomDetailDto extends SortDto<RoomDetail> {}
