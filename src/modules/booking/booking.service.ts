@@ -345,18 +345,15 @@ export class BookingService extends BaseService {
 
   async getMyBookings(
     myId: string,
-    paginationOptions: PaginationParams,
-    filterOptions: FilterMyBookingsDto,
+    paginationOptions?: PaginationParams,
+    filterOptions?: FilterMyBookingsDto,
   ) {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      const status = filterOptions.status ?? [BookingStatus.PENDING];
       const where = this.mergeWithBaseWhere({
         userId: myId,
-        status: {
-          in: status,
-        },
+        ...(filterOptions?.status && { status: { in: filterOptions.status } }),
       });
 
       const [bookings, total] = await this.databaseService.$transaction([
