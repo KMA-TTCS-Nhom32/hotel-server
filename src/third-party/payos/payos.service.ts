@@ -1,12 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
-import {
-  CreatePaymentRequestDto,
-  PaymentResponseDto,
-  CancelPaymentRequestDto,
-  ConfirmPaymentWebhookDto,
-} from './dtos';
+import { CancelPaymentRequestDto, CancelPaymentResponse, ConfirmPaymentWebhookDto, CreatePaymentRequestDto, CreatePaymentResponse, GetPaymentResponse } from './dtos';
 
 @Injectable()
 export class PayosService {
@@ -54,7 +49,7 @@ export class PayosService {
     return calculatedSignature === signature;
   }
 
-  async createPaymentRequest(data: CreatePaymentRequestDto): Promise<PaymentResponseDto> {
+  async createPaymentRequest(data: CreatePaymentRequestDto): Promise<CreatePaymentResponse> {
     try {
       const signature = this.generateSignature(data);
       const paymentRequest = { ...data, signature };
@@ -81,7 +76,7 @@ export class PayosService {
     }
   }
 
-  async cancelPaymentLink(data: CancelPaymentRequestDto): Promise<PaymentResponseDto> {
+  async cancelPaymentLink(data: CancelPaymentRequestDto): Promise<CancelPaymentResponse> {
     try {
       const response = await fetch(
         `${this.apiUrl}/v2/payment-requests/${data.paymentLinkId}/cancel`,
@@ -108,7 +103,7 @@ export class PayosService {
     }
   }
 
-  async getPaymentStatus(paymentLinkId: string): Promise<PaymentResponseDto> {
+  async getPaymentStatus(paymentLinkId: string): Promise<GetPaymentResponse> {
     try {
       const response = await fetch(`${this.apiUrl}/v2/payment-requests/${paymentLinkId}`, {
         method: 'GET',
