@@ -134,7 +134,6 @@ export class RoomDetailService extends BaseService {
       flat_rooms: {
         some: {
           isDeleted: false,
-          status: 'AVAILABLE',
         },
       },
       ...(keyword && {

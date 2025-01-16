@@ -14,7 +14,7 @@ import { JsonTransform } from 'libs/common';
 import { Type } from 'class-transformer';
 import Decimal from 'decimal.js';
 import { RoomDetail } from '../models';
-import { IsDateFormat } from '@/common/decorators/is-date-format.decorator';
+// import { IsDateFormat } from '@/common/decorators/is-date-format.decorator';
 
 export class FilterRoomDetailDto {
   @ApiPropertyOptional()
@@ -122,7 +122,7 @@ export class FilterRoomDetailDto {
   })
   @IsOptional()
   @IsString()
-  @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
+//   @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
   startDate?: string;
 
   @ApiPropertyOptional({
@@ -132,7 +132,7 @@ export class FilterRoomDetailDto {
   })
   @IsOptional()
   @IsString()
-  @IsDateFormat('DD-MM-YYYY', { message: 'endDate must be in format DD-MM-YYYY' })
+//   @IsDateFormat('DD-MM-YYYY', { message: 'endDate must be in format DD-MM-YYYY' })
   endDate?: string;
 
   @ApiPropertyOptional({
