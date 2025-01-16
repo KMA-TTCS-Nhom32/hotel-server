@@ -48,18 +48,24 @@ export class BookingService extends BaseService {
         id: true,
         slug: true,
         name: true,
+      },
+      include: {
         detail: {
           select: {
             id: true,
             slug: true,
             name: true,
             thumnail: true,
+          },
+          include: {
             branch: {
               select: {
                 id: true,
                 slug: true,
                 name: true,
                 address: true,
+              },
+              include: {
                 province: {
                   select: {
                     id: true,
