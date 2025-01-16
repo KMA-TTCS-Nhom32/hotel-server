@@ -5,6 +5,7 @@ import { BookingService } from './booking.service';
 import { ApiExtraModels, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   BookingsPaginationResultDto,
+  CancelBookingDto,
   CreateBookingAtHotelDto,
   CreateBookingOnlineDto,
   FilterBookingsDto,
@@ -130,5 +131,20 @@ export class BookingController {
     @Body('status') updateDto: UpdateBookingStatusDto,
   ) {
     return this.bookingService.updateStatus(bookingId, updateDto.status);
+  }
+
+  @Patch('cancel/:bookingId')
+  @ApiOperation({
+    summary: 'Cancel a booking',
+  })
+  @ApiOkResponse({
+    description: 'Booking has been successfully canceled',
+    type: Booking,
+  })
+  cancelBooking(
+    @Param('bookingId') bookingId: string,
+    @Body('reason') cancelDto: CancelBookingDto,
+  ) {
+    return this.bookingService.cancelBooking(bookingId, cancelDto);
   }
 }

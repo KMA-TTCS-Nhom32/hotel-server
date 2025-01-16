@@ -7,6 +7,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import {
+  CancelBookingDto,
   CreateBookingAtHotelDto,
   CreateBookingOnlineDto,
   FilterBookingsDto,
@@ -52,11 +53,13 @@ export class BookingService extends BaseService {
             id: true,
             slug: true,
             name: true,
+            thumnail: true,
             branch: {
               select: {
                 id: true,
                 slug: true,
                 name: true,
+                address: true,
                 province: {
                   select: {
                     id: true,
@@ -552,6 +555,28 @@ export class BookingService extends BaseService {
       return new Booking(updatedBooking as any);
     } catch (error) {
       console.error('BookingService -> updateStatus -> error', error);
+      throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
+    }
+  }
+
+  async cancelBooking(id, cancelDto: CancelBookingDto) {
+    try {
+      await this.findById(id);
+
+      const updatedBooking = await this.databaseService.booking.update({
+        where: { id },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancel_reason: cancelDto.cancel_reason,
+        },
+        include: {
+          room: true,
+        },
+      });
+
+      return new Booking(updatedBooking as any);
+    } catch (error) {
+      console.error('BookingService -> cancelBooking -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

@@ -30,6 +30,7 @@ import { CleanupModule } from './common/modules/cleanup.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { PoeditorModule } from './third-party/poeditor/poeditor.module';
 import { RoomPriceHistoryModule } from './modules/room-price-history/room-price-history.module';
+import { PayosModule } from './third-party/payos/payos.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { RoomPriceHistoryModule } from './modules/room-price-history/room-price-
     BookingModule,
     PoeditorModule,
     RoomPriceHistoryModule,
+    PayosModule,
   ],
   controllers: [AppController],
   providers: [
