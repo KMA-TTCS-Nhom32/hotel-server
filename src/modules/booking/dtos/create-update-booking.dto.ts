@@ -82,6 +82,24 @@ export class SelectBookingTimeDto {
 }
 
 export class CreateBookingDto extends SelectBookingTimeDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: 'John Doe',
+    description: 'Name of the guest',
+  })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '0123456789',
+    description: 'Phone number of the guest',
+  })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
   @ApiProperty({
     type: Number,
     example: 10,
