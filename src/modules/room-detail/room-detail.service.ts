@@ -129,6 +129,7 @@ export class RoomDetailService extends BaseService {
       adults,
       children,
     } = filterOptions;
+
     let where: any = {
       flat_rooms: {
         some: {
@@ -251,7 +252,7 @@ export class RoomDetailService extends BaseService {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      const where = this.prepareFilterOptions(filterOptions);
+      const where = filterOptions ? this.prepareFilterOptions(filterOptions) : {};
 
       const orderBy = sortOptions ? this.prepareSortOptions(sortOptions) : {};
 
@@ -409,9 +410,9 @@ export class RoomDetailService extends BaseService {
     try {
       const skip = (page - 1) * limit;
 
-      const where = this.prepareFilterOptions(filterOptions);
+      const where = filterOptions ? this.prepareFilterOptions(filterOptions) : {};
 
-      const orderBy = this.prepareSortOptions(sortOptions);
+      const orderBy = sortOptions ? this.prepareSortOptions(sortOptions) : {};
 
       const roomDetails = await this.databaseService.roomDetail.findMany({
         where,
