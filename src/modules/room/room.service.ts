@@ -186,7 +186,7 @@ export class RoomService extends BaseService {
       const roomToUpdate = await this.findById(id);
 
       if (updateHotelRoomDto.slug) {
-        await this.checkSlugExisted(updateHotelRoomDto.slug, roomToUpdate.detailId);
+        await this.checkSlugExisted(updateHotelRoomDto.slug, roomToUpdate.detailId, id);
       }
 
       if (updateHotelRoomDto.status !== HotelRoomStatus.AVAILABLE) {

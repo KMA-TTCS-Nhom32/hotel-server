@@ -380,9 +380,9 @@ export class RoomDetailService extends BaseService {
     try {
       this.findById(id);
 
-    //   if (updateRoomDetailDto.slug) {
-    //     await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
-    //   }
+      if (updateRoomDetailDto.slug) {
+        await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
+      }
 
       const updatedRoomDetail = await this.databaseService.roomDetail.update({
         where: { id },
