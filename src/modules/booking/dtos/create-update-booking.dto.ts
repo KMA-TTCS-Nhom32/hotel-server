@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 import { GuestDetail } from '../models';
 import { Type } from 'class-transformer';
+import { IsDateFormat } from '@/common/decorators/is-date-format.decorator';
 
 export class PrepareBookingDto {
   @ApiProperty({
@@ -50,7 +51,8 @@ export class SelectBookingTimeDto {
     description: 'Start date of the booking',
   })
   @IsNotEmpty()
-  @IsDateString()
+  @IsString()
+  @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
   start_date: string;
 
   @ApiProperty({
@@ -59,7 +61,8 @@ export class SelectBookingTimeDto {
     description: 'End date of the booking',
   })
   @IsNotEmpty()
-  @IsDateString()
+  @IsString()
+  @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
   end_date: string;
 
   @ApiProperty({
