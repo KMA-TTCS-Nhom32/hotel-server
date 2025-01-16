@@ -378,11 +378,11 @@ export class RoomDetailService extends BaseService {
 
   async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto) {
     try {
-      const thisRoomDetail = await this.findById(id);
+      this.findById(id);
 
-      if (updateRoomDetailDto.slug && updateRoomDetailDto.slug !== thisRoomDetail.slug) {
-        await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
-      }
+    //   if (updateRoomDetailDto.slug) {
+    //     await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
+    //   }
 
       const updatedRoomDetail = await this.databaseService.roomDetail.update({
         where: { id },
