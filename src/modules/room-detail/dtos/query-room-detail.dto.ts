@@ -7,7 +7,6 @@ import {
   IsArray,
   IsDecimal,
   IsNumber,
-  IsDate,
 } from 'class-validator';
 import { HotelRoomType, HotelRoomBedType, BookingType } from '@prisma/client';
 import { QueryManyWithPaginationDto, SortDto } from '@/common/dtos';
@@ -15,6 +14,7 @@ import { JsonTransform } from 'libs/common';
 import { Type } from 'class-transformer';
 import Decimal from 'decimal.js';
 import { RoomDetail } from '../models';
+import { IsDateFormat } from '@/common/decorators/is-date-format.decorator';
 
 export class FilterRoomDetailDto {
   @ApiPropertyOptional()
@@ -116,22 +116,24 @@ export class FilterRoomDetailDto {
   maxPrice?: Decimal;
 
   @ApiPropertyOptional({
-    type: Date,
-    example: new Date(),
-    description: 'Filter by start date',
+    type: String,
+    example: '16-01-2025',
+    description: 'Filter by start date (DD-MM-YYYY)',
   })
   @IsOptional()
-  @IsDate()
-  startDate?: Date;
+  @IsString()
+  @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
+  startDate?: string;
 
   @ApiPropertyOptional({
-    type: Date,
-    example: new Date(),
-    description: 'Filter by end date',
+    type: String,
+    example: '16-01-2025',
+    description: 'Filter by end date (DD-MM-YYYY)',
   })
   @IsOptional()
-  @IsDate()
-  endDate?: Date;
+  @IsString()
+  @IsDateFormat('DD-MM-YYYY', { message: 'endDate must be in format DD-MM-YYYY' })
+  endDate?: string;
 
   @ApiPropertyOptional({
     type: String,

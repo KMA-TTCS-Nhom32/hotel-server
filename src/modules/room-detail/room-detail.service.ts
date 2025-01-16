@@ -18,6 +18,7 @@ import {
 } from 'libs/common/utils';
 import { Image } from '../images/models';
 import { BaseService } from '@/common/services';
+import { parseDate } from 'libs/common/utils/date.util';
 
 @Injectable()
 export class RoomDetailService extends BaseService {
@@ -200,20 +201,20 @@ export class RoomDetailService extends BaseService {
                           // Check date range overlap
                           {
                             AND: [
-                              { start_date: { lte: new Date(endDate) } },
-                              { end_date: { gte: new Date(startDate) } },
+                              { start_date: { lte: parseDate(endDate) } },
+                              { end_date: { gte: parseDate(startDate) } },
                             ],
                           },
                           // Check same-day time overlap
                           {
                             AND: [
-                              { start_date: { equals: new Date(startDate) } },
+                              { start_date: { equals: parseDate(startDate) } },
                               { start_time: { lte: endTime } },
                             ],
                           },
                           {
                             AND: [
-                              { end_date: { equals: new Date(endDate) } },
+                              { end_date: { equals: parseDate(endDate) } },
                               { end_time: { gte: startTime } },
                             ],
                           },
