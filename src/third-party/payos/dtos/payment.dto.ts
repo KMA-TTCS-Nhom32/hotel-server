@@ -6,8 +6,8 @@ import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 export class CreatePaymentRequestDto {
   @ApiProperty({ example: 'ORDER_123' })
   @IsNotEmpty()
-  @IsString()
-  orderCode: string;
+  @IsNumber()
+  orderCode: number;
 
   @ApiProperty({ example: 1000000 })
   @IsNotEmpty()
