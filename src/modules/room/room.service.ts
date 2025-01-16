@@ -35,9 +35,9 @@ export class RoomService extends BaseService {
     super(databaseService);
   }
 
-  private async checkSlugExisted(slug: string, detailId: string) {
+  private async checkSlugExisted(slug: string, detailId: string, currentId?: string) {
     const room = await this.databaseService.hotelRoom.findFirst({
-      where: { slug, detailId },
+      where: { slug, detailId, id: { not: currentId } },
     });
 
     if (room) {
