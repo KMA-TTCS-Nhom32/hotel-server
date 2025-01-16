@@ -31,6 +31,7 @@ import { RoomService } from '@/modules/room/room.service';
 import { BookingStatus, BookingType, HotelRoomStatus } from '@prisma/client';
 import { Booking } from './models';
 import { RoomDetail } from '../room-detail/models';
+import { parseDate } from 'libs/common/utils/date.util';
 
 @Injectable()
 export class BookingService extends BaseService {
@@ -194,15 +195,54 @@ export class BookingService extends BaseService {
         );
       }
 
-      const firstAvailableRoom = await this.databaseService.hotelRoom.findFirst({
+      const roomsInBooking = await this.databaseService.hotelRoom.findMany({
         where: {
           detailId,
-          status: HotelRoomStatus.AVAILABLE,
+          status: {
+            not: HotelRoomStatus.MAINTENANCE,
+          },
           isDeleted: false,
+          bookings: {
+            none: {
+              AND: [
+                {
+                  status: {
+                    in: [
+                      BookingStatus.PENDING,
+                      BookingStatus.WAITING_FOR_CHECK_IN,
+                      BookingStatus.CHECKED_IN,
+                    ],
+                  },
+                },
+                {
+                  OR: [
+                    {
+                      AND: [
+                        { start_date: { lte: parseDate(end_date) } },
+                        { end_date: { gte: parseDate(start_date) } },
+                      ],
+                    },
+                    {
+                      AND: [
+                        { start_date: { equals: parseDate(createDto.start_date) } },
+                        { start_time: { lte: createDto.end_time } },
+                      ],
+                    },
+                    {
+                      AND: [
+                        { end_date: { equals: parseDate(createDto.end_date) } },
+                        { end_time: { gte: createDto.start_time } },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
         },
       });
 
-      if (!firstAvailableRoom) {
+      if (roomsInBooking.length === 0) {
         throw new HttpException(
           {
             status: HttpStatus.NOT_FOUND,
@@ -211,6 +251,8 @@ export class BookingService extends BaseService {
           HttpStatus.NOT_FOUND,
         );
       }
+
+      const firstAvailableRoom = roomsInBooking[0];
 
       const total_amount = this.calculateTotalAmount(
         {
