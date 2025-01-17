@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus, Query, UseGuards } from '@nestjs/common';
 import { ApiExtraModels, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import {
@@ -37,7 +37,13 @@ export class AnalyticsController {
     const { branchId, startDate, endDate, periodType } = query;
 
     if (!branchId) {
-      throw new Error('Branch ID is required');
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Branch ID is required',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     const start = startDate ? dayjs(startDate).toDate() : dayjs().startOf('month').toDate();
@@ -56,7 +62,13 @@ export class AnalyticsController {
     const { branchId, months = 12 } = query;
 
     if (!branchId) {
-      throw new Error('Branch ID is required');
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Branch ID is required',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return this.analyticsService.getRevenueTimeline(branchId, months);
@@ -72,7 +84,13 @@ export class AnalyticsController {
     const { branchId, startDate, endDate } = query;
 
     if (!branchId) {
-      throw new Error('Branch ID is required');
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Branch ID is required',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     const start = startDate ? dayjs(startDate).toDate() : dayjs().startOf('month').toDate();
@@ -91,7 +109,13 @@ export class AnalyticsController {
     const { branchId, startDate, endDate } = query;
 
     if (!branchId) {
-      throw new Error('Branch ID is required');
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Branch ID is required',
+        },
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     const start = startDate ? dayjs(startDate).toDate() : dayjs().startOf('month').toDate();

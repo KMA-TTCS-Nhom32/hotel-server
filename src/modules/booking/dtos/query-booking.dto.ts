@@ -173,6 +173,7 @@ export class QueryMyBookingsDto {
     description: 'Filter my bookings',
   })
   @IsOptional()
+  @JsonTransform(FilterMyBookingsDto)
   @ValidateNested()
   @Type(() => FilterMyBookingsDto)
   filters?: FilterMyBookingsDto;
