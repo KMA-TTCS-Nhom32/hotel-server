@@ -164,7 +164,7 @@ export class BookingController {
     console.log('Received webhook data:', webhookData);
 
     // Extract orderId (your booking code) from the webhook data
-    const orderId = webhookData.data.orderCode;
+    const orderId = String(webhookData.data.orderCode);
 
     // Handle the payment update
     await this.bookingService.handlePaymentWebhook(orderId, webhookData);
