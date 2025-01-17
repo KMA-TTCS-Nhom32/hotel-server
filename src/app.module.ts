@@ -32,6 +32,7 @@ import { PoeditorModule } from './third-party/poeditor/poeditor.module';
 import { RoomPriceHistoryModule } from './modules/room-price-history/room-price-history.module';
 import { PayosModule } from './third-party/payos/payos.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { GatewayModule } from './gateway/gateway.module';
     PoeditorModule,
     RoomPriceHistoryModule,
     PayosModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [

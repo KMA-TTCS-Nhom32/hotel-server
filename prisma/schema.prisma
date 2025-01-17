@@ -102,6 +102,8 @@ model HotelBranch {
     amenities   Amenity[]
     rooms       RoomDetail[]
     User        User[]
+
+    AnalyticsSummary AnalyticsSummary[]
 }
 
 model HotelRoom {
@@ -381,4 +383,23 @@ model UserBlockHistory {
 enum BlockAction {
     BLOCK
     UNBLOCK
+}
+
+model AnalyticsSummary {
+  id          String    @id @default(cuid())
+  branchId    String
+  branch      HotelBranch @relation(fields: [branchId], references: [id])
+  period      DateTime  // First day of month/year
+  period_type AnalyticsPeriodType
+  metrics     Json     // Store various metrics in JSON format
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([branchId, period, period_type])
+}
+
+enum AnalyticsPeriodType {
+  DAILY
+  MONTHLY
+  YEARLY
 }

@@ -11,6 +11,7 @@ import {
   Req,
   Patch,
   Delete,
+  HttpException,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiExtraModels, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -115,7 +116,23 @@ export class UsersController {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Invalid role change request',
   })
-  async adminUpdateUser(@Param('id') id: string, @Body() updateDto: AdminUpdateUserDto) {
+  async adminUpdateUser(
+    @Param('id') id: string,
+    @Body() updateDto: AdminUpdateUserDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as JwtUser;
+
+    if (user.userId === id && updateDto.role) {
+      throw new HttpException(
+        {
+          status: HttpStatus.CONFLICT,
+          message: 'Cannot change own role',
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+
     return this.usersService.adminUpdate(id, updateDto);
   }
 
