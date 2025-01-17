@@ -1,15 +1,10 @@
 import { Module } from '@nestjs/common';
 import { PaymentGateway } from './payment.gateway';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
-  imports: [
-    ConfigModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-    }),
-  ],
+  imports: [ConfigModule, AuthModule],
   providers: [PaymentGateway],
   exports: [PaymentGateway],
 })

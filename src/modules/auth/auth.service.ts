@@ -327,7 +327,7 @@ export class AuthService {
     }
 
     this.validateContactUpdate(user.identifier_type, updateProfileDto);
-    
+
     await this.validateContactUniqueness(userId, updateProfileDto.email, updateProfileDto.phone);
 
     const updateData = this.prepareUpdateProfile(updateProfileDto) as any;
@@ -393,5 +393,9 @@ export class AuthService {
     return {
       message: 'Password changed successfully',
     };
+  }
+
+  async verifyAccessToken(accessToken: string) {
+    return this.tokenService.verifyAccessToken(accessToken);
   }
 }

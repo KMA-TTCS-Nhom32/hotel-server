@@ -1,5 +1,5 @@
+import { AuthService } from '@/modules/auth/auth.service';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
   MessageBody,
@@ -26,7 +26,7 @@ export class PaymentGateway implements OnGatewayInit, OnGatewayConnection, OnGat
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
   ) {}
 
   afterInit(server: Socket) {
@@ -36,12 +36,13 @@ export class PaymentGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   handleConnection(client: Socket, ...args: any[]) {
     console.log('Client connected ' + client.id);
     const authHeader = client.handshake.headers['authorization'];
+
+    console.log('authHeader', authHeader);
+
     if (authHeader) {
       try {
-        const token = authHeader;
-        const decoded = this.jwtService.verify(token, {
-          secret: this.configService.get('JWT_SECRET'),
-        });
+        const token = authHeader; // Server expects raw token, not "Bearer token"
+        const decoded = this.authService.verifyAccessToken(token);
         client.data = decoded;
       } catch (error) {
         console.log(error);
