@@ -20,7 +20,7 @@ import { Booking } from './models';
 import { JwtUser } from '../auth/types';
 import { BookingCreateType, UserRole } from '@prisma/client';
 import { RolesGuard } from '../auth/guards';
-import { Roles } from '../auth/decorators';
+import { Public, Roles } from '../auth/decorators';
 
 @ApiTags('Booking')
 @ApiExtraModels(
@@ -148,6 +148,7 @@ export class BookingController {
     return this.bookingService.cancelBooking(bookingId, cancelDto);
   }
 
+  @Public()
   @Post('webhook/payment')
   @ApiOperation({ summary: 'Handle payment webhook from PayOS' })
   async handlePaymentWebhook(@Body() webhookData: any) {
