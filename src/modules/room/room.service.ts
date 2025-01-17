@@ -189,7 +189,7 @@ export class RoomService extends BaseService {
         await this.checkSlugExisted(updateHotelRoomDto.slug, roomToUpdate.detailId, id);
       }
 
-      if (updateHotelRoomDto.status !== HotelRoomStatus.AVAILABLE) {
+      if (updateHotelRoomDto.status === HotelRoomStatus.MAINTENANCE) {
         await this.roomDetailService.checkUpdateRoomDetailAvailable(roomToUpdate.detailId);
       }
 
