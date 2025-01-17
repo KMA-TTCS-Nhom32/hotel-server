@@ -599,7 +599,15 @@ export class BookingService extends BaseService {
 
       const updatedBooking = await this.databaseService.booking.update({
         where: { id },
-        data: { status },
+        data: {
+          status,
+          ...(status === BookingStatus.CHECKED_IN && {
+            check_in_time: new Date(),
+          }),
+          ...(status === BookingStatus.COMPLETED && {
+            check_out_time: new Date(),
+          }),
+        },
         include: {
           room: true,
         },
