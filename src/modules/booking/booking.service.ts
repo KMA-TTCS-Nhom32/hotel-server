@@ -76,6 +76,15 @@ export class BookingService extends BaseService {
         },
       },
     },
+    user: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        role: true,
+      },
+    },
   };
 
   formatStringDate(dateString: string): Date {
