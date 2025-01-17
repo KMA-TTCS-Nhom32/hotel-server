@@ -1,5 +1,5 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import {
   AnalyticsSummaryDto,
@@ -11,9 +11,16 @@ import {
 import { RolesGuard } from '../auth/guards';
 import { Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
-import dayjs from 'dayjs';
+import dayjs from '@/config/dayjs';  // Updated import
 
 @ApiTags('Analytics')
+@ApiExtraModels(
+  AnalyticsSummaryDto,
+  RevenueTimelineDto,
+  OccupancyRateResponseDto,
+  RoomPerformanceDto,
+  GetAnalyticsQueryDto,
+)
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.STAFF)
 @Controller('analytics')
