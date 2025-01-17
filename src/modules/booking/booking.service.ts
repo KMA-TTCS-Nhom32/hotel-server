@@ -626,21 +626,27 @@ export class BookingService extends BaseService {
 
   async handlePaymentWebhook(orderId: string, paymentData: any) {
     // Update payment in database
-    // console.log('Payment data:', paymentData);
-    // const foundBooking = await this.databaseService.booking.findFirst({
-    //     where: { code: orderId },
-    // });
+    console.log('Payment data:', paymentData);
+    const foundedBooking = await this.databaseService.booking.findFirst({
+      where: { code: orderId },
+    });
 
-    // if (foundBooking) {
+    if (!foundedBooking) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: BookingErrorMessagesEnum.NotFound,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
-    //     await this.databaseService.booking.update({
-    //       where: { code: orderId },
-    //       data: {
-    //         payment_details: paymentData,
-    //       },
-    //     });
-    // }
-
+    await this.databaseService.booking.update({
+      where: { code: orderId },
+      data: {
+        payment_details: paymentData,
+      },
+    });
 
     // Emit update to connected clients
     this.paymentGateway.emitPaymentUpdate(orderId, {
