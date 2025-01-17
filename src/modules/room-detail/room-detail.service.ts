@@ -128,6 +128,7 @@ export class RoomDetailService extends BaseService {
       endTime,
       adults,
       children,
+      bookingType,
     } = filterOptions;
 
     let where: any = {
@@ -160,19 +161,26 @@ export class RoomDetailService extends BaseService {
       ...(provinceId && { branch: { provinceId } }),
       ...(provinceSlug && { branch: { province: { slug: provinceSlug } } }),
       ...(rating_from && rating_to && { rating: { gte: rating_from, lte: rating_to } }),
-      ...(minPrice && {
-        OR: [
-          { base_price_per_hour: { gte: minPrice } },
-          { base_price_per_night: { gte: minPrice } },
-          { base_price_per_day: { gte: minPrice } },
-        ],
-      }),
+      ...(minPrice &&
+        bookingType && {
+          // OR: [
+          //   { base_price_per_hour: { gte: minPrice } },
+          //   { base_price_per_night: { gte: minPrice } },
+          //   { base_price_per_day: { gte: minPrice } },
+          // ],
+          ...(bookingType === 'HOURLY' && { base_price_per_hour: { gte: minPrice } }),
+          ...(bookingType === 'NIGHTLY' && { base_price_per_night: { gte: minPrice } }),
+          ...(bookingType === 'DAILY' && { base_price_per_day: { gte: minPrice } }),
+        }),
       ...(maxPrice && {
-        OR: [
-          { base_price_per_hour: { lte: maxPrice } },
-          { base_price_per_night: { lte: maxPrice } },
-          { base_price_per_day: { lte: maxPrice } },
-        ],
+        // OR: [
+        //   { base_price_per_hour: { lte: maxPrice } },
+        //   { base_price_per_night: { lte: maxPrice } },
+        //   { base_price_per_day: { lte: maxPrice } },
+        // ],
+        ...(bookingType === 'HOURLY' && { base_price_per_hour: { lte: maxPrice } }),
+        ...(bookingType === 'NIGHTLY' && { base_price_per_night: { lte: maxPrice } }),
+        ...(bookingType === 'DAILY' && { base_price_per_day: { lte: maxPrice } }),
       }),
     };
 
