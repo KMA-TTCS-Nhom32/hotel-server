@@ -2,7 +2,7 @@ import { DatabaseService } from '@/database/database.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BookingStatus, PaymentStatus, AnalyticsPeriodType, HotelRoomType } from '@prisma/client';
-import dayjs from '@/config/dayjs';  // Updated import
+import dayjs from 'dayjs';
 import {
   AnalyticsSummaryDto,
   OccupancyRateResponseDto,

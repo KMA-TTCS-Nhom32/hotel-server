@@ -11,7 +11,7 @@ import {
 import { RolesGuard } from '../auth/guards';
 import { Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
-import dayjs from '@/config/dayjs';  // Updated import
+import dayjs from 'dayjs';
 
 @ApiTags('Analytics')
 @ApiExtraModels(
