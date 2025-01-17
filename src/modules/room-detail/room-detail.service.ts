@@ -162,26 +162,31 @@ export class RoomDetailService extends BaseService {
       ...(provinceSlug && { branch: { province: { slug: provinceSlug } } }),
       ...(rating_from && rating_to && { rating: { gte: rating_from, lte: rating_to } }),
       ...(minPrice &&
+        maxPrice &&
         bookingType && {
           // OR: [
           //   { base_price_per_hour: { gte: minPrice } },
           //   { base_price_per_night: { gte: minPrice } },
           //   { base_price_per_day: { gte: minPrice } },
           // ],
-          ...(bookingType === 'HOURLY' && { base_price_per_hour: { gte: minPrice } }),
-          ...(bookingType === 'NIGHTLY' && { base_price_per_night: { gte: minPrice } }),
-          ...(bookingType === 'DAILY' && { base_price_per_day: { gte: minPrice } }),
+          ...(bookingType === 'HOURLY' && {
+            base_price_per_hour: { gte: minPrice, lte: maxPrice },
+          }),
+          ...(bookingType === 'NIGHTLY' && {
+            // AND: [
+            //   { base_price_per_night: { gte: minPrice } },
+            //   { base_price_per_night: { lte: maxPrice } },
+            // ],
+            base_price_per_night: { gte: minPrice, lte: maxPrice },
+          }),
+          ...(bookingType === 'DAILY' && {
+            // AND: [
+            //   { base_price_per_day: { gte: minPrice } },
+            //   { base_price_per_day: { lte: maxPrice } },
+            // ],
+            base_price_per_day: { gte: minPrice, lte: maxPrice },
+          }),
         }),
-      ...(maxPrice && {
-        // OR: [
-        //   { base_price_per_hour: { lte: maxPrice } },
-        //   { base_price_per_night: { lte: maxPrice } },
-        //   { base_price_per_day: { lte: maxPrice } },
-        // ],
-        ...(bookingType === 'HOURLY' && { base_price_per_hour: { lte: maxPrice } }),
-        ...(bookingType === 'NIGHTLY' && { base_price_per_night: { lte: maxPrice } }),
-        ...(bookingType === 'DAILY' && { base_price_per_day: { lte: maxPrice } }),
-      }),
     };
 
     if (startDate && endDate && startTime && endTime) {

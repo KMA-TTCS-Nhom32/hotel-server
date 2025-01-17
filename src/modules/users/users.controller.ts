@@ -50,11 +50,13 @@ export class UsersController {
     description: 'Get users list successfully',
     type: UsersPaginationResultDto,
   })
-  async getUsers(@Query() query: QueryUsersDto) {
+  async getUsers(@Query() query: QueryUsersDto, @Req() req: Request) {
     const page = query?.page ?? 1;
     const pageSize = query?.pageSize ?? DEFAULT_PAGESIZE;
 
-    return this.usersService.findMany({ page, pageSize }, query.filters, query.sort);
+    const user = req.user as JwtUser;
+
+    return this.usersService.findMany({ page, pageSize }, query.filters, query.sort, user.userId);
   }
 
   @UseGuards(RolesGuard)

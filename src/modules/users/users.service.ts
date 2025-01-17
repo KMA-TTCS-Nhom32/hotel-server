@@ -102,10 +102,12 @@ export class UsersService {
     paginationOptions: PaginationParams,
     filterOptions?: FilterUserDto,
     sortOptions?: SortUserDto[],
+    currentUser?: string,
   ) {
     const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
     const where = {
+      ...(currentUser && { id: { not: currentUser } }),
       ...(filterOptions?.roles && { role: { in: filterOptions.roles } }),
       ...(filterOptions?.is_blocked && { is_blocked: filterOptions.is_blocked }),
       ...(filterOptions?.is_active && { is_active: filterOptions.is_active }),
