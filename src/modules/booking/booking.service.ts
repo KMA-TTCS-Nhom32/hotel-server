@@ -28,7 +28,7 @@ import {
 import Decimal from 'decimal.js';
 import { RoomDetailService } from '@/modules/room-detail/room-detail.service';
 import { RoomService } from '@/modules/room/room.service';
-import { BookingStatus, BookingType, HotelRoomStatus } from '@prisma/client';
+import { BookingStatus, BookingType, HotelRoomStatus, PaymentStatus } from '@prisma/client';
 import { Booking } from './models';
 import { RoomDetail } from '../room-detail/models';
 import { parseDate } from 'libs/common/utils/date.util';
@@ -645,6 +645,8 @@ export class BookingService extends BaseService {
       where: { code: orderId },
       data: {
         payment_details: paymentData,
+        payment_status: PaymentStatus.PAID,
+        status: BookingStatus.WAITING_FOR_CHECK_IN,
       },
     });
 
