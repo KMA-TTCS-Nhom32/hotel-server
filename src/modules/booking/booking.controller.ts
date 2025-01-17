@@ -143,7 +143,7 @@ export class BookingController {
   })
   cancelBooking(
     @Param('bookingId') bookingId: string,
-    @Body('reason') cancelDto: CancelBookingDto,
+    @Body() cancelDto: CancelBookingDto,
   ) {
     return this.bookingService.cancelBooking(bookingId, cancelDto);
   }
