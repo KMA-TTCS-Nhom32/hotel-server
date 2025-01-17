@@ -206,7 +206,15 @@ export class UsersService {
       },
       include: {
         _count: {
-          select: { bookings: true },
+          select: {
+            bookings: {
+              where: {
+                status: {
+                  notIn: ['CANCELLED', 'REJECTED', 'PENDING'],
+                },
+              },
+            },
+          },
         },
       },
     });

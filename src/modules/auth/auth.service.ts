@@ -338,6 +338,19 @@ export class AuthService {
       omit: {
         password: true,
       },
+      include: {
+        _count: {
+          select: {
+            bookings: {
+              where: {
+                status: {
+                  notIn: ['CANCELLED', 'REJECTED', 'PENDING'],
+                },
+              },
+            },
+          },
+        },
+      },
     });
   }
 
