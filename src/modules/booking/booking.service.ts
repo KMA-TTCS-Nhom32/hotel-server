@@ -32,6 +32,7 @@ import { BookingStatus, BookingType, HotelRoomStatus } from '@prisma/client';
 import { Booking } from './models';
 import { RoomDetail } from '../room-detail/models';
 import { parseDate } from 'libs/common/utils/date.util';
+import { PaymentGateway } from '@/gateway/payment.gateway';
 
 @Injectable()
 export class BookingService extends BaseService {
@@ -39,6 +40,7 @@ export class BookingService extends BaseService {
     protected readonly databaseService: DatabaseService,
     private readonly roomDetailService: RoomDetailService,
     private readonly roomService: RoomService,
+    private readonly paymentGateway: PaymentGateway,
   ) {
     super(databaseService);
   }
@@ -620,5 +622,23 @@ export class BookingService extends BaseService {
       console.error('BookingService -> cancelBooking -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
+  }
+
+  async handlePaymentWebhook(orderId: string, paymentData: any) {
+    // Update payment in database
+    await this.databaseService.booking.update({
+      where: { code: orderId },
+      data: {
+        payment_details: paymentData,
+      },
+    });
+
+    // Emit update to connected clients
+    this.paymentGateway.emitPaymentUpdate(orderId, {
+      orderId,
+      status: paymentData.status,
+      amount: paymentData.amount,
+      // ... other payment details
+    });
   }
 }

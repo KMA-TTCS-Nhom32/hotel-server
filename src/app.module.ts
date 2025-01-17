@@ -31,6 +31,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { PoeditorModule } from './third-party/poeditor/poeditor.module';
 import { RoomPriceHistoryModule } from './modules/room-price-history/room-price-history.module';
 import { PayosModule } from './third-party/payos/payos.module';
+import { GatewayModule } from './gateway/gateway.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { PayosModule } from './third-party/payos/payos.module';
       useClass: JwtAuthGuard, // Apply JWT guard globally
     },
     AppService,
+    GatewayModule,
   ],
 })
 export class AppModule implements OnModuleInit {
