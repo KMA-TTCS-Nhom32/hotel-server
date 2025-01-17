@@ -128,7 +128,7 @@ export class BookingController {
   })
   updateBookingStatus(
     @Param('bookingId') bookingId: string,
-    @Body('status') updateDto: UpdateBookingStatusDto,
+    @Body() updateDto: UpdateBookingStatusDto,
   ) {
     return this.bookingService.updateStatus(bookingId, updateDto.status);
   }
