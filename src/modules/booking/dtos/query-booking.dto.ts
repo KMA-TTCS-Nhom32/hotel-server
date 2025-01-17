@@ -169,12 +169,12 @@ export class QueryMyBookingsDto {
   pageSize?: number;
 
   @ApiPropertyOptional({
-    type: FilterMyBookingsDto,
+    type: String,
     description: 'Filter my bookings',
   })
   @IsOptional()
   @JsonTransform(FilterMyBookingsDto)
   @ValidateNested()
   @Type(() => FilterMyBookingsDto)
-  filters?: FilterMyBookingsDto;
+  filters?: FilterMyBookingsDto | null;
 }
