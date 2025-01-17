@@ -218,6 +218,7 @@ export class UsersService {
             },
           },
         },
+        working_at: true,
       },
     });
   }
