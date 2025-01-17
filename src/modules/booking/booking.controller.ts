@@ -147,4 +147,27 @@ export class BookingController {
   ) {
     return this.bookingService.cancelBooking(bookingId, cancelDto);
   }
+
+  @Post('webhook/payment')
+  @ApiOperation({ summary: 'Handle payment webhook from PayOS' })
+  async handlePaymentWebhook(@Body() webhookData: any) {
+    // PayOS webhook will send data like:
+    // {
+    //   orderCode: "123456789",
+    //   amount: 1000000,
+    //   status: "PAID",
+    //   description: "Payment for booking #123456789",
+    //   // ... other payment details
+    // }
+
+    console.log('Received webhook data:', webhookData);
+
+    // Extract orderId (your booking code) from the webhook data
+    const orderId = webhookData.data.orderCode;
+
+    // Handle the payment update
+    await this.bookingService.handlePaymentWebhook(orderId, webhookData);
+
+    return { success: true };
+  }
 }

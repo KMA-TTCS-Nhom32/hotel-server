@@ -626,6 +626,7 @@ export class BookingService extends BaseService {
 
   async handlePaymentWebhook(orderId: string, paymentData: any) {
     // Update payment in database
+    console.log('Payment data:', paymentData);
     await this.databaseService.booking.update({
       where: { code: orderId },
       data: {
@@ -638,7 +639,6 @@ export class BookingService extends BaseService {
       orderId,
       status: paymentData.status,
       amount: paymentData.amount,
-      // ... other payment details
     });
   }
 }
