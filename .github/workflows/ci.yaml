@@ -58,7 +58,7 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --prod=false
 
       - name: Generate Prisma client
         run: pnpm pgenerate
@@ -66,8 +66,8 @@ jobs:
       - name: Run linting
         run: pnpm lint || echo "Linting failed but continuing build"
 
-    #   - name: Run tests
-    #     run: pnpm test
+      #   - name: Run tests
+      #     run: pnpm test
 
       - name: Build application
         run: pnpm build
