@@ -1,5 +1,6 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, Matches } from 'class-validator';
+import { ProvinceTranslationDto } from './translation.dto';
 
 export class CreateProvinceDto {
   @ApiProperty({
@@ -34,6 +35,20 @@ export class CreateProvinceDto {
     message: 'Slug must be lowercase alphanumeric with optional hyphens',
   })
   slug: string;
+
+  @ApiProperty({
+    type: [ProvinceTranslationDto],
+    description: 'Translations for the province',
+    required: false,
+  })
+  translations?: ProvinceTranslationDto[];
 }
 
-export class UpdateProvinceDto extends PartialType(CreateProvinceDto) {}
+export class UpdateProvinceDto extends PartialType(CreateProvinceDto) {
+  @ApiProperty({
+    type: [ProvinceTranslationDto],
+    description: 'Translations for the province',
+    required: false,
+  })
+  translations?: ProvinceTranslationDto[];
+}

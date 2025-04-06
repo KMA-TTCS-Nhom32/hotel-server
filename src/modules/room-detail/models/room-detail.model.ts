@@ -127,4 +127,22 @@ export class RoomDetail extends AbstractModel {
     description: 'Whether this room is available for booking',
   })
   is_available: boolean;
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        language: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+    description: 'List of translations for the room detail',
+  })
+  translations: {
+    language: string;
+    name: string;
+    description: string;
+  }[];
 }

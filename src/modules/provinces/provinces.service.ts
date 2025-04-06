@@ -12,6 +12,7 @@ import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto'
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 import { BaseService } from '@/common/services/base.service';
 import { PoeditorService } from '@/third-party/poeditor/poeditor.service';
+
 @Injectable()
 export class ProvincesService extends BaseService {
   constructor(
@@ -19,6 +20,22 @@ export class ProvincesService extends BaseService {
     private readonly poeditorService: PoeditorService,
   ) {
     super(databaseService);
+  }
+
+  // Helper method to map database province object to Province model with translations
+  private mapProvinceWithTranslations(province: Province): Province {
+    // Format translations to match the model structure
+    const formattedTranslations =
+      province.translations?.map((translation) => ({
+        language: translation.language,
+        name: translation.name,
+      })) || [];
+
+    // Create a new Province instance with all properties including translations
+    return new Province({
+      ...province,
+      translations: formattedTranslations,
+    });
   }
 
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
@@ -37,17 +54,23 @@ export class ProvincesService extends BaseService {
         ],
       });
 
+      // Create province with translation
       const province = await this.databaseService.province.create({
         data: {
-          ...createProvinceDto,
-          name: `province_name.${createProvinceDto.slug}`,
+          name: createProvinceDto.name,
+          slug: createProvinceDto.slug,
+          zip_code: createProvinceDto.zip_code,
+          translations: {
+            create: createProvinceDto.translations || [],
+          },
         },
         include: {
           _count: true,
+          translations: true,
         },
       });
 
-      return new Province(province);
+      return this.mapProvinceWithTranslations(province);
     } catch (error) {
       console.error('Create province error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -91,13 +114,14 @@ export class ProvincesService extends BaseService {
           orderBy,
           include: {
             _count: true,
+            translations: true, // Include translations
           },
         }),
         this.databaseService.province.count({ where }),
       ]);
 
       return createPaginatedResponse(
-        provinces.map((province) => new Province(province)),
+        provinces.map((province) => this.mapProvinceWithTranslations(province)),
         total,
         page,
         pageSize,
@@ -114,6 +138,7 @@ export class ProvincesService extends BaseService {
         where: this.mergeWithBaseWhere({ id }, includeDeleted),
         include: {
           _count: true,
+          translations: true, // Include translations
         },
       });
 
@@ -127,7 +152,7 @@ export class ProvincesService extends BaseService {
         );
       }
 
-      return new Province(province);
+      return this.mapProvinceWithTranslations(province);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -138,15 +163,38 @@ export class ProvincesService extends BaseService {
     try {
       await this.findById(id);
 
+      const updateData: any = {
+        name: updateProvinceDto.name,
+        slug: updateProvinceDto.slug,
+        zip_code: updateProvinceDto.zip_code,
+      };
+
+      // Handle translations if provided
+      if (updateProvinceDto.translations && updateProvinceDto.translations.length > 0) {
+        updateData.translations = {
+          upsert: updateProvinceDto.translations.map((translation) => ({
+            where: { 
+              provinceId_language: {
+                provinceId: id, 
+                language: translation.language 
+              }
+            },
+            create: translation,
+            update: translation,
+          })),
+        };
+      }
+
       const updatedProvince = await this.databaseService.province.update({
         where: { id },
         include: {
           _count: true,
+          translations: true, // Include translations
         },
-        data: updateProvinceDto,
+        data: updateData,
       });
 
-      return new Province(updatedProvince);
+      return this.mapProvinceWithTranslations(updatedProvince);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -194,7 +242,10 @@ export class ProvincesService extends BaseService {
 
   async restore(id: string): Promise<Province> {
     try {
-      return await this.restoreDeleted<Province>('province', id);
+      await this.restoreDeleted<Province>('province', id);
+
+      // Fetch the complete province with translations after restoration
+      return this.findById(id, false);
     } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
@@ -206,10 +257,11 @@ export class ProvincesService extends BaseService {
         where: { isDeleted: true },
         include: {
           _count: true,
+          translations: true, // Include translations
         },
       });
 
-      return provinces.map((province) => new Province(province));
+      return provinces.map((province) => this.mapProvinceWithTranslations(province));
     } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }

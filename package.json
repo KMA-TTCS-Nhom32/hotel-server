@@ -23,6 +23,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "start:migrate:prod": "pnpx prisma generate && pnpm start:prod",
+    "migrate:dev": "pnpx prisma migrate dev --name",
     "pgenerate": "pnpx prisma generate",
     "heroku-postbuild": "pnpm install --prod=false && pnpx prisma generate && pnpx prisma migrate deploy && pnpm build"
   },

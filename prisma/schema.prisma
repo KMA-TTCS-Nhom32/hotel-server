@@ -66,6 +66,11 @@ enum UserGender {
     FEMALE
 }
 
+enum Language {
+    EN
+    VI
+}
+
 model Province {
     id        String        @id @default(cuid())
     name      String
@@ -77,7 +82,19 @@ model Province {
     createdAt DateTime      @default(now())
     updatedAt DateTime      @updatedAt
 
+    translations ProvinceTranslation[]
+
     @@unique([name, zip_code, slug])
+}
+
+model ProvinceTranslation {
+    id         String   @id @default(cuid())
+    provinceId String
+    province   Province @relation(fields: [provinceId], references: [id])
+    language   Language
+    name       String
+
+    @@unique([provinceId, language])
 }
 
 model HotelBranch {
@@ -104,6 +121,21 @@ model HotelBranch {
     User        User[]
 
     AnalyticsSummary AnalyticsSummary[]
+
+    translations HotelBranchTranslation[]
+}
+
+model HotelBranchTranslation {
+    id            String      @id @default(cuid())
+    hotelBranchId String
+    hotelBranch   HotelBranch @relation(fields: [hotelBranchId], references: [id])
+    language      Language
+    name          String
+    description   String
+    address       String
+    nearBy        Json[]      @default([])
+
+    @@unique([hotelBranchId, language])
 }
 
 model HotelRoom {
@@ -113,13 +145,25 @@ model HotelRoom {
     status       HotelRoomStatus // Use this for maintenance/general availability
     detailId     String
     detail       RoomDetail       @relation(fields: [detailId], references: [id])
-    bookings     Booking[]        // This will track time-based occupancy
+    bookings     Booking[] // This will track time-based occupancy
     reviews      Review[]
     favorited_by UserPreference[] @relation("UserFavoriteRooms")
     isDeleted    Boolean          @default(false)
     deletedAt    DateTime?
     createdAt    DateTime         @default(now())
     updatedAt    DateTime         @updatedAt
+
+    translations HotelRoomTranslation[]
+}
+
+model HotelRoomTranslation {
+    id        String   @id @default(cuid())
+    roomId    String
+    room      HotelRoom @relation(fields: [roomId], references: [id])
+    language  Language
+    name      String
+
+    @@unique([roomId, language])
 }
 
 model RoomDetail {
@@ -153,18 +197,43 @@ model RoomDetail {
     deletedAt               DateTime?
     createdAt               DateTime           @default(now())
     updatedAt               DateTime           @updatedAt
+
+    translations RoomDetailTranslation[]
+}
+
+model RoomDetailTranslation {
+    id           String     @id @default(cuid())
+    roomDetailId String
+    roomDetail   RoomDetail @relation(fields: [roomDetailId], references: [id])
+    language     Language
+    name         String
+    description  String
+
+    @@unique([roomDetailId, language])
 }
 
 model Amenity {
-    id        String        @id @default(cuid())
+    id                 String               @id @default(cuid())
+    name               String
+    slug               String
+    icon               Json // Icon URL or code
+    type               AmenityType
+    rooms              RoomDetail[]
+    branches           HotelBranch[]
+    createdAt          DateTime             @default(now())
+    updatedAt          DateTime             @updatedAt
+
+    translations AmenityTranslation[]
+}
+
+model AmenityTranslation {
+    id        String   @id @default(cuid())
+    amenityId String
+    amenity   Amenity  @relation(fields: [amenityId], references: [id])
+    language  Language
     name      String
-    slug      String
-    icon      Json // Icon URL or code
-    type      AmenityType
-    rooms     RoomDetail[]
-    branches  HotelBranch[]
-    createdAt DateTime      @default(now())
-    updatedAt DateTime      @updatedAt
+
+    @@unique([amenityId, language])
 }
 
 enum AmenityType {
@@ -386,20 +455,20 @@ enum BlockAction {
 }
 
 model AnalyticsSummary {
-  id          String    @id @default(cuid())
-  branchId    String
-  branch      HotelBranch @relation(fields: [branchId], references: [id])
-  period      DateTime  // First day of month/year
-  period_type AnalyticsPeriodType
-  metrics     Json     // Store various metrics in JSON format
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+    id          String              @id @default(cuid())
+    branchId    String
+    branch      HotelBranch         @relation(fields: [branchId], references: [id])
+    period      DateTime // First day of month/year
+    period_type AnalyticsPeriodType
+    metrics     Json // Store various metrics in JSON format
+    createdAt   DateTime            @default(now())
+    updatedAt   DateTime            @updatedAt
 
-  @@unique([branchId, period, period_type])
+    @@unique([branchId, period, period_type])
 }
 
 enum AnalyticsPeriodType {
-  DAILY
-  MONTHLY
-  YEARLY
+    DAILY
+    MONTHLY
+    YEARLY
 }
