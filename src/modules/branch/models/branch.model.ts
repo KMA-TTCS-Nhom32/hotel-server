@@ -25,7 +25,7 @@ export class NearBy {
 }
 
 export class Branch extends AbstractModel {
-  constructor(data: Branch) {
+  constructor(data: Partial<Branch | Omit<Branch, 'translations'>>) {
     super();
     Object.assign(this, data);
   }
@@ -112,27 +112,27 @@ export class Branch extends AbstractModel {
   })
   rating: number;
 
-  @ApiProperty({
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        language: { type: 'string' },
-        name: { type: 'string' },
-        description: { type: 'string' },
-        address: { type: 'string' },
-        nearBy: { type: 'array', items: { type: 'object' } },
-      },
-    },
-    description: 'List of translations for the branch',
-  })
-  translations: {
-    language: string;
-    name: string;
-    description: string;
-    address: string;
-    nearBy: NearBy[];
-  }[];
+//   @ApiProperty({
+//     type: 'array',
+//     items: {
+//       type: 'object',
+//       properties: {
+//         language: { type: 'string' },
+//         name: { type: 'string' },
+//         description: { type: 'string' },
+//         address: { type: 'string' },
+//         nearBy: { type: 'array', items: { type: 'object' } },
+//       },
+//     },
+//     description: 'List of translations for the branch',
+//   })
+//   translations: {
+//     language: string;
+//     name: string;
+//     description: string;
+//     address: string;
+//     nearBy: NearBy[];
+//   }[];
 }
 
 export class BranchDetail extends Branch {

@@ -35,19 +35,19 @@ export class Amenity extends AbstractModel {
   })
   type: AmenityType;
 
-  @ApiProperty({
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        language: { type: 'string' },
-        name: { type: 'string' },
-      },
-    },
-    description: 'List of translations for the amenity',
-  })
-  translations: {
-    language: string;
-    name: string;
-  }[];
+//   @ApiProperty({
+//     type: 'array',
+//     items: {
+//       type: 'object',
+//       properties: {
+//         language: { type: 'string' },
+//         name: { type: 'string' },
+//       },
+//     },
+//     description: 'List of translations for the amenity',
+//   })
+//   translations: {
+//     language: string;
+//     name: string;
+//   }[];
 }

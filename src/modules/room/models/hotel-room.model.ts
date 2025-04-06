@@ -62,21 +62,21 @@ export class HotelRoom extends AbstractModel {
     bookings: number;
   };
 
-  @ApiProperty({
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        language: { type: 'string' },
-        name: { type: 'string' },
-      },
-    },
-    description: 'List of translations for the hotel room',
-  })
-  translations: {
-    language: string;
-    name: string;
-  }[];
+//   @ApiProperty({
+//     type: 'array',
+//     items: {
+//       type: 'object',
+//       properties: {
+//         language: { type: 'string' },
+//         name: { type: 'string' },
+//       },
+//     },
+//     description: 'List of translations for the hotel room',
+//   })
+//   translations: {
+//     language: string;
+//     name: string;
+//   }[];
 }
 
 //   @ApiProperty({ type: () => [RoomPriceHistory], required: false })

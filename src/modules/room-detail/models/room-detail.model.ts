@@ -128,21 +128,21 @@ export class RoomDetail extends AbstractModel {
   })
   is_available: boolean;
 
-  @ApiProperty({
-    type: 'array',
-    items: {
-      type: 'object',
-      properties: {
-        language: { type: 'string' },
-        name: { type: 'string' },
-        description: { type: 'string' },
-      },
-    },
-    description: 'List of translations for the room detail',
-  })
-  translations: {
-    language: string;
-    name: string;
-    description: string;
-  }[];
+//   @ApiProperty({
+//     type: 'array',
+//     items: {
+//       type: 'object',
+//       properties: {
+//         language: { type: 'string' },
+//         name: { type: 'string' },
+//         description: { type: 'string' },
+//       },
+//     },
+//     description: 'List of translations for the room detail',
+//   })
+//   translations: {
+//     language: string;
+//     name: string;
+//     description: string;
+//   }[];
 }

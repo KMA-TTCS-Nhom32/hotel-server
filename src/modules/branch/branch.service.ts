@@ -86,7 +86,11 @@ export class BranchService extends BaseService {
           createdAt: 'desc',
         },
         include: {
-          province: true,
+          province: {
+            include: {
+              translations: true,
+            },
+          },
           amenities: true,
         },
       });
@@ -166,7 +170,11 @@ export class BranchService extends BaseService {
           take,
           orderBy,
           include: {
-            province: true,
+            province: {
+              include: {
+                translations: true,
+              },
+            },
             amenities: true,
             rooms: {
               select: {
@@ -208,7 +216,11 @@ export class BranchService extends BaseService {
           includeDeleted,
         ),
         include: {
-          province: true,
+          province: {
+            include: {
+              translations: true,
+            },
+          },
           amenities: true,
           rooms: {
             where: { isDeleted: false },
@@ -300,7 +312,11 @@ export class BranchService extends BaseService {
           where: { id },
           data: updateData,
           include: {
-            province: true,
+            province: {
+              include: {
+                translations: true,
+              },
+            },
             amenities: true,
             rooms: {
               where: { isDeleted: false },
