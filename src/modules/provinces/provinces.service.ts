@@ -54,21 +54,27 @@ export class ProvincesService extends BaseService {
         ],
       });
 
-      // Create province with translation
       const province = await this.databaseService.province.create({
         data: {
           name: createProvinceDto.name,
           slug: createProvinceDto.slug,
           zip_code: createProvinceDto.zip_code,
-          translations: {
-            create: createProvinceDto.translations || [],
-          },
         },
         include: {
           _count: true,
           translations: true,
         },
       });
+
+      // Handle translations if provided
+      if (createProvinceDto.translations?.length > 0) {
+        await this.databaseService.provinceTranslation.createMany({
+          data: createProvinceDto.translations.map((translation) => ({
+            ...translation,
+            provinceId: province.id,
+          })),
+        });
+      }
 
       return this.mapProvinceWithTranslations(province);
     } catch (error) {
@@ -170,17 +176,23 @@ export class ProvincesService extends BaseService {
       };
 
       // Handle translations if provided
-      if (updateProvinceDto.translations && updateProvinceDto.translations.length > 0) {
+      if (updateProvinceDto.translations?.length > 0) {
         updateData.translations = {
           upsert: updateProvinceDto.translations.map((translation) => ({
-            where: { 
+            where: {
               provinceId_language: {
-                provinceId: id, 
-                language: translation.language 
-              }
+                provinceId: id,
+                language: translation.language,
+              },
             },
-            create: translation,
-            update: translation,
+            create: {
+              provinceId: id,
+              language: translation.language,
+              name: translation.name,
+            },
+            update: {
+              name: translation.name,
+            },
           })),
         };
       }
@@ -189,7 +201,7 @@ export class ProvincesService extends BaseService {
         where: { id },
         include: {
           _count: true,
-          translations: true, // Include translations
+          translations: true,
         },
         data: updateData,
       });

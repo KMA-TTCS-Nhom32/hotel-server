@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, Matches } from 'class-validator';
 import { ProvinceTranslationDto } from './translation.dto';
 
@@ -36,19 +36,12 @@ export class CreateProvinceDto {
   })
   slug: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [ProvinceTranslationDto],
     description: 'Translations for the province',
     required: false,
   })
   translations?: ProvinceTranslationDto[];
 }
-
-export class UpdateProvinceDto extends PartialType(CreateProvinceDto) {
-  @ApiProperty({
-    type: [ProvinceTranslationDto],
-    description: 'Translations for the province',
-    required: false,
-  })
-  translations?: ProvinceTranslationDto[];
-}
+    
+export class UpdateProvinceDto extends PartialType(CreateProvinceDto) {}
