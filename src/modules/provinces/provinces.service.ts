@@ -11,13 +11,13 @@ import { Province } from './models';
 import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 import { BaseService } from '@/common/services/base.service';
-import { PoeditorService } from '@/third-party/poeditor/poeditor.service';
+// import { PoeditorService } from '@/third-party/poeditor/poeditor.service';
 
 @Injectable()
 export class ProvincesService extends BaseService {
   constructor(
     protected readonly databaseService: DatabaseService,
-    private readonly poeditorService: PoeditorService,
+    // private readonly poeditorService: PoeditorService,
   ) {
     super(databaseService);
   }
@@ -40,25 +40,22 @@ export class ProvincesService extends BaseService {
 
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
     try {
-      // Add translation to POEditor
-      await this.poeditorService.addTranslation({
-        language: 'vi',
-        data: [
-          {
-            term: 'province_name',
-            context: createProvinceDto.slug,
-            translation: {
-              content: createProvinceDto.name,
-            },
-          },
-        ],
-      });
+      // Add translation to POEditor if needed
+      // await this.poeditorService.addTranslation({ ... });
 
+      // Create province with translations in a single transaction
       const province = await this.databaseService.province.create({
         data: {
           name: createProvinceDto.name,
           slug: createProvinceDto.slug,
           zip_code: createProvinceDto.zip_code,
+          translations: {
+            create:
+              createProvinceDto.translations?.map((translation) => ({
+                language: translation.language,
+                name: translation.name,
+              })) || [],
+          },
         },
         include: {
           _count: true,
@@ -66,16 +63,7 @@ export class ProvincesService extends BaseService {
         },
       });
 
-      // Handle translations if provided
-      if (createProvinceDto.translations?.length > 0) {
-        await this.databaseService.provinceTranslation.createMany({
-          data: createProvinceDto.translations.map((translation) => ({
-            ...translation,
-            provinceId: province.id,
-          })),
-        });
-      }
-
+      // Return the province with properly mapped translations
       return this.mapProvinceWithTranslations(province);
     } catch (error) {
       console.error('Create province error:', error);
