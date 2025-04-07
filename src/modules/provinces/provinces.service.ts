@@ -38,32 +38,56 @@ export class ProvincesService extends BaseService {
     });
   }
 
+  // Helper method to validate unique fields
+  private async validateUniqueFields(
+    name: string,
+    slug: string,
+    zip_code: string,
+    excludeId?: string,
+  ): Promise<void> {
+    const whereClause: any = {
+      OR: [{ name }, { slug }, { zip_code }],
+      isDeleted: false,
+    };
+
+    // If we're updating (excludeId is provided), exclude the current province
+    if (excludeId) {
+      whereClause.id = { not: excludeId };
+    }
+
+    const existingProvince = await this.databaseService.province.findFirst({
+      where: whereClause,
+    });
+
+    if (existingProvince) {
+      // Determine which field caused the conflict for better error messaging
+      let conflictField = 'details';
+      if (existingProvince.name === name) {
+        conflictField = 'name';
+      } else if (existingProvince.slug === slug) {
+        conflictField = 'slug';
+      } else if (existingProvince.zip_code === zip_code) {
+        conflictField = 'zip code';
+      }
+
+      throw new HttpException(
+        {
+          status: HttpStatus.CONFLICT,
+          message: `A province with this ${conflictField} already exists`,
+        },
+        HttpStatus.CONFLICT,
+      );
+    }
+  }
+
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
     try {
       // Validate unique fields before creation
-      const existingProvince = await this.databaseService.province.findFirst({
-        where: {
-          OR: [
-            { name: createProvinceDto.name },
-            { slug: createProvinceDto.slug },
-            { zip_code: createProvinceDto.zip_code },
-          ],
-          isDeleted: false,
-        },
-      });
-
-      if (existingProvince) {
-        throw new HttpException(
-          {
-            status: HttpStatus.CONFLICT,
-            message: `A province with these details already exists`,
-          },
-          HttpStatus.CONFLICT,
-        );
-      }
-
-      // Add translation to POEditor if needed
-      // await this.poeditorService.addTranslation({ ... });
+      await this.validateUniqueFields(
+        createProvinceDto.name,
+        createProvinceDto.slug,
+        createProvinceDto.zip_code,
+      );
 
       // Create province with translations in a single transaction
       const province = await this.databaseService.province.create({
@@ -71,13 +95,15 @@ export class ProvincesService extends BaseService {
           name: createProvinceDto.name,
           slug: createProvinceDto.slug,
           zip_code: createProvinceDto.zip_code,
-          translations: {
-            create:
-              createProvinceDto.translations?.map((translation) => ({
-                language: translation.language,
-                name: translation.name,
-              })) || [],
-          },
+          ...(createProvinceDto.translations?.length > 0 && {
+            translations: {
+              create:
+                createProvinceDto.translations?.map((translation) => ({
+                  language: translation.language,
+                  name: translation.name,
+                })) || [],
+            },
+          }),
         },
         include: {
           _count: true,
@@ -88,9 +114,23 @@ export class ProvincesService extends BaseService {
       // Return the province with properly mapped translations
       return this.mapProvinceWithTranslations(province);
     } catch (error) {
+      console.error('Create province error details:', error);
+
       // If the error is already a HttpException (like our conflict check above), rethrow it
       if (error instanceof HttpException) {
         throw error;
+      }
+
+      // Handle language enum validation errors
+      if (error.code === 'P2012' || error.code === 'P2006') {
+        throw new HttpException(
+          {
+            status: HttpStatus.BAD_REQUEST,
+            message: 'Invalid language value. Must be a valid language code',
+            details: error.message,
+          },
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Handle Prisma unique constraint violation error
@@ -104,7 +144,6 @@ export class ProvincesService extends BaseService {
         );
       }
 
-      console.error('Create province error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
@@ -195,7 +234,13 @@ export class ProvincesService extends BaseService {
     try {
       await this.findById(id);
 
-      // First update the province data
+      await this.validateUniqueFields(
+        updateProvinceDto.name,
+        updateProvinceDto.slug,
+        updateProvinceDto.zip_code,
+        id, // Exclude this ID from uniqueness check
+      );
+
       let updatedProvince = await this.databaseService.province.update({
         where: { id },
         data: {
