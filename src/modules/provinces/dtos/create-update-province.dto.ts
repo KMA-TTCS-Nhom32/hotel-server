@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
 import { ProvinceTranslationDto } from './translation.dto';
+import { Type } from 'class-transformer';
 
 export class CreateProvinceDto {
   @ApiProperty({
@@ -41,6 +42,10 @@ export class CreateProvinceDto {
     description: 'Translations for the province',
     required: false,
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProvinceTranslationDto)
   translations?: ProvinceTranslationDto[];
 }
     

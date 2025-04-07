@@ -8,37 +8,32 @@ import { DatabaseService } from '@/database/database.service';
 import { CreateProvinceDto, UpdateProvinceDto } from './dtos/create-update-province.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
 import { Province } from './models';
+import { Province as ProvincePrisma, ProvinceTranslation } from '@prisma/client';
 import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 import { BaseService } from '@/common/services/base.service';
-// import { PoeditorService } from '@/third-party/poeditor/poeditor.service';
 
 @Injectable()
 export class ProvincesService extends BaseService {
-  constructor(
-    protected readonly databaseService: DatabaseService,
-    // private readonly poeditorService: PoeditorService,
-  ) {
+  constructor(protected readonly databaseService: DatabaseService) {
     super(databaseService);
   }
 
-  // Helper method to map database province object to Province model with translations
-  private mapProvinceWithTranslations(province: Province): Province {
-    // Format translations to match the model structure
+  private mapProvinceWithTranslations(
+    province: ProvincePrisma & { translations: ProvinceTranslation[] },
+  ): Province {
     const formattedTranslations =
       province.translations?.map((translation) => ({
         language: translation.language,
         name: translation.name,
       })) || [];
 
-    // Create a new Province instance with all properties including translations
     return new Province({
       ...province,
       translations: formattedTranslations,
     });
   }
 
-  // Helper method to validate unique fields
   private async validateUniqueFields(
     name: string,
     slug: string,
@@ -60,7 +55,6 @@ export class ProvincesService extends BaseService {
     });
 
     if (existingProvince) {
-      // Determine which field caused the conflict for better error messaging
       let conflictField = 'details';
       if (existingProvince.name === name) {
         conflictField = 'name';
@@ -89,27 +83,47 @@ export class ProvincesService extends BaseService {
         createProvinceDto.zip_code,
       );
 
-      // Create province with translations in a single transaction
-      const province = await this.databaseService.province.create({
-        data: {
-          name: createProvinceDto.name,
-          slug: createProvinceDto.slug,
-          zip_code: createProvinceDto.zip_code,
-          ...(createProvinceDto.translations?.length > 0 && {
-            translations: {
-              create:
-                createProvinceDto.translations?.map((translation) => ({
-                  language: translation.language,
-                  name: translation.name,
-                })) || [],
-            },
-          }),
+      // Add debug logging to see what's being received
+      console.log('DTO received:', JSON.stringify(createProvinceDto));
+
+      // Create a deep copy to ensure we're not affected by any reference issues
+      const data = {
+        name: createProvinceDto.name,
+        slug: createProvinceDto.slug,
+        zip_code: createProvinceDto.zip_code,
+        translations: {
+          create: createProvinceDto.translations
+            ? createProvinceDto.translations.map((t) => ({
+                language: t.language,
+                name: t.name,
+              }))
+            : [],
         },
+      };
+
+      console.log('Creating with data:', JSON.stringify(data));
+
+      // Create province with translations
+      const province = await this.databaseService.province.create({
+        data,
         include: {
           _count: true,
           translations: true,
         },
       });
+
+      // Log the created province to verify translations were created
+      console.log(
+        'Created province with translations:',
+        JSON.stringify(
+          {
+            id: province.id,
+            translations: province.translations,
+          },
+          null,
+          2,
+        ),
+      );
 
       // Return the province with properly mapped translations
       return this.mapProvinceWithTranslations(province);
