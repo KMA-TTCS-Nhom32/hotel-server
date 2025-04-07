@@ -40,6 +40,28 @@ export class ProvincesService extends BaseService {
 
   async create(createProvinceDto: CreateProvinceDto): Promise<Province> {
     try {
+      // Validate unique fields before creation
+      const existingProvince = await this.databaseService.province.findFirst({
+        where: {
+          OR: [
+            { name: createProvinceDto.name },
+            { slug: createProvinceDto.slug },
+            { zip_code: createProvinceDto.zip_code },
+          ],
+          isDeleted: false,
+        },
+      });
+
+      if (existingProvince) {
+        throw new HttpException(
+          {
+            status: HttpStatus.CONFLICT,
+            message: `A province with these details already exists`,
+          },
+          HttpStatus.CONFLICT,
+        );
+      }
+
       // Add translation to POEditor if needed
       // await this.poeditorService.addTranslation({ ... });
 
@@ -66,6 +88,22 @@ export class ProvincesService extends BaseService {
       // Return the province with properly mapped translations
       return this.mapProvinceWithTranslations(province);
     } catch (error) {
+      // If the error is already a HttpException (like our conflict check above), rethrow it
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Handle Prisma unique constraint violation error
+      if (error.code === 'P2002') {
+        throw new HttpException(
+          {
+            status: HttpStatus.CONFLICT,
+            message: 'A province with these details already exists',
+          },
+          HttpStatus.CONFLICT,
+        );
+      }
+
       console.error('Create province error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
@@ -157,45 +195,68 @@ export class ProvincesService extends BaseService {
     try {
       await this.findById(id);
 
-      const updateData: any = {
-        name: updateProvinceDto.name,
-        slug: updateProvinceDto.slug,
-        zip_code: updateProvinceDto.zip_code,
-      };
-
-      // Handle translations if provided
-      if (updateProvinceDto.translations?.length > 0) {
-        updateData.translations = {
-          upsert: updateProvinceDto.translations.map((translation) => ({
-            where: {
-              provinceId_language: {
-                provinceId: id,
-                language: translation.language,
-              },
-            },
-            create: {
-              provinceId: id,
-              language: translation.language,
-              name: translation.name,
-            },
-            update: {
-              name: translation.name,
-            },
-          })),
-        };
-      }
-
-      const updatedProvince = await this.databaseService.province.update({
+      // First update the province data
+      let updatedProvince = await this.databaseService.province.update({
         where: { id },
+        data: {
+          name: updateProvinceDto.name,
+          slug: updateProvinceDto.slug,
+          zip_code: updateProvinceDto.zip_code,
+        },
         include: {
           _count: true,
           translations: true,
         },
-        data: updateData,
       });
+
+      if (updateProvinceDto.translations?.length > 0) {
+        const currentTranslations = updatedProvince.translations || [];
+
+        for (const translation of updateProvinceDto.translations) {
+          const existingTranslation = currentTranslations.find(
+            (t) => t.language === translation.language,
+          );
+
+          if (existingTranslation) {
+            await this.databaseService.provinceTranslation.update({
+              where: { id: existingTranslation.id },
+              data: { name: translation.name },
+            });
+          } else {
+            await this.databaseService.provinceTranslation.create({
+              data: {
+                provinceId: id,
+                language: translation.language,
+                name: translation.name,
+              },
+            });
+          }
+        }
+
+        updatedProvince = await this.databaseService.province.findUnique({
+          where: { id },
+          include: {
+            _count: true,
+            translations: true,
+          },
+        });
+      }
 
       return this.mapProvinceWithTranslations(updatedProvince);
     } catch (error) {
+      console.error('Update province error:', error);
+
+      // More specific error handling
+      if (error.code === 'P2002') {
+        throw new HttpException(
+          {
+            status: HttpStatus.CONFLICT,
+            message: 'Province with this name, slug, or zip code already exists',
+          },
+          HttpStatus.CONFLICT,
+        );
+      }
+
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
