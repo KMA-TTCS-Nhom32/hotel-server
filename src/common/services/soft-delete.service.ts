@@ -39,8 +39,11 @@ export class SoftDeleteService {
       });
     });
   }
-
-  protected async restoreDeleted<T extends AbstractModel>(model: string, id: string): Promise<T> {
+  protected async restoreDeleted<T extends AbstractModel>(
+    model: string, 
+    id: string, 
+    includeOptions?: Record<string, any>
+  ): Promise<T> {
     const prismaModel = this.getPrismaModel(model);
 
     return await prismaModel.update({
@@ -49,6 +52,7 @@ export class SoftDeleteService {
         isDeleted: false,
         deletedAt: null,
       },
+      ...(includeOptions ? { include: includeOptions } : {}),
     });
   }
 }
