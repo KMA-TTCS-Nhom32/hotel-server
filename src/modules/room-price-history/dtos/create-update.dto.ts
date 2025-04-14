@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsDecimal } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsDecimal,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import Decimal from 'decimal.js';
+import { RoomPriceHistoryTranslationDto } from './translation.dto';
 
 export class CreateRoomPriceHistoryDto {
   @ApiProperty({
@@ -74,6 +83,17 @@ export class CreateRoomPriceHistoryDto {
   @IsOptional()
   @IsString()
   effective_to?: string;
+
+  @ApiPropertyOptional({
+    type: [RoomPriceHistoryTranslationDto],
+    description: 'Translations for the price history',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RoomPriceHistoryTranslationDto)
+  translations?: RoomPriceHistoryTranslationDto[];
 }
 
 export class UpdateRoomPriceHistoryDto extends PartialType(
