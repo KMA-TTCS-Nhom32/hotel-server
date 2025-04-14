@@ -8,30 +8,15 @@ import { DatabaseService } from '@/database/database.service';
 import { CreateProvinceDto, UpdateProvinceDto } from './dtos/create-update-province.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
 import { Province } from './models';
-import { Province as ProvincePrisma, ProvinceTranslation } from '@prisma/client';
 import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 import { BaseService } from '@/common/services/base.service';
+import { PrismaProvince } from './interfaces';
 
 @Injectable()
 export class ProvincesService extends BaseService {
   constructor(protected readonly databaseService: DatabaseService) {
     super(databaseService);
-  }
-
-  private mapProvinceWithTranslations(
-    province: ProvincePrisma & { translations: ProvinceTranslation[] },
-  ): Province {
-    const formattedTranslations =
-      province.translations?.map((translation) => ({
-        language: translation.language,
-        name: translation.name,
-      })) || [];
-
-    return new Province({
-      ...province,
-      translations: formattedTranslations,
-    });
   }
 
   private async validateUniqueFields(
@@ -83,54 +68,30 @@ export class ProvincesService extends BaseService {
         createProvinceDto.zip_code,
       );
 
-      // Add debug logging to see what's being received
-      console.log('DTO received:', JSON.stringify(createProvinceDto));
-
-      // Create a deep copy to ensure we're not affected by any reference issues
-      const data = {
-        name: createProvinceDto.name,
-        slug: createProvinceDto.slug,
-        zip_code: createProvinceDto.zip_code,
-        translations: {
-          create: createProvinceDto.translations
-            ? createProvinceDto.translations.map((t) => ({
-                language: t.language,
-                name: t.name,
-              }))
-            : [],
-        },
-      };
-
-      console.log('Creating with data:', JSON.stringify(data));
-
-      // Create province with translations
       const province = await this.databaseService.province.create({
-        data,
+        data: {
+          name: createProvinceDto.name,
+          slug: createProvinceDto.slug,
+          zip_code: createProvinceDto.zip_code,
+          translations: {
+            create: createProvinceDto.translations
+              ? createProvinceDto.translations.map((t) => ({
+                  language: t.language,
+                  name: t.name,
+                }))
+              : [],
+          },
+        },
         include: {
           _count: true,
           translations: true,
         },
       });
 
-      // Log the created province to verify translations were created
-      console.log(
-        'Created province with translations:',
-        JSON.stringify(
-          {
-            id: province.id,
-            translations: province.translations,
-          },
-          null,
-          2,
-        ),
-      );
-
-      // Return the province with properly mapped translations
-      return this.mapProvinceWithTranslations(province);
+      return new Province(province);
     } catch (error) {
       console.error('Create province error details:', error);
 
-      // If the error is already a HttpException (like our conflict check above), rethrow it
       if (error instanceof HttpException) {
         throw error;
       }
@@ -206,7 +167,7 @@ export class ProvincesService extends BaseService {
       ]);
 
       return createPaginatedResponse(
-        provinces.map((province) => this.mapProvinceWithTranslations(province)),
+        provinces.map((province) => new Province(province)),
         total,
         page,
         pageSize,
@@ -237,7 +198,7 @@ export class ProvincesService extends BaseService {
         );
       }
 
-      return this.mapProvinceWithTranslations(province);
+      return new Province(province);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -301,7 +262,7 @@ export class ProvincesService extends BaseService {
         });
       }
 
-      return this.mapProvinceWithTranslations(updatedProvince);
+      return new Province(updatedProvince);
     } catch (error) {
       console.error('Update province error:', error);
 
@@ -381,7 +342,7 @@ export class ProvincesService extends BaseService {
         },
       });
 
-      return provinces.map((province) => this.mapProvinceWithTranslations(province));
+      return provinces.map((province) => new Province(province));
     } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }

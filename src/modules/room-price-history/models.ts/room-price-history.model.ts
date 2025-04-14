@@ -2,11 +2,28 @@ import { RoomDetail } from '@/modules/room-detail/models';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import Decimal from 'decimal.js';
 import { AbstractModel } from 'libs/common';
+import { PrismaRoomPriceHistory } from '../interfaces';
 
 export class RoomPriceHistory extends AbstractModel {
-  constructor(data: RoomPriceHistory) {
+  constructor(data: Partial<PrismaRoomPriceHistory>) {
     super();
-    Object.assign(this, data);
+
+    const { translations, ...processedData } = data;
+
+    let processedTranslations = [];
+
+    if (translations) {
+      processedTranslations = translations.map((translation) => ({
+        language: translation.language,
+        name: translation.name,
+        description: translation.description,
+      }));
+    }
+
+    Object.assign(this, {
+      ...processedData,
+      translations: processedTranslations,
+    });
   }
 
   @ApiProperty({
@@ -77,4 +94,22 @@ export class RoomPriceHistory extends AbstractModel {
     default: false,
   })
   is_applied: boolean;
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        language: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+    description: 'List of translations for the price history',
+  })
+  translations: {
+    language: string;
+    name: string;
+    description: string;
+  }[];
 }

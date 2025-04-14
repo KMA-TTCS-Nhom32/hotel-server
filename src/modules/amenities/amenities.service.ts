@@ -48,6 +48,17 @@ export class AmenitiesService {
           data: {
             ...dto,
             icon: this.formatImage(dto.icon),
+            translations: {
+              create: dto.translations
+                ? dto.translations.map((t) => ({
+                    language: t.language,
+                    name: t.name,
+                  }))
+                : [],
+            },
+          },
+          include: {
+            translations: true,
           },
         });
 
@@ -106,6 +117,9 @@ export class AmenitiesService {
           skip,
           take,
           orderBy,
+          include: {
+            translations: true,
+          },
         }),
         this.databaseSerivce.amenity.count({ where }),
       ]);
@@ -125,7 +139,12 @@ export class AmenitiesService {
   }
 
   async findOne(id: string) {
-    const amenity = await this.databaseSerivce.amenity.findUnique({ where: { id } });
+    const amenity = await this.databaseSerivce.amenity.findUnique({
+      where: { id },
+      include: {
+        translations: true,
+      },
+    });
     if (!amenity) throw new NotFoundException(CommonErrorMessagesEnum.NotFound);
 
     return new Amenity({
@@ -149,13 +168,53 @@ export class AmenitiesService {
           );
         }
 
-        const updated = await prisma.amenity.update({
+        // Update base amenity data
+        let updated = await prisma.amenity.update({
           where: { id },
           data: {
-            ...dto,
+            name: dto.name,
+            slug: dto.slug,
+            type: dto.type,
             icon: dto.icon ? this.formatImage(dto.icon) : undefined,
           },
+          include: {
+            translations: true,
+          },
         });
+
+        // Handle translations if provided
+        if (dto.translations?.length > 0) {
+          const currentTranslations = updated.translations || [];
+
+          for (const translation of dto.translations) {
+            const existingTranslation = currentTranslations.find(
+              (t) => t.language === translation.language,
+            );
+
+            if (existingTranslation) {
+              await prisma.amenityTranslation.update({
+                where: { id: existingTranslation.id },
+                data: { name: translation.name },
+              });
+            } else {
+              await prisma.amenityTranslation.create({
+                data: {
+                  amenityId: id,
+                  language: translation.language,
+                  name: translation.name,
+                },
+              });
+            }
+          }
+
+          // Fetch the updated amenity with translations
+          updated = await prisma.amenity.findUnique({
+            where: { id },
+            include: {
+              translations: true,
+            },
+          });
+        }
 
         return new Amenity({
           ...updated,
@@ -163,6 +222,8 @@ export class AmenitiesService {
         });
       });
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
@@ -177,13 +238,23 @@ export class AmenitiesService {
           await this.cloudinaryService.deleteImage(existing.icon.publicId);
         }
 
+        // Delete associated translations first
+        await prisma.amenityTranslation.deleteMany({
+          where: { amenityId: id },
+        });
+
+        // Then delete the amenity
         const deleted = await prisma.amenity.delete({ where: { id } });
+
         return new Amenity({
           ...deleted,
           icon: this.mapIconToImage(deleted.icon),
+          translations: [], // No translations after deletion
         });
       });
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

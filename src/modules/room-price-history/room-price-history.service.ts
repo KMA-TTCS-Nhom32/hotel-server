@@ -85,7 +85,7 @@ export class RoomPriceHistoryService {
 
   async create(createDto: CreateRoomPriceHistoryDto) {
     try {
-      const { price_per_hour, price_per_night, price_per_day, ...data } = createDto;
+      const { price_per_hour, price_per_night, price_per_day, translations, ...data } = createDto;
 
       if (!price_per_hour && !price_per_night && !price_per_day) {
         throw new HttpException(
@@ -103,6 +103,18 @@ export class RoomPriceHistoryService {
           price_per_hour,
           price_per_night,
           price_per_day,
+          translations: {
+            create: translations
+              ? translations.map((t) => ({
+                  language: t.language,
+                  name: t.name,
+                  description: t.description,
+                }))
+              : [],
+          },
+        },
+        include: {
+          translations: true,
         },
       });
 
@@ -126,6 +138,9 @@ export class RoomPriceHistoryService {
     try {
       const priceHistory = await this.databaseService.roomPriceHistory.findFirst({
         where: { id },
+        include: {
+          translations: true,
+        },
       });
 
       if (!priceHistory) {
@@ -145,25 +160,69 @@ export class RoomPriceHistoryService {
     }
   }
 
-  async update(id: string, data: UpdateRoomPriceHistoryDto) {
+  async update(id: string, updateDto: UpdateRoomPriceHistoryDto) {
     try {
       await this.findById(id);
 
-      const priceHistory = await this.databaseService.roomPriceHistory.update({
+      const { translations, ...data } = updateDto;
+
+      // Update base price history data
+      let updatedPriceHistory = await this.databaseService.roomPriceHistory.update({
         where: { id },
         data,
+        include: {
+          translations: true,
+        },
       });
 
+      // Handle translations if provided
+      if (translations?.length > 0) {
+        const currentTranslations = updatedPriceHistory.translations || [];
+
+        for (const translation of translations) {
+          const existingTranslation = currentTranslations.find(
+            (t) => t.language === translation.language,
+          );
+
+          if (existingTranslation) {
+            await this.databaseService.roomPriceHistoryTranslation.update({
+              where: { id: existingTranslation.id },
+              data: {
+                name: translation.name,
+                description: translation.description,
+              },
+            });
+          } else {
+            await this.databaseService.roomPriceHistoryTranslation.create({
+              data: {
+                roomPriceHistoryId: id,
+                language: translation.language,
+                name: translation.name,
+                description: translation.description,
+              },
+            });
+          }
+        }
+
+        // Fetch the updated price history with translations
+        updatedPriceHistory = await this.databaseService.roomPriceHistory.findUnique({
+          where: { id },
+          include: {
+            translations: true,
+          },
+        });
+      }
+
       const isDateToApplied = this.checkIsDateToApply(
-        priceHistory.effective_from,
-        priceHistory.effective_to,
+        updatedPriceHistory.effective_from,
+        updatedPriceHistory.effective_to,
       );
 
       if (isDateToApplied) {
-        await this.updateRoomDetailPrice(priceHistory.roomDetailId, id);
+        await this.updateRoomDetailPrice(updatedPriceHistory.roomDetailId, id);
       }
 
-      return new RoomPriceHistory(priceHistory);
+      return new RoomPriceHistory(updatedPriceHistory);
     } catch (error) {
       this.logger.error('RoomPriceHistoryService -> update -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -174,6 +233,9 @@ export class RoomPriceHistoryService {
     try {
       const priceHistories = await this.databaseService.roomPriceHistory.findMany({
         where: { roomDetailId },
+        include: {
+          translations: true,
+        },
       });
 
       return priceHistories.map((priceHistory) => new RoomPriceHistory(priceHistory));
@@ -191,6 +253,12 @@ export class RoomPriceHistoryService {
         await this.updateRoomDetailPrice(priceHistory.roomDetailId, id);
       }
 
+      // Delete translations first
+      await this.databaseService.roomPriceHistoryTranslation.deleteMany({
+        where: { roomPriceHistoryId: id },
+      });
+
+      // Then delete the price history
       await this.databaseService.roomPriceHistory.delete({ where: { id } });
     } catch (error) {
       this.logger.error('RoomPriceHistoryService -> remove -> error', error);

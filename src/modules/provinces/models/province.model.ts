@@ -1,10 +1,26 @@
 import { AbstractModel } from 'libs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PrismaProvince } from '../interfaces';
 
 export class Province extends AbstractModel {
-  constructor(data: Partial<Province>) {
+  constructor(data: Partial<PrismaProvince>) {
     super();
-    Object.assign(this, data);
+
+    const { translations, ...processedData } = data as PrismaProvince;
+
+    let processedTranslations = [];
+
+    if (translations) {
+      processedTranslations = translations.map((translation) => ({
+        language: translation.language,
+        name: translation.name,
+      }));
+    }
+
+    Object.assign(this, {
+        ...processedData,
+        translations: processedTranslations,
+    });
   }
 
   @ApiProperty({

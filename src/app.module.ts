@@ -33,6 +33,7 @@ import { RoomPriceHistoryModule } from './modules/room-price-history/room-price-
 import { PayosModule } from './third-party/payos/payos.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { RoomPromotionModule } from './modules/room-promotion/room-promotion.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     RoomPriceHistoryModule,
     PayosModule,
     AnalyticsModule,
+    RoomPromotionModule,
   ],
   controllers: [AppController],
   providers: [

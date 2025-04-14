@@ -14,6 +14,7 @@ import { HotelRoomType, HotelRoomBedType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { Image } from '@/modules/images/models';
 import Decimal from 'decimal.js';
+import { RoomDetailTranslationDto } from './translation.dto';
 
 export class CreateRoomDetailDto {
   @ApiProperty({ example: 'Deluxe Room' })
@@ -119,6 +120,17 @@ export class CreateRoomDetailDto {
   @IsNotEmpty()
   @IsDecimal()
   base_price_per_day: Decimal;
+
+  @ApiPropertyOptional({
+    type: [RoomDetailTranslationDto],
+    description: 'Translations for the room detail',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RoomDetailTranslationDto)
+  translations?: RoomDetailTranslationDto[];
 }
 
 export class UpdateRoomDetailDto extends PartialType(CreateRoomDetailDto) {

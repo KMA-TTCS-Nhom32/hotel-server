@@ -159,7 +159,11 @@ export class RoomController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Room restored successfully',
-    type: HotelRoom,
+    schema: {
+      properties: {
+        message: { type: 'string' }
+      }
+    },
   })
   restore(@Param('id') id: string) {
     return this.roomService.restore(id);

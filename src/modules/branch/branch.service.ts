@@ -19,8 +19,6 @@ import {
   PaginationParams,
   createInfinityPaginationResponse,
 } from 'libs/common/utils';
-import { Amenity } from '../amenities/models';
-import { RoomDetail } from '../room-detail/models';
 
 @Injectable()
 export class BranchService extends BaseService {
@@ -35,42 +33,30 @@ export class BranchService extends BaseService {
     };
   }
 
-  //   private formatNearBy(nearBy: NearBy[]): Record<string, any>[] {
-  //     return nearBy.map((item) => ({
-  //       name: item.name,
-  //       distance: item.distance,
-  //     }));
-  //   }
-
-  //   private formatLocation(location: {
-  //     latitude: number;
-  //     longitude: number;
-  //   }): Record<string, number> {
-  //     return {
-  //       latitude: location.latitude,
-  //       longitude: location.longitude,
-  //     };
-  //   }
-
   async create(createBranchDto: CreateBranchDto): Promise<Branch> {
     try {
-      console.log('createBranchDto', createBranchDto);
       const branchData = await this.databaseService.hotelBranch.create({
         data: {
-          //   location: this.formatLocation(createBranchDto.location),
           ...createBranchDto,
           thumbnail: this.formatImage(createBranchDto.thumbnail),
           images: createBranchDto.images.map((img) => this.formatImage(img)),
+          translations: {
+            create:
+              createBranchDto.translations?.map((translation) => ({
+                language: translation.language,
+                name: translation.name,
+                description: translation.description,
+                address: translation.address,
+                nearBy: translation.nearBy ? JSON.parse(JSON.stringify(translation.nearBy)) : [],
+              })) || [],
+          },
+        },
+        include: {
+          translations: true,
         },
       });
 
-      return new Branch({
-        ...branchData,
-        thumbnail: branchData.thumbnail as unknown as Image,
-        images: branchData.images as unknown as Image[],
-        id: branchData.id,
-        // location: branchData.location as { latitude: number; longitude: number },
-      });
+      return new Branch(branchData);
     } catch (error) {
       console.error('Create branch error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -91,19 +77,11 @@ export class BranchService extends BaseService {
               translations: true,
             },
           },
-          amenities: true,
+          translations: true,
         },
       });
 
-      return branches.map(
-        (branch) =>
-          new Branch({
-            ...branch,
-            thumbnail: branch.thumbnail as unknown as Image,
-            images: branch.images as unknown as Image[],
-            // location: branch.location as { latitude: number; longitude: number },
-          }),
-      );
+      return branches.map((branch) => new Branch(branch));
     } catch (error) {
       console.error('Get latest branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -175,27 +153,20 @@ export class BranchService extends BaseService {
                 translations: true,
               },
             },
-            amenities: true,
-            rooms: {
-              select: {
-                id: true,
-              },
-            },
+            // amenities: true,
+            // rooms: {
+            //   select: {
+            //     id: true,
+            //   },
+            // },
+            translations: true, // Include translations
           },
         }),
         this.databaseService.hotelBranch.count({ where }),
       ]);
 
       return createPaginatedResponse(
-        branches.map(
-          (branch) =>
-            new Branch({
-              ...branch,
-              thumbnail: branch.thumbnail as unknown as Image,
-              images: branch.images as unknown as Image[],
-              //   location: branch.location as { latitude: number; longitude: number },
-            }),
-        ),
+        branches.map((branch) => new Branch(branch)),
         total,
         page,
         pageSize,
@@ -229,6 +200,7 @@ export class BranchService extends BaseService {
               roomPriceHistories: true,
             },
           },
+          translations: true, // Include translations
         },
       });
 
@@ -242,15 +214,7 @@ export class BranchService extends BaseService {
         );
       }
 
-      return new BranchDetail({
-        ...branch,
-        thumbnail: branch.thumbnail as unknown as Image,
-        images: branch.images as unknown as Image[],
-        // location: branch.location as { latitude: number; longitude: number },
-        rooms: branch.rooms as unknown as RoomDetail[],
-        amenities: branch.amenities as unknown as Amenity[],
-        nearBy: branch.nearBy as unknown as NearBy[],
-      });
+      return new BranchDetail(branch);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -280,6 +244,7 @@ export class BranchService extends BaseService {
 
     delete updateData.amenityIds;
     delete updateData.provinceId;
+    delete updateData.translations; // Remove translations from main update data
 
     return updateData as any;
   }
@@ -291,7 +256,10 @@ export class BranchService extends BaseService {
         // 1. Check if branch exists
         const existingBranch = await prisma.hotelBranch.findUnique({
           where: { id },
-          include: { amenities: true },
+          include: {
+            amenities: true,
+            translations: true,
+          },
         });
 
         if (!existingBranch) {
@@ -308,7 +276,7 @@ export class BranchService extends BaseService {
         const updateData = this.prepareUpdateData(updateBranchDto);
 
         // 3. Update branch
-        const updatedBranch = await prisma.hotelBranch.update({
+        let updatedBranch = await prisma.hotelBranch.update({
           where: { id },
           data: updateData,
           include: {
@@ -321,18 +289,62 @@ export class BranchService extends BaseService {
             rooms: {
               where: { isDeleted: false },
             },
+            translations: true, // Include translations
           },
         });
 
-        return new BranchDetail({
-          ...updatedBranch,
-          thumbnail: updatedBranch.thumbnail as unknown as Image,
-          images: updatedBranch.images as unknown as Image[],
-          //   location: updatedBranch.location as { latitude: number; longitude: number },
-          rooms: updatedBranch.rooms as unknown as RoomDetail[],
-          amenities: updatedBranch.amenities as unknown as Amenity[],
-          nearBy: updatedBranch.nearBy as unknown as NearBy[],
-        });
+        // 4. Handle translations separately if provided
+        if (updateBranchDto.translations?.length > 0) {
+          const currentTranslations = existingBranch.translations || [];
+
+          for (const translation of updateBranchDto.translations) {
+            const existingTranslation = currentTranslations.find(
+              (t) => t.language === translation.language,
+            );
+
+            if (existingTranslation) {
+              await prisma.hotelBranchTranslation.update({
+                where: { id: existingTranslation.id },
+                data: {
+                  name: translation.name,
+                  description: translation.description,
+                  address: translation.address,
+                  nearBy: translation.nearBy ? JSON.parse(JSON.stringify(translation.nearBy)) : [],
+                },
+              });
+            } else {
+              await prisma.hotelBranchTranslation.create({
+                data: {
+                  hotelBranchId: id,
+                  language: translation.language,
+                  name: translation.name,
+                  description: translation.description,
+                  address: translation.address,
+                  nearBy: translation.nearBy ? JSON.parse(JSON.stringify(translation.nearBy)) : [],
+                },
+              });
+            }
+          }
+
+          // Fetch the updated branch with new translations
+          updatedBranch = await prisma.hotelBranch.findUnique({
+            where: { id },
+            include: {
+              province: {
+                include: {
+                  translations: true,
+                },
+              },
+              amenities: true,
+              rooms: {
+                where: { isDeleted: false },
+              },
+              translations: true,
+            },
+          });
+        }
+
+        return new BranchDetail(updatedBranch);
       });
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -386,21 +398,23 @@ export class BranchService extends BaseService {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
-
   async restore(id: string): Promise<Branch> {
     try {
-      const restoredBranch = await this.restoreDeleted<Branch>('hotelBranch', id);
-      return new Branch({
-        ...restoredBranch,
-        thumbnail: restoredBranch.thumbnail as unknown as Image,
-        images: restoredBranch.images as unknown as Image[],
-        // location: restoredBranch.location as { latitude: number; longitude: number },
+      const restoredBranch = await this.restoreDeleted('hotelBranch', id, {
+        province: {
+          include: {
+            translations: true,
+          },
+        },
+        amenities: true,
+        translations: true,
       });
+
+      return new Branch(restoredBranch);
     } catch (error) {
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
-
   async findDeleted() {
     try {
       const branches = await this.databaseService.hotelBranch.findMany({
@@ -415,8 +429,8 @@ export class BranchService extends BaseService {
         (branch) =>
           new Branch({
             ...branch,
-            thumbnail: branch.thumbnail as unknown as Image,
-            images: branch.images as unknown as Image[],
+            thumbnail: branch.thumbnail as any,
+            images: branch.images as any,
             // location: branch.location as { latitude: number; longitude: number },
           }),
       );
@@ -475,23 +489,16 @@ export class BranchService extends BaseService {
         orderBy,
         include: {
           amenities: true,
-          rooms: {
-            select: {
-              id: true,
+          province: {
+            include: {
+              translations: true,
             },
           },
+          translations: true,
         },
       });
 
-      const branches = items.map(
-        (branch) =>
-          new Branch({
-            ...branch,
-            thumbnail: branch.thumbnail as unknown as Image,
-            images: branch.images as unknown as Image[],
-            // location: branch.location as { latitude: number; longitude: number },
-          }),
-      );
+      const branches = items.map((branch) => new Branch(branch));
 
       return createInfinityPaginationResponse(branches, { page, limit });
     } catch (error) {
