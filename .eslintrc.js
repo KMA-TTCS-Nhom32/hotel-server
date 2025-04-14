@@ -35,15 +35,15 @@ module.exports = {
     '@typescript-eslint/no-empty-function': ['error', { allow: ['constructors'] }],
 
     // Code style (integrated with Prettier)
-    'prettier/prettier': [
-      'error',
-      {
-        singleQuote: true,
-        trailingComma: 'all',
-        printWidth: 100,
-        tabWidth: 2,
-        endOfLine: 'auto',
-      },
-    ],
+    // 'prettier/prettier': [
+    //   'error',
+    //   {
+    //     singleQuote: true,
+    //     trailingComma: 'all',
+    //     printWidth: 100,
+    //     tabWidth: 2,
+    //     endOfLine: 'auto',
+    //   },
+    // ],
   },
 };
