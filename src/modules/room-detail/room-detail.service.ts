@@ -8,7 +8,7 @@ import {
 import { DatabaseService } from '@/database/database.service';
 import { CreateRoomDetailDto, UpdateRoomDetailDto } from './dtos/create-update-room-detail.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
-import { RoomDetail } from './models';
+import { RoomDetail, RoomDetailWithList } from './models';
 import { FilterRoomDetailDto, SortRoomDetailDto } from './dtos/query-room-detail.dto';
 import {
   getPaginationParams,
@@ -76,7 +76,7 @@ export class RoomDetailService extends BaseService {
 
   async create(createRoomDetailDto: CreateRoomDetailDto): Promise<RoomDetail> {
     try {
-      const { amenityIds, thumbnail, images, ...data } = createRoomDetailDto;
+      const { amenityIds, thumbnail, images, translations, ...data } = createRoomDetailDto;
       const formattedThumbnail = this.formatImage(thumbnail);
       const formattedImages = images.map(this.formatImage);
 
@@ -90,15 +90,24 @@ export class RoomDetailService extends BaseService {
           },
           thumbnail: formattedThumbnail,
           images: formattedImages,
+          translations: {
+            create: translations
+              ? translations.map((t) => ({
+                  language: t.language,
+                  name: t.name,
+                  description: t.description,
+                }))
+              : [],
+          },
         },
         include: {
           amenities: true,
+          translations: true,
         },
       });
 
       return new RoomDetail({
         ...roomDetail,
-        amenities: roomDetail.amenities as any[],
         thumbnail: formattedThumbnail as any,
         images: formattedImages as any[],
       });
@@ -277,19 +286,14 @@ export class RoomDetailService extends BaseService {
           include: {
             amenities: true,
             branch: true,
-            flat_rooms: {
-              where: {
-                isDeleted: false,
-                status: 'AVAILABLE',
-              },
-            },
+            translations: true,
           },
         }),
         this.databaseService.roomDetail.count({ where }),
       ]);
 
       return createPaginatedResponse(
-        roomDetails.map((roomDetail) => new RoomDetail(roomDetail as any)),
+        roomDetails.map((roomDetail) => new RoomDetail(roomDetail)),
         total,
         page,
         pageSize,
@@ -300,18 +304,17 @@ export class RoomDetailService extends BaseService {
     }
   }
 
-  async findById(id: string): Promise<RoomDetail> {
+  async findById(id: string) {
     try {
       const roomDetail = await this.databaseService.roomDetail.findFirst({
-        where: { id },
+        where: {
+          id,
+        },
         include: {
           branch: true,
           amenities: true,
-          flat_rooms: {
-            where: {
-              isDeleted: false,
-            },
-          },
+          flat_rooms: true,
+          translations: true,
         },
       });
 
@@ -325,7 +328,7 @@ export class RoomDetailService extends BaseService {
         );
       }
 
-      return new RoomDetail(roomDetail as any);
+      return new RoomDetailWithList(roomDetail);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -358,7 +361,7 @@ export class RoomDetailService extends BaseService {
         },
       });
 
-      return new RoomDetail(updatedRoomDetail as any);
+      return new RoomDetailWithList(updatedRoomDetail);
     } catch (error) {
       this.logger.error('RoomDetailService -> checkUpdateRoomDetailAvailable -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -377,9 +380,9 @@ export class RoomDetailService extends BaseService {
       ...(updateRoomDetailDto.amenityIds && {
         amenities: { set: updateRoomDetailDto.amenityIds.map((id) => ({ id })) },
       }),
-      ...(updateRoomDetailDto.branchId && {
-        branch: { connect: { id: updateRoomDetailDto.branchId } },
-      }),
+      //   ...(updateRoomDetailDto.branchId && {
+      //     branch: { connect: { id: updateRoomDetailDto.branchId } },
+      //   }),
     };
 
     delete updateData.amenityIds;
@@ -390,23 +393,64 @@ export class RoomDetailService extends BaseService {
 
   async update(id: string, updateRoomDetailDto: UpdateRoomDetailDto) {
     try {
-      this.findById(id);
+      await this.findById(id);
 
       if (updateRoomDetailDto.slug) {
         await this.checkSlugExisted(updateRoomDetailDto.slug, updateRoomDetailDto.branchId, id);
       }
 
-      const updatedRoomDetail = await this.databaseService.roomDetail.update({
+      const { translations, ...updateData } = this.prepareUpdateData(updateRoomDetailDto);
+
+      // Update base room detail data
+      let updatedRoomDetail = await this.databaseService.roomDetail.update({
         where: { id },
-        data: this.prepareUpdateData(updateRoomDetailDto),
+        data: updateData,
         include: {
-          branch: true,
           amenities: true,
-          flat_rooms: true,
+          translations: true,
         },
       });
 
-      return new RoomDetail(updatedRoomDetail as any);
+      // Handle translations if provided
+      if (updateRoomDetailDto.translations?.length > 0) {
+        const currentTranslations = updatedRoomDetail.translations || [];
+
+        for (const translation of updateRoomDetailDto.translations) {
+          const existingTranslation = currentTranslations.find(
+            (t) => t.language === translation.language,
+          );
+
+          if (existingTranslation) {
+            await this.databaseService.roomDetailTranslation.update({
+              where: { id: existingTranslation.id },
+              data: {
+                name: translation.name,
+                description: translation.description,
+              },
+            });
+          } else {
+            await this.databaseService.roomDetailTranslation.create({
+              data: {
+                roomDetailId: id,
+                language: translation.language,
+                name: translation.name,
+                description: translation.description,
+              },
+            });
+          }
+        }
+
+        // Fetch the updated room detail with translations
+        updatedRoomDetail = await this.databaseService.roomDetail.findUnique({
+          where: { id },
+          include: {
+            amenities: true,
+            translations: true,
+          },
+        });
+      }
+
+      return new RoomDetail(updatedRoomDetail);
     } catch (error) {
       this.logger.error('RoomDetailService -> update -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -434,16 +478,14 @@ export class RoomDetailService extends BaseService {
         include: {
           amenities: true,
           branch: true,
-          flat_rooms: {
-            where: {
-              isDeleted: false,
-              status: 'AVAILABLE',
-            },
-          },
+          translations: true,
         },
       });
 
-      return createInfinityPaginationResponse<RoomDetail>(roomDetails as any[], { page, limit });
+      return createInfinityPaginationResponse<RoomDetail>(
+        roomDetails.map((roomDetail) => new RoomDetail(roomDetail)),
+        { page, limit },
+      );
     } catch (error) {
       console.error('Find room details error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -453,6 +495,7 @@ export class RoomDetailService extends BaseService {
   async remove(id: string): Promise<void> {
     try {
       await this.softDelete('roomDetail', id, async () => {
+        // Additional checks before soft delete
         const roomDetail = await this.databaseService.roomDetail.findUnique({
           where: { id },
           include: {

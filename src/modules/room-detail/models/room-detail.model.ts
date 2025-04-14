@@ -7,11 +7,27 @@ import { Image } from '@/modules/images/models';
 import { Branch } from '@/modules/branch/models';
 import Decimal from 'decimal.js';
 import { RoomPriceHistory } from '@/modules/room-price-history/models.ts';
+import { PrismaRoomDetail } from '../interfaces';
 
 export class RoomDetail extends AbstractModel {
-  constructor(data: RoomDetail) {
+  constructor(data: Partial<PrismaRoomDetail>) {
     super();
-    Object.assign(this, data);
+
+    const { translations, amenities, roomPriceHistories, ...processedData } = data;
+
+    const processedTranslations =
+      translations?.map((translation) => ({
+        language: translation.language,
+        name: translation.name,
+        description: translation.description,
+      })) || [];
+
+    Object.assign(this, {
+      ...processedData,
+      amenities: amenities?.map((amenity) => new Amenity(amenity)) || [],
+      roomPriceHistories: roomPriceHistories?.map((history) => new RoomPriceHistory(history)) || [],
+      translations: processedTranslations,
+    });
   }
 
   @ApiProperty({ example: 'Deluxe Room' })
@@ -31,11 +47,11 @@ export class RoomDetail extends AbstractModel {
   })
   branchId: string;
 
-  @ApiProperty({
-    type: () => Branch,
-    description: 'Branch where this room is located',
-  })
-  branch?: Branch;
+  //   @ApiProperty({
+  //     type: () => Branch,
+  //     description: 'Branch where this room is located',
+  //   })
+  //   branch?: Branch;
 
   @ApiProperty({ type: Image, description: "Hotel Room's thumbnail image" })
   thumbnail: Image;
@@ -56,7 +72,7 @@ export class RoomDetail extends AbstractModel {
   area: number;
 
   @ApiProperty({ type: [Amenity] })
-  amenities?: Amenity[];
+  amenities: Amenity[];
 
   @ApiProperty({ example: 2 })
   max_adults: number;
@@ -112,8 +128,8 @@ export class RoomDetail extends AbstractModel {
   })
   special_price_per_day?: Decimal;
 
-  @ApiProperty({ type: () => [HotelRoom] })
-  flat_rooms?: HotelRoom[];
+  //   @ApiProperty({ type: () => [HotelRoom] })
+  //   flat_rooms?: HotelRoom[];
 
   @ApiPropertyOptional({
     type: () => [RoomPriceHistory],
@@ -128,21 +144,26 @@ export class RoomDetail extends AbstractModel {
   })
   is_available: boolean;
 
-//   @ApiProperty({
-//     type: 'array',
-//     items: {
-//       type: 'object',
-//       properties: {
-//         language: { type: 'string' },
-//         name: { type: 'string' },
-//         description: { type: 'string' },
-//       },
-//     },
-//     description: 'List of translations for the room detail',
-//   })
-//   translations: {
-//     language: string;
-//     name: string;
-//     description: string;
-//   }[];
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        language: { type: 'string' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+      },
+    },
+    description: 'List of translations for the room detail',
+  })
+  translations: {
+    language: string;
+    name: string;
+    description: string;
+  }[];
+}
+
+export class RoomDetailWithList extends RoomDetail {
+  @ApiProperty({ type: () => [HotelRoom] })
+  flat_rooms?: HotelRoom[];
 }
