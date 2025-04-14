@@ -1,8 +1,18 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { AmenityType } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Image } from '@/modules/images/models';
 import { Type } from 'class-transformer';
+import { AmenityTranslationDto } from './translation.dto';
 
 export class CreateAmenityDto {
   @ApiProperty({
@@ -45,6 +55,17 @@ export class CreateAmenityDto {
   @Type(() => Image)
   @IsNotEmpty()
   icon: Image;
+
+  @ApiPropertyOptional({
+    type: [AmenityTranslationDto],
+    description: 'Translations for the amenity',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AmenityTranslationDto)
+  translations?: AmenityTranslationDto[];
 }
 
 export class UpdateAmenityDto extends PartialType(CreateAmenityDto) {}
