@@ -11,6 +11,7 @@ import { UpdateBranchDto } from './dtos/update-branch.dto';
 import { CommonErrorMessagesEnum } from 'libs/common';
 import { Branch, BranchDetail, NearBy } from './models';
 import { Image } from '@/modules/images/models';
+import { Language } from '@prisma/client';
 import { FilterBranchesDto, SortBranchDto } from './dtos/query-branches.dto';
 
 import {
@@ -63,7 +64,7 @@ export class BranchService extends BaseService {
     }
   }
 
-  async getLatestBranches(limit?: number) {
+  async getLatestBranches(limit?: number, preferredLanguage?: Language) {
     try {
       const branches = await this.databaseService.hotelBranch.findMany({
         where: { is_active: true, isDeleted: false },
@@ -81,7 +82,7 @@ export class BranchService extends BaseService {
         },
       });
 
-      return branches.map((branch) => new Branch(branch));
+      return branches.map((branch) => new Branch(branch, preferredLanguage));
     } catch (error) {
       console.error('Get latest branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -177,7 +178,11 @@ export class BranchService extends BaseService {
     }
   }
 
-  async findByIdOrSlug(identifier: string, includeDeleted = false): Promise<Branch> {
+  async findByIdOrSlug(
+    identifier: string, 
+    preferredLanguage?: Language,
+    includeDeleted = false
+  ): Promise<Branch> {
     try {
       const branch = await this.databaseService.hotelBranch.findFirst({
         where: this.mergeWithBaseWhere(
@@ -214,7 +219,8 @@ export class BranchService extends BaseService {
         );
       }
 
-      return new BranchDetail(branch);
+      // Pass the preferred language to the constructor
+      return new BranchDetail(branch, preferredLanguage);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);

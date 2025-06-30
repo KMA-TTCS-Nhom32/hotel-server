@@ -10,7 +10,9 @@ import {
   Query,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels, ApiHeader } from '@nestjs/swagger';
+import { Language } from '@prisma/client';
+import { PreferredLanguage } from '@/common/decorators';
 import { BranchService } from './branch.service';
 import { CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
@@ -57,13 +59,21 @@ export class BranchController {
   @Public()
   @Get('latest')
   @ApiOperation({ summary: 'Get latest branches' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description: 'Language preference (en, vi)',
+    required: false,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns latest branches',
     type: [Branch],
   })
-  getLatestBranches(@Query() getLastestBranchesDto: GetLastestBranchesDto) {
-    return this.branchService.getLatestBranches(getLastestBranchesDto.limit);
+  getLatestBranches(
+    @Query() getLastestBranchesDto: GetLastestBranchesDto,
+    @PreferredLanguage() language: Language
+  ) {
+    return this.branchService.getLatestBranches(getLastestBranchesDto.limit, language);
   }
 
   @Public()
@@ -95,13 +105,21 @@ export class BranchController {
   @Public()
   @Get(':idOrSlug')
   @ApiOperation({ summary: 'Get branch by ID or slug' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description: 'Language preference (en, vi)',
+    required: false,
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns a branch',
     type: BranchDetail,
   })
-  findOne(@Param('idOrSlug') idOrSlug: string) {
-    return this.branchService.findByIdOrSlug(idOrSlug);
+  findOne(
+    @Param('idOrSlug') idOrSlug: string,
+    @PreferredLanguage() language: Language
+  ) {
+    return this.branchService.findByIdOrSlug(idOrSlug, language);
   }
 
   @UseGuards(RolesGuard)

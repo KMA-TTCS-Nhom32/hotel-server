@@ -69,5 +69,5 @@ export class QueryRoomPromotionDto extends QueryManyWithPaginationDto<
   @JsonTransform(SortRoomPromotionDto)
   @ValidateNested()
   @Type(() => SortRoomPromotionDto)
-  sort?: SortRoomPromotionDto | null;
+  sort?: SortRoomPromotionDto[] | null;
 }

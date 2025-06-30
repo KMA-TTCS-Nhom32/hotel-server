@@ -5,6 +5,8 @@ import { Province } from '@/modules/provinces/models';
 import { Amenity } from '@/modules/amenities/models';
 import { RoomDetail } from '@/modules/room-detail/models';
 import { PrismaBranch, PrismaBranchDetail } from '../interfaces';
+import { Language } from '@prisma/client';
+import { TranslationUtil } from '@/common/utils/translation.util';
 
 export class NearBy {
   @ApiProperty({
@@ -21,7 +23,7 @@ export class NearBy {
 }
 
 export class Branch extends AbstractModel {
-  constructor(data: Partial<PrismaBranch>) {
+  constructor(data: Partial<PrismaBranch>, preferredLanguage?: Language) {
     super();
 
     const { translations, ...processedData } = data;
@@ -35,11 +37,39 @@ export class Branch extends AbstractModel {
         nearBy: translation.nearBy || [],
       })) || [];
 
+    // Store available languages
+    const availableLanguages = TranslationUtil.getAvailableLanguages({
+      translations: processedTranslations,
+    });
+
     Object.assign(this, {
       ...processedData,
       province: new Province(processedData.province),
       translations: processedTranslations,
+      availableLanguages,
     });
+
+    // Apply the preferred language if specified (this will enhance the model
+    // with the preferred language but still keep all translations)
+    if (preferredLanguage && processedTranslations.length > 0) {
+      this.name = TranslationUtil.getTranslation<Branch>(
+        { ...this, translations: processedTranslations }, 
+        'name', 
+        preferredLanguage
+      );
+      
+      this.description = TranslationUtil.getTranslation<Branch>(
+        { ...this, translations: processedTranslations }, 
+        'description', 
+        preferredLanguage
+      );
+      
+      this.address = TranslationUtil.getTranslation<Branch>(
+        { ...this, translations: processedTranslations }, 
+        'address', 
+        preferredLanguage
+      );
+    }
   }
 
   @ApiProperty({
@@ -129,7 +159,7 @@ export class Branch extends AbstractModel {
     items: {
       type: 'object',
       properties: {
-        language: { type: 'string' },
+        language: { type: 'string', enum: Object.values(Language) },
         name: { type: 'string' },
         description: { type: 'string' },
         address: { type: 'string' },
@@ -139,19 +169,29 @@ export class Branch extends AbstractModel {
     description: 'List of translations for the branch',
   })
   translations: {
-    language: string;
+    language: Language;
     name: string;
     description: string;
     address: string;
     nearBy: NearBy[];
   }[];
+  
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'string',
+      enum: Object.values(Language),
+    },
+    description: 'List of available languages for this branch',
+  })
+  availableLanguages: Language[];
 }
 
 export class BranchDetail extends Branch {
-  constructor(data: Partial<PrismaBranchDetail>) {
+  constructor(data: Partial<PrismaBranchDetail>, preferredLanguage?: Language) {
     const { amenities, rooms, ...processedData } = data;
 
-    super(processedData);
+    super(processedData, preferredLanguage);
     Object.assign(this, {
       ...processedData,
       amenities: amenities?.map((amenity) => new Amenity(amenity)) || [],

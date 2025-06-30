@@ -30,7 +30,7 @@ async function bootstrap() {
 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders: 'Content-Type, Accept, Authorization, Accept-Language',
   });
 
   const documentConfig = new DocumentBuilder()

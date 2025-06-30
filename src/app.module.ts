@@ -1,5 +1,5 @@
 import { Module, ValidationPipe, OnModuleInit } from '@nestjs/common';
-import { APP_PIPE, APP_GUARD } from '@nestjs/core';
+import { APP_PIPE, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -21,6 +21,7 @@ import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { VerificationModule } from './modules/verification/verification.module';
 import { EmailModule } from './communication/email/email.module';
+import { LanguageInterceptor } from './common/interceptors/language.interceptor';
 
 import { getBullConfig } from './config';
 import { ProvincesModule } from './modules/provinces/provinces.module';
@@ -79,6 +80,10 @@ import { RoomPromotionModule } from './modules/room-promotion/room-promotion.mod
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, // Apply JWT guard globally
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LanguageInterceptor, // Apply Language interceptor globally
     },
     AppService,
     GatewayModule,

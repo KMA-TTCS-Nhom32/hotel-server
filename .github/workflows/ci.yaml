@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  build-and-deploy:
+    name: Build and Deployment Simulation
     runs-on: ubuntu-latest
 
     services:
@@ -36,7 +37,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -80,32 +81,6 @@ jobs:
             echo "❌ Build failed - no dist folder found"
             exit 1
           fi
-
-  deployment-dry-run:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: '9.11.0'
-
-      - name: Install dependencies
-        run: pnpm install --prod=false
-
-      - name: Generate Prisma client
-        run: pnpm pgenerate
-
-      - name: Build for production
-        run: pnpm build
 
       - name: Simulate deployment
         run: |
