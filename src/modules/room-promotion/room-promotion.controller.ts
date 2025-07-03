@@ -56,7 +56,7 @@ export class RoomPromotionController {
   })
   findMany(@Query() query: QueryRoomPromotionDto) {
     const { page, pageSize, filters, sort } = query;
-    return this.roomPromotionService.findMany({ page, pageSize }, filters, sort);
+    return this.roomPromotionService.findMany({ page, pageSize }, filters, sort[0]);
   }
 
   @Public()

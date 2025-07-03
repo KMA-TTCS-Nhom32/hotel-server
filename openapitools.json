@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.14.0",
+    "generators": {
+      "node": {
+        "generatorName": "typescript-axios",
+        "output": "#{cwd}/hotel-sdk",
+        "glob": "swagger.json",
+        "gitHost": "github.com",
+        "gitUserId": "KMA-TTCS-Nhom32",
+        "gitRepoId": "node-sdk",
+        "verbose": false,
+        "skipValidateSpec": true,
+        "globalProperty": {
+          "apiDocs": true,
+          "modelDocs": true
+        },
+        "additionalProperties": {
+          "npmName": "@ahomevilla-hotel/node-sdk",
+          "npmRepository": "https://registry.npmjs.org",
+          "npmVersion": "latest",
+          "supportsES6": true,
+          "apiPackage": "services",
+          "modelPackage": "models",
+          "withSeparateModelsAndApi": true,
+          "useSingleRequestParameter": true,
+          "stringEnums": true,
+          "sortModelPropertiesByRequiredFlag": true
+        }
+      }
+    }
+  }
+}

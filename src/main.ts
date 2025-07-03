@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { customSwaggerCss } from './common/utils/swagger.util';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,14 +35,21 @@ async function bootstrap() {
   });
 
   const documentConfig = new DocumentBuilder()
-    .setTitle('VVintage documentation')
-    .setDescription("This is VVintage's APIs description")
+    .setTitle('AHomeVilla documentation')
+    .setDescription("This is AHomeVilla's APIs description")
     .setVersion('1.0')
-    .addTag('VVintage')
+    .addTag('AHomeVilla')
+    .addBearerAuth()
     .build();
 
-  const documentFactory = () => SwaggerModule.createDocument(app, documentConfig);
-  SwaggerModule.setup('docs', app, documentFactory);
+  const document = SwaggerModule.createDocument(app, documentConfig, {});
+
+  const swaggerCustomOptions: SwaggerCustomOptions = {
+    customSiteTitle: 'AHomeVilla RESTful API documentations',
+    customCss: customSwaggerCss,
+  };
+
+  SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
 
   const port = configService.get('PORT');
 
