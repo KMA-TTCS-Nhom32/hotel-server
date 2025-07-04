@@ -45,6 +45,9 @@ jobs:
       - name: ✅ Install dependencies & devDependencies
         run: pnpm install --prod=false
 
+      - name: 🧪 Run database generation
+        run: pnpm pgenerate
+
       - name: ✅ Build the backend server
         run: pnpm build
 
