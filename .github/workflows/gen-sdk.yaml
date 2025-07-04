@@ -120,6 +120,14 @@ jobs:
           repository: KMA-TTCS-Nhom32/node-sdk
           token: ${{ secrets.GH_PAT }}
           path: node-sdk-repo
+          ref: main
+      
+      - name: 📄 Current workspace
+        run: |
+          echo "📂 Current workspace files:"
+          ls -la
+          echo "📂 Node SDK repo files:"
+          ls -la node-sdk-repo
 
       - name: 🔄 Sync new SDK into target repo
         run: |
@@ -143,6 +151,7 @@ jobs:
         run: |
           cd node-sdk-repo
           npm install
+          git config remote.origin.url
           git config user.name "sondoannam-bot"
           git config user.email "sondoannam202@gmail.com"
           git add .
