@@ -21,8 +21,8 @@ jobs:
       - name: ✅ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-
+          node-version: 20
+          
       - name: ✅ Setup PNPM
         uses: pnpm/action-setup@v3
         with:
@@ -56,9 +56,9 @@ jobs:
 
       - name: 🚀 Start backend server and generate OPENAPI JSON
         run: |
-          concurrently -k -s first -n "SERVER,GET-SWAGGER-JSON" -c "bgGreen.bold,bgCyan.bold" \
+          ./node_modules/.bin/concurrently -k -s first -n "SERVER,GET-SWAGGER-JSON" -c "bgGreen.bold,bgCyan.bold" \
             "pnpm start" \
-            "wait-on http://localhost:4005/docs-json && node ./libs/common/scripts/gen-swagger-json.js"
+            "./node_modules/.bin/wait-on http://localhost:4005/docs-json && node ./libs/common/scripts/gen-swagger-json.js"
 
       - name: 🔍 Debug Generated JSON
         run: |
@@ -99,9 +99,12 @@ jobs:
           name: swagger-json
           path: ./
 
+      - name: 🧬 Install OpenAPI Generator CL
+        run: pnpm add -D @openapitools/openapi-generator-cli
+
       - name: 🧬 Generate SDK from OpenAPI
         run: |
-          npx @openapitools/openapi-generator-cli generate
+          ./node_modules/.bin/@openapitools/openapi-generator-cli generate
 
       - name: 📦 Upload SDK artifact
         uses: actions/upload-artifact@v4
