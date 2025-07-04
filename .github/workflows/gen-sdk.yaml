@@ -1,4 +1,4 @@
-name: SDK Generator v1
+name: SDK Generator v1.0
 
 on:
   push:
@@ -51,6 +51,8 @@ jobs:
       - name: 🔐 Create .env file
         run: |
           touch .env
+          echo NODE_ENV=production >> .env
+          echo PORT=4005 >> .env
           echo API_PREFIX=api >> .env
           echo DATABASE_URL='${{ secrets.DATABASE_URL }}' >> .env
           echo JWT_SECRET=my_jwt_secret >> .env
