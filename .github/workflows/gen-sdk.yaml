@@ -10,7 +10,9 @@ jobs:
   generate-json:
     name: Generate OpenAPI JSON
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[generate-sdk]')
+    if: >-
+      ${{ (github.event_name == 'push'        && contains(github.event.head_commit.message, '[generate-sdk]')) ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.title,  '[generate-sdk]')) }}
 
     steps:
       - name: ✅ Checkout backend repo
@@ -144,8 +146,8 @@ jobs:
           echo "VERSION=$new_version" >> $GITHUB_ENV
 
       - name: 🧠 Prepare SDK metadata
-        run: node libs/common/scripts/prepare-sdk-pkg.js
         working-directory: node-sdk-repo
+        run: node ../libs/common/scripts/prepare-sdk-pkg.js
         env:
           VERSION: ${{ env.VERSION }}
 

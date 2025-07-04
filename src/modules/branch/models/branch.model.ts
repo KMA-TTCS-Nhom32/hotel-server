@@ -6,7 +6,7 @@ import { Amenity } from '@/modules/amenities/models';
 import { RoomDetail } from '@/modules/room-detail/models';
 import { PrismaBranch, PrismaBranchDetail } from '../interfaces';
 import { Language } from '@prisma/client';
-import { TranslationUtil } from '@/common/utils/translation.util';
+import { getTranslation, getAvailableLanguages } from '@/common/utils/translation.util';
 
 export class NearBy {
   @ApiProperty({
@@ -38,7 +38,7 @@ export class Branch extends AbstractModel {
       })) || [];
 
     // Store available languages
-    const availableLanguages = TranslationUtil.getAvailableLanguages({
+    const availableLanguages = getAvailableLanguages({
       translations: processedTranslations,
     });
 
@@ -52,19 +52,19 @@ export class Branch extends AbstractModel {
     // Apply the preferred language if specified (this will enhance the model
     // with the preferred language but still keep all translations)
     if (preferredLanguage && processedTranslations.length > 0) {
-      this.name = TranslationUtil.getTranslation<Branch>(
+      this.name = getTranslation<Branch>(
         { ...this, translations: processedTranslations }, 
         'name', 
         preferredLanguage
       );
       
-      this.description = TranslationUtil.getTranslation<Branch>(
+      this.description = getTranslation<Branch>(
         { ...this, translations: processedTranslations }, 
         'description', 
         preferredLanguage
       );
       
-      this.address = TranslationUtil.getTranslation<Branch>(
+      this.address = getTranslation<Branch>(
         { ...this, translations: processedTranslations }, 
         'address', 
         preferredLanguage

@@ -3,7 +3,7 @@ import { Language } from '@prisma/client';
 /**
  * Helper interface that defines the basic structure of a translatable entity
  */
-export interface Translatable<T = any> {
+export interface Translatable {
   translations?: Array<{
     language: Language;
     [key: string]: any;
@@ -13,7 +13,7 @@ export interface Translatable<T = any> {
 /**
  * Utility functions for working with translations
  */
-export class TranslationUtil {
+
   /**
    * Gets the best translation for a field based on the preferred language
    * 
@@ -23,7 +23,7 @@ export class TranslationUtil {
    * @param fallbackLanguage Optional fallback language if preferred is not available
    * @returns The translated value or the original if no translation exists
    */
-  static getTranslation<T>(
+  export function getTranslation<T>(
     entity: Translatable & { [key: string]: any },
     field: string,
     preferredLanguage: Language,
@@ -63,7 +63,7 @@ export class TranslationUtil {
    * @param entity The entity with translations
    * @returns Array of available languages
    */
-  static getAvailableLanguages(entity: Translatable): Language[] {
+  export function getAvailableLanguages(entity: Translatable): Language[] {
     if (!entity?.translations?.length || !Array.isArray(entity.translations)) {
       return [];
     }
@@ -76,4 +76,4 @@ export class TranslationUtil {
       )
     );
   }
-}
+
