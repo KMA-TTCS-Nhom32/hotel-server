@@ -59,6 +59,19 @@ export class RoomPromotionController {
     return this.roomPromotionService.findMany({ page, pageSize }, filters, sort[0]);
   }
 
+  @Get('deleted')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all soft-deleted room promotions' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns all soft-deleted room promotions',
+    type: [RoomPromotion],
+  })
+  async findDeleted() {
+    return this.roomPromotionService.findDeleted();
+  }
+
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get room promotion by ID' })
@@ -110,19 +123,6 @@ export class RoomPromotionController {
   })
   async restore(@Param('id') id: string) {
     return this.roomPromotionService.restore(id);
-  }
-
-  @Get('deleted')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all soft-deleted room promotions' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Returns all soft-deleted room promotions',
-    type: [RoomPromotion],
-  })
-  async findDeleted() {
-    return this.roomPromotionService.findDeleted();
   }
 
   @Public()

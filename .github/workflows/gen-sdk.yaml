@@ -144,7 +144,7 @@ jobs:
           echo "VERSION=$new_version" >> $GITHUB_ENV
 
       - name: 🧠 Prepare SDK metadata
-        run: node libs/common/scripts/prepare-sdk-package.js
+        run: node libs/common/scripts/prepare-sdk-pkg.js
         working-directory: node-sdk-repo
         env:
           VERSION: ${{ env.VERSION }}

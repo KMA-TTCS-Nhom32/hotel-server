@@ -2,7 +2,7 @@ import { HotelRoom, HotelRoomTranslation } from '@prisma/client';
 
 export type PrismaRoom = HotelRoom & {
   translations: HotelRoomTranslation[];
-  _count: {
+  _count?: {
     bookings: number;
   };
 };

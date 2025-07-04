@@ -404,6 +404,7 @@ export class BookingService extends BaseService {
         ...createBookingDto
       } = createDto;
 
+      const roomDetail = new RoomDetail(currentRoom.detail);
       const total_amount = this.calculateTotalAmount(
         {
           type,
@@ -412,7 +413,7 @@ export class BookingService extends BaseService {
           start_time,
           end_time,
         },
-        currentRoom.detail as unknown as RoomDetail,
+        roomDetail,
       );
 
       const code = await this.generateBookingCode();

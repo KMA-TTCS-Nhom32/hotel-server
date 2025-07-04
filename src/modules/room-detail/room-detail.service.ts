@@ -401,56 +401,61 @@ export class RoomDetailService extends BaseService {
 
       const { translations, ...updateData } = this.prepareUpdateData(updateRoomDetailDto);
 
-      // Update base room detail data
-      let updatedRoomDetail = await this.databaseService.roomDetail.update({
-        where: { id },
-        data: updateData,
-        include: {
-          amenities: true,
-          translations: true,
-        },
-      });
-
-      // Handle translations if provided
-      if (updateRoomDetailDto.translations?.length > 0) {
-        const currentTranslations = updatedRoomDetail.translations || [];
-
-        for (const translation of updateRoomDetailDto.translations) {
-          const existingTranslation = currentTranslations.find(
-            (t) => t.language === translation.language,
-          );
-
-          if (existingTranslation) {
-            await this.databaseService.roomDetailTranslation.update({
-              where: { id: existingTranslation.id },
-              data: {
-                name: translation.name,
-                description: translation.description,
-              },
-            });
-          } else {
-            await this.databaseService.roomDetailTranslation.create({
-              data: {
-                roomDetailId: id,
-                language: translation.language,
-                name: translation.name,
-                description: translation.description,
-              },
-            });
-          }
-        }
-
-        // Fetch the updated room detail with translations
-        updatedRoomDetail = await this.databaseService.roomDetail.findUnique({
+      return await this.databaseService.$transaction(async (tx) => {
+        // Update base room detail data
+        let updatedRoomDetail = await tx.roomDetail.update({
           where: { id },
+          data: updateData,
           include: {
             amenities: true,
             translations: true,
           },
         });
-      }
 
-      return new RoomDetail(updatedRoomDetail);
+        // Handle translations if provided
+        if (updateRoomDetailDto.translations?.length > 0) {
+          const currentTranslations = updatedRoomDetail.translations || [];
+          const translationPromises = [];
+
+          for (const translation of updateRoomDetailDto.translations) {
+            const existingTranslation = currentTranslations.find(
+              (t) => t.language === translation.language,
+            );
+
+            if (existingTranslation) {
+              translationPromises.push(tx.roomDetailTranslation.update({
+                where: { id: existingTranslation.id },
+                data: {
+                  name: translation.name,
+                  description: translation.description,
+                },
+              }));
+            } else {
+              translationPromises.push(tx.roomDetailTranslation.create({
+                data: {
+                  roomDetailId: id,
+                  language: translation.language,
+                  name: translation.name,
+                  description: translation.description,
+                },
+              }));
+            }
+          }
+
+          await Promise.all(translationPromises);
+
+          // Fetch the updated room detail with translations
+          updatedRoomDetail = await tx.roomDetail.findUnique({
+            where: { id },
+            include: {
+              amenities: true,
+              translations: true,
+            },
+          });
+        }
+
+        return new RoomDetail(updatedRoomDetail);
+      });
     } catch (error) {
       this.logger.error('RoomDetailService -> update -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);

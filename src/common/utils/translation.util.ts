@@ -25,36 +25,36 @@ export class TranslationUtil {
    */
   static getTranslation<T>(
     entity: Translatable & { [key: string]: any },
-    field: keyof T,
+    field: string,
     preferredLanguage: Language,
     fallbackLanguage: Language = Language.VI,
   ): any {
-    if (!entity?.translations?.length) {
+    if (!entity?.translations?.length || !Array.isArray(entity.translations)) {
       return entity[field as string];
     }
     
     // First try to find the preferred language
     const preferredTranslation = entity.translations.find(
-      (t) => t.language === preferredLanguage && t[field as string] !== undefined && t[field as string] !== null
+      (t) => t && t.language === preferredLanguage && t[field] !== undefined && t[field] !== null
     );
     
     if (preferredTranslation) {
-      return preferredTranslation[field as string];
+      return preferredTranslation[field];
     }
     
     // Fall back to the fallback language if different from preferred
     if (fallbackLanguage !== preferredLanguage) {
       const fallbackTranslation = entity.translations.find(
-        (t) => t.language === fallbackLanguage && t[field as string] !== undefined && t[field as string] !== null
+        (t) => t && t.language === fallbackLanguage && t[field] !== undefined && t[field] !== null
       );
       
       if (fallbackTranslation) {
-        return fallbackTranslation[field as string];
+        return fallbackTranslation[field];
       }
     }
     
     // Fall back to the original value
-    return entity[field as string];
+    return entity[field];
   }
   
   /**
@@ -64,10 +64,16 @@ export class TranslationUtil {
    * @returns Array of available languages
    */
   static getAvailableLanguages(entity: Translatable): Language[] {
-    if (!entity?.translations?.length) {
+    if (!entity?.translations?.length || !Array.isArray(entity.translations)) {
       return [];
     }
     
-    return Array.from(new Set(entity.translations.map((t) => t.language)));
+    return Array.from(
+      new Set(
+        entity.translations
+          .filter(t => t && t.language)
+          .map(t => t.language)
+      )
+    );
   }
 }

@@ -16,5 +16,11 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 const gitignorePath = '.gitignore';
 const npmignorePath = '.npmignore';
 const ignoreList = ['node_modules', '.npmrc'];
-fs.appendFileSync(gitignorePath, '\n' + ignoreList.join('\n'));
-fs.appendFileSync(npmignorePath, '\n' + ignoreList.join('\n'));
+
+[gitignorePath, npmignorePath].forEach(path => {
+  const existing = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '';
+  const newEntries = ignoreList.filter(entry => !existing.includes(entry));
+  if (newEntries.length > 0) {
+    fs.appendFileSync(path, '\n' + newEntries.join('\n'));
+  }
+});

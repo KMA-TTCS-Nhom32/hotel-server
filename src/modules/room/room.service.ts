@@ -209,52 +209,56 @@ export class RoomService extends BaseService {
         await this.roomDetailService.checkUpdateRoomDetailAvailable(roomToUpdate.detailId);
       }
 
-      // Update base room data
-      let updatedRoom = await this.databaseService.hotelRoom.update({
-        where: { id },
-        data: {
-          name: updateHotelRoomDto.name,
-          slug: updateHotelRoomDto.slug,
-          status: updateHotelRoomDto.status,
-        },
-        include: {
-          translations: true,
-        },
-      });
-
-      // Handle translations if provided
-      if (updateHotelRoomDto.translations?.length > 0) {
-        const currentTranslations = updatedRoom.translations || [];
-
-        for (const translation of updateHotelRoomDto.translations) {
-          const existingTranslation = currentTranslations.find(
-            (t) => t.language === translation.language,
-          );
-
-          if (existingTranslation) {
-            await this.databaseService.hotelRoomTranslation.update({
-              where: { id: existingTranslation.id },
-              data: { name: translation.name },
-            });
-          } else {
-            await this.databaseService.hotelRoomTranslation.create({
-              data: {
-                roomId: id,
-                language: translation.language,
-                name: translation.name,
-              },
-            });
-          }
-        }
-
-        // Fetch the updated room with translations
-        updatedRoom = await this.databaseService.hotelRoom.findUnique({
+      const updatedRoom = await this.databaseService.$transaction(async (prisma) => {
+        // Update base room data
+        let room = await prisma.hotelRoom.update({
           where: { id },
+          data: {
+            name: updateHotelRoomDto.name,
+            slug: updateHotelRoomDto.slug,
+            status: updateHotelRoomDto.status,
+          },
           include: {
             translations: true,
           },
         });
-      }
+
+        // Handle translations if provided
+        if (updateHotelRoomDto.translations?.length > 0) {
+          const currentTranslations = room.translations || [];
+
+          for (const translation of updateHotelRoomDto.translations) {
+            const existingTranslation = currentTranslations.find(
+              (t) => t.language === translation.language,
+            );
+
+            if (existingTranslation) {
+              await prisma.hotelRoomTranslation.update({
+                where: { id: existingTranslation.id },
+                data: { name: translation.name },
+              });
+            } else {
+              await prisma.hotelRoomTranslation.create({
+                data: {
+                  roomId: id,
+                  language: translation.language,
+                  name: translation.name,
+                },
+              });
+            }
+          }
+
+          // Fetch the updated room with translations
+          room = await prisma.hotelRoom.findUnique({
+            where: { id },
+            include: {
+              translations: true,
+            },
+          });
+        }
+
+        return room;
+      });
 
       return new HotelRoom(updatedRoom);
     } catch (error) {

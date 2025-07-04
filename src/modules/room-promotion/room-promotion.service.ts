@@ -15,41 +15,43 @@ export class RoomPromotionService {
   async create(createRoomPromotionDto: CreateRoomPromotionDto): Promise<RoomPromotion> {
     const { translations, applied_room_ids, ...data } = createRoomPromotionDto;
 
-    // Check if rooms exist
-    if (applied_room_ids?.length > 0) {
-      const rooms = await this.prisma.roomDetail.findMany({
-        where: {
-          id: { in: applied_room_ids },
+    return await this.prisma.$transaction(async (tx) => {
+      // Check if rooms exist
+      if (applied_room_ids?.length > 0) {
+        const rooms = await tx.roomDetail.findMany({
+          where: {
+            id: { in: applied_room_ids },
+          },
+          select: { id: true },
+        });
+
+        if (rooms.length !== applied_room_ids.length) {
+          throw new NotFoundException('One or more room details not found');
+        }
+      }
+
+      const roomPromotion = await tx.roomPromotion.create({
+        data: {
+          ...data,
+          translations: translations?.length
+            ? {
+                create: translations.map((t) => ({
+                  language: t.language,
+                  description: t.description,
+                })),
+              }
+            : undefined,
+          rooms: {
+            connect: applied_room_ids?.map((id) => ({ id })),
+          },
         },
-        select: { id: true },
+        include: {
+          translations: true,
+        },
       });
 
-      if (rooms.length !== applied_room_ids.length) {
-        throw new NotFoundException('One or more room details not found');
-      }
-    }
-
-    const roomPromotion = await this.prisma.roomPromotion.create({
-      data: {
-        ...data,
-        translations: translations?.length
-          ? {
-              create: translations.map((t) => ({
-                language: t.language,
-                description: t.description,
-              })),
-            }
-          : undefined,
-        rooms: {
-          connect: applied_room_ids?.map((id) => ({ id })),
-        },
-      },
-      include: {
-        translations: true,
-      },
+      return new RoomPromotion(roomPromotion);
     });
-
-    return new RoomPromotion(roomPromotion);
   }
 
   async findMany(
@@ -147,93 +149,72 @@ export class RoomPromotionService {
   }
 
   async update(id: string, updateRoomPromotionDto: UpdateRoomPromotionDto): Promise<RoomPromotion> {
-    const { translations, applied_room_ids, ...data } = updateRoomPromotionDto;
+    return await this.prisma.$transaction(async (prisma) => {
+      const { translations, applied_room_ids, ...data } = updateRoomPromotionDto;
 
-    // Check if promotion exists
-    await this.findById(id);
+      // Check if promotion exists
+      const existing = await this.findById(id);
 
-    // Check if rooms exist
-    if (applied_room_ids?.length > 0) {
-      const rooms = await this.prisma.roomDetail.findMany({
-        where: {
-          id: { in: applied_room_ids },
-        },
-        select: { id: true },
-      });
-
-      if (rooms.length !== applied_room_ids.length) {
-        throw new NotFoundException('One or more room details not found');
-      }
-    }
-
-    const updateData: Prisma.RoomPromotionUpdateInput = {
-      ...data,
-    };
-
-    // Handle translations
-    if (translations?.length > 0) {
-      // Get existing translations
-      const existingTranslations = await this.prisma.promotionTranslation.findMany({
-        where: { roomPromotionId: id },
-      });
-
-      const existingTranslationsMap = new Map(existingTranslations.map((t) => [t.id, t]));
-
-      // Separate translations for update and create
-      const translationsToUpdate = translations.filter((t) => t.id);
-      const translationsToCreate = translations.filter((t) => !t.id);
-
-      // Update existing translations
-      for (const translation of translationsToUpdate) {
-        if (existingTranslationsMap.has(translation.id)) {
-          await this.prisma.promotionTranslation.update({
-            where: { id: translation.id },
-            data: {
-              language: translation.language,
-              description: translation.description,
-            },
-          });
+      // Validate rooms if provided
+      if (applied_room_ids?.length > 0) {
+        const roomCount = await prisma.roomDetail.count({
+          where: { id: { in: applied_room_ids } },
+        });
+        if (roomCount !== applied_room_ids.length) {
+          throw new NotFoundException('One or more room details not found');
         }
       }
 
-      // Create new translations
-      if (translationsToCreate.length > 0) {
-        updateData.translations = {
-          create: translationsToCreate.map((t) => ({
-            language: t.language,
-            description: t.description,
-          })),
+      // Prepare base update data
+      const updateData: Prisma.RoomPromotionUpdateInput = { ...data };
+
+      // Atomically reset & reconnect rooms
+      if (applied_room_ids !== undefined) {
+        updateData.rooms = {
+          set: applied_room_ids.map((roomId) => ({ id: roomId })),
         };
       }
-    }
 
-    // Update room connections if provided
-    if (applied_room_ids) {
-      // Disconnect all existing rooms first
-      await this.prisma.roomPromotion.update({
+      // Perform the promotion update
+      const updatedPromotion = await prisma.roomPromotion.update({
         where: { id },
-        data: {
-          rooms: {
-            set: [],
-          },
-        },
+        data: updateData,
+        include: { translations: true },
       });
 
-      // Connect new rooms
-      updateData.rooms = {
-        connect: applied_room_ids.map((roomId) => ({ id: roomId })),
-      };
-    }
+      // Simplified translation upsert logic
+      if (translations?.length > 0) {
+        for (const translation of translations) {
+          const match = existing.translations.find((t) => t.language === translation.language);
+          if (match) {
+            await prisma.promotionTranslation.update({
+              where: { id: match.id },
+              data: {
+                language: translation.language,
+                description: translation.description,
+              },
+            });
+          } else {
+            await prisma.promotionTranslation.create({
+              data: {
+                roomPromotionId: id,
+                language: translation.language,
+                description: translation.description,
+              },
+            });
+          }
+        }
 
-    const updatedPromotion = await this.prisma.roomPromotion.update({
-      where: { id },
-      data: updateData,
-      include: {
-        translations: true,
-      },
+        // Reload with final translations
+        const finalPromotion = await prisma.roomPromotion.findUnique({
+          where: { id },
+          include: { translations: true },
+        });
+        return new RoomPromotion(finalPromotion);
+      }
+
+      return new RoomPromotion(updatedPromotion);
     });
-
-    return new RoomPromotion(updatedPromotion);
   }
 
   async remove(id: string): Promise<void> {
@@ -311,6 +292,11 @@ export class RoomPromotionService {
 
     if (!promotion) {
       throw new NotFoundException('Invalid or expired promotion code for this room');
+    }
+
+    // Check usage limits
+    if (promotion.total_code !== null && promotion.total_used >= promotion.total_code) {
+      throw new NotFoundException('Promotion code usage limit reached');
     }
 
     return new RoomPromotion(promotion);

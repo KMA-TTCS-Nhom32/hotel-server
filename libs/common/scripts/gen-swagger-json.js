@@ -9,6 +9,11 @@ const options = {
 };
 
 const req = request(options, (res) => {
+    if (res.statusCode !== 200) {
+        console.error(`HTTP ${res.statusCode}: ${res.statusMessage}`);
+        return;
+    }
+
     let data = '';
 
     res.on('data', (chunk) => {

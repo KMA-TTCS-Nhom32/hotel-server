@@ -12,11 +12,26 @@ import {
   Matches,
   Max,
   Min,
+  Validate,
   ValidateIf,
   ValidateNested,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { PromotionTranslationDto } from './translation.dto';
 import { Type } from 'class-transformer';
+
+@ValidatorConstraint({ name: 'dateRange', async: false })
+class DateRangeValidator implements ValidatorConstraintInterface {
+  validate(end_date: Date, args: any) {
+    const start_date = args.object.start_date;
+    return start_date && end_date && new Date(start_date) < new Date(end_date);
+  }
+
+  defaultMessage() {
+    return 'End date must be after start date';
+  }
+}
 
 export class CreateRoomPromotionDto {
   @ApiProperty({
@@ -68,6 +83,9 @@ export class CreateRoomPromotionDto {
   @Min(0)
   @ValidateIf((o) => o.discount_type === DiscountType.PERCENTAGE)
   @Max(100, { message: 'Percentage discount cannot exceed 100%' })
+  @ValidateIf((o) => o.discount_type === DiscountType.FIXED_AMOUNT)
+  @IsPositive({ message: 'Fixed amount discount must be a positive number' })
+  @Max(10000000, { message: 'Fixed amount discount cannot exceed 10,000,000' })
   discount_value: number;
 
   @ApiProperty({
@@ -86,6 +104,7 @@ export class CreateRoomPromotionDto {
   @IsNotEmpty()
   @Type(() => Date)
   @IsDate()
+  @Validate(DateRangeValidator)
   end_date: Date;
 
   @ApiPropertyOptional({

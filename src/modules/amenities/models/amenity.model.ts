@@ -8,7 +8,7 @@ export class Amenity extends AbstractModel {
   constructor(data: Partial<PrismaAmenity>) {
     super();
 
-    const { translations, ...processedData } = data as PrismaAmenity;
+    const { translations, ...processedData } = data;
 
     let processedTranslations = [];
 
