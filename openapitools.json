@@ -12,10 +12,9 @@
         "gitUserId": "KMA-TTCS-Nhom32",
         "gitRepoId": "node-sdk",
         "verbose": false,
-        "skipValidateSpec": true,
         "globalProperty": {
-          "apiDocs": true,
-          "modelDocs": true
+          "apiDocs": false,
+          "modelDocs": false
         },
         "additionalProperties": {
           "npmName": "@ahomevilla-hotel/node-sdk",

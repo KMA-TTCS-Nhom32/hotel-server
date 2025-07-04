@@ -314,6 +314,7 @@ export class RoomService extends BaseService {
       await this.roomDetailService.checkUpdateRoomDetailAvailable(restoredRoom.detailId);
 
       return {
+        success: true,
         message: 'Room restored successfully',
       };
     } catch (error) {

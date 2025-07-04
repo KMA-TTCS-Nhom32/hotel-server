@@ -8,9 +8,19 @@ import {
   Delete,
   UseGuards,
   Query,
-  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiExtraModels, 
+  ApiCreatedResponse, 
+  ApiOkResponse, 
+  ApiBadRequestResponse, 
+  ApiUnauthorizedResponse, 
+  ApiNotFoundResponse, 
+  ApiConflictResponse, 
+  ApiNoContentResponse 
+} from '@nestjs/swagger';
 import { RoomService } from './room.service';
 import { UserRole } from '@prisma/client';
 import { RolesGuard } from '@/modules/auth/guards';
@@ -25,6 +35,7 @@ import {
   UpdateHotelRoomDto,
   ImmediateDeleteRoomsDto,
 } from './dtos';
+import { ResponseWithMessage } from '@/common/models';
 
 @ApiTags('Rooms')
 @ApiExtraModels(QueryHotelRoomDto, FilterHotelRoomDto, SortHotelRoomDto)
@@ -36,21 +47,17 @@ export class RoomController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new room' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Room has been successfully created.',
     type: HotelRoom,
   })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
+  @ApiBadRequestResponse({
     description: 'Invalid input data.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
+  @ApiConflictResponse({
     description: 'Room with this slug already exists.',
   })
   create(@Body() createHotelRoomDto: CreateHotelRoomDto) {
@@ -60,8 +67,7 @@ export class RoomController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get all rooms with pagination and filters' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns paginated rooms list',
     type: HotelRoomPaginationResultDto,
   })
@@ -74,13 +80,11 @@ export class RoomController {
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @Get('in-branch/:branchId')
   @ApiOperation({ summary: 'ADMIN - STAFF Get all rooms by branch ID' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all rooms by branch ID',
     type: [HotelRoom],
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   findManyByBranchId(@Param('branchId') branchId: string) {
@@ -90,13 +94,11 @@ export class RoomController {
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get a room by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room found',
     type: HotelRoom,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room not found.',
   })
   findOne(@Param('id') id: string) {
@@ -107,21 +109,17 @@ export class RoomController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a room' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room has been successfully updated.',
     type: HotelRoom,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
+  @ApiConflictResponse({
     description: 'Room with this slug already exists.',
   })
   update(@Param('id') id: string, @Body() updateHotelRoomDto: UpdateHotelRoomDto) {
@@ -132,20 +130,16 @@ export class RoomController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Soft delete a room' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Room has been successfully deleted.',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
+  @ApiConflictResponse({
     description: 'Cannot delete room with active bookings.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   remove(@Param('id') id: string): Promise<void> {
@@ -156,14 +150,9 @@ export class RoomController {
   @Roles(UserRole.ADMIN)
   @Post(':id/restore')
   @ApiOperation({ summary: 'Restore a soft-deleted room' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room restored successfully',
-    schema: {
-      properties: {
-        message: { type: 'string' }
-      }
-    },
+    type: ResponseWithMessage,
   })
   restore(@Param('id') id: string) {
     return this.roomService.restore(id);
@@ -173,8 +162,7 @@ export class RoomController {
   @Roles(UserRole.ADMIN)
   @Get('deleted')
   @ApiOperation({ summary: 'Get all soft-deleted rooms' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all soft-deleted rooms',
     type: [HotelRoom],
   })
@@ -186,16 +174,13 @@ export class RoomController {
   @Roles(UserRole.ADMIN)
   @Delete('permanent-delete')
   @ApiOperation({ summary: 'ADMIN - Delete rooms permanently' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Rooms have been successfully deleted permanently.',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Rooms not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   async permanentDelete(@Body() dto: ImmediateDeleteRoomsDto) {

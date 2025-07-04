@@ -19,6 +19,6 @@
     "watchAssets": true
   },
   "watchOptions": {
-    "watchExclude": ["generated/**"]
+    "watchExclude": ["hotel-sdk/**"]
   }
 }

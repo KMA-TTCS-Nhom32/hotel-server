@@ -17,8 +17,11 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse,
+  ApiForbiddenResponse,
+  ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 import { LoginThrottlerGuard, RefreshThrottlerGuard, RolesGuard } from './guards';
 import { AccountIdentifier, UserRole } from '@prisma/client';
@@ -80,8 +83,7 @@ export class AuthController {
     description: 'Tokens refreshed successfully',
     type: RefreshTokenResponseDto,
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Invalid or expired refresh token',
   })
   async refreshTokens(@Body() dto: RefreshTokenDto) {
@@ -98,8 +100,7 @@ export class AuthController {
     description: 'User logged out successfully',
     type: LogoutResponseDto,
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'User not authenticated',
   })
   async logout(@Req() req: Request) {
@@ -147,8 +148,7 @@ export class AuthController {
     description: 'Session revoked successfully',
     type: RevokeSessionResponseDto,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Session not found',
   })
   async revokeSession(@Param('sessionId') sessionId: string, @Req() req: Request) {
@@ -164,8 +164,10 @@ export class AuthController {
     summary: 'Get session analytics',
     description: 'Get analytics data for user sessions. Requires ADMIN role.',
   })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
+  @ApiOkResponse({
+    description: 'Session analytics retrieved successfully',
+  })
+  @ApiForbiddenResponse({
     description: 'User does not have required permissions',
   })
   async getSessionAnalytics(@Query('userId') userId?: string) {
@@ -179,8 +181,10 @@ export class AuthController {
     summary: 'Get suspicious activities',
     description: 'Get suspicious activities for a specific user. Requires ADMIN role.',
   })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
+  @ApiOkResponse({
+    description: 'Suspicious activities retrieved successfully',
+  })
+  @ApiForbiddenResponse({
     description: 'User does not have required permissions',
   })
   async getSuspiciousActivities(@Param('userId') userId: string) {
@@ -191,9 +195,8 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email with OTP code' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Email verified successfully' })
-  @ApiResponse({
-    status: HttpStatus.UNPROCESSABLE_ENTITY,
+  @ApiOkResponse({ description: 'Email verified successfully' })
+  @ApiUnprocessableEntityResponse({
     description: 'Invalid verification code',
   })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
@@ -207,6 +210,7 @@ export class AuthController {
   @Post('forgot-password/email/initiate')
   @Public()
   @ApiOperation({ summary: 'Initiate forgot password process' })
+  @ApiOkResponse({ description: 'Password reset initiated successfully' })
   async initiateForgotPassword(@Body() dto: InitiateForgotPasswordEmailDto) {
     return this.authService.initiateForgotPasswordForEmail(dto.email);
   }
@@ -214,6 +218,8 @@ export class AuthController {
   @Post('forgot-password/email/reset')
   @Public()
   @ApiOperation({ summary: 'Reset password using OTP' })
+  @ApiOkResponse({ description: 'Password reset successfully' })
+  @ApiUnprocessableEntityResponse({ description: 'Invalid or expired OTP' })
   async resetPasswordWithOTP(@Body() dto: ResetPasswordWithOTPEmailDto) {
     return this.authService.resetPasswordWithEmail(dto);
   }

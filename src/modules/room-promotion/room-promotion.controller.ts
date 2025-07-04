@@ -10,7 +10,17 @@ import {
   Query,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiExtraModels,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse
+} from '@nestjs/swagger';
 import { RoomPromotionService } from './room-promotion.service';
 import {
   CreateRoomPromotionDto,
@@ -37,8 +47,7 @@ export class RoomPromotionController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new room promotion' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Room promotion has been successfully created.',
     type: RoomPromotion,
   })
@@ -49,8 +58,7 @@ export class RoomPromotionController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get all room promotions with pagination and filters' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns paginated room promotions list',
     type: RoomPromotionPaginationResultDto,
   })
@@ -63,8 +71,7 @@ export class RoomPromotionController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all soft-deleted room promotions' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all soft-deleted room promotions',
     type: [RoomPromotion],
   })
@@ -75,10 +82,12 @@ export class RoomPromotionController {
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get room promotion by ID' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns a room promotion',
     type: RoomPromotion,
+  })
+  @ApiNotFoundResponse({
+    description: 'Room promotion not found.',
   })
   findOne(@Param('id') id: string): Promise<RoomPromotion> {
     return this.roomPromotionService.findById(id);
@@ -88,10 +97,15 @@ export class RoomPromotionController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a room promotion' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room promotion has been successfully updated.',
     type: RoomPromotion,
+  })
+  @ApiNotFoundResponse({
+    description: 'Room promotion not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   update(
     @Param('id') id: string,
@@ -104,9 +118,14 @@ export class RoomPromotionController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete a room promotion' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Room promotion has been successfully deleted.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Room promotion not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   remove(@Param('id') id: string): Promise<void> {
     return this.roomPromotionService.remove(id);
@@ -116,10 +135,15 @@ export class RoomPromotionController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Restore a soft-deleted room promotion' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room promotion restored successfully',
     type: RoomPromotion,
+  })
+  @ApiNotFoundResponse({
+    description: 'Room promotion not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   async restore(@Param('id') id: string) {
     return this.roomPromotionService.restore(id);
@@ -128,10 +152,15 @@ export class RoomPromotionController {
   @Public()
   @Get('validate/:code/room/:roomDetailId')
   @ApiOperation({ summary: 'Validate a promotion code for a specific room' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns the validated promotion details',
     type: RoomPromotion,
+  })
+  @ApiNotFoundResponse({
+    description: 'Promotion code not found or not valid for this room.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid promotion code.',
   })
   async validatePromotionCode(
     @Param('code') code: string,

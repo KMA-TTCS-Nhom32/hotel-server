@@ -10,7 +10,16 @@ import {
   Query,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiExtraModels,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiNoContentResponse,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse
+} from '@nestjs/swagger';
 import { ProvincesService } from './provinces.service';
 import { CreateProvinceDto, UpdateProvinceDto } from './dtos/create-update-province.dto';
 import { Province } from './models';
@@ -30,10 +39,12 @@ export class ProvincesController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new province' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Province has been successfully created.',
     type: Province,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   create(@Body() createProvinceDto: CreateProvinceDto): Promise<Province> {
     return this.provincesService.create(createProvinceDto);
@@ -42,8 +53,7 @@ export class ProvincesController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get all provinces with pagination and filters' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns paginated provinces list',
     type: ProvincePaginationResultDto,
   })
@@ -55,10 +65,12 @@ export class ProvincesController {
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get province by ID' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns a province',
     type: Province,
+  })
+  @ApiNotFoundResponse({
+    description: 'Province not found',
   })
   findOne(@Param('id') id: string): Promise<Province> {
     return this.provincesService.findById(id);
@@ -68,10 +80,15 @@ export class ProvincesController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a province' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Province has been successfully updated.',
     type: Province,
+  })
+  @ApiNotFoundResponse({
+    description: 'Province not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   update(@Param('id') id: string, @Body() updateProvinceDto: UpdateProvinceDto): Promise<Province> {
     return this.provincesService.update(id, updateProvinceDto);
@@ -81,27 +98,47 @@ export class ProvincesController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete a province' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Province has been successfully deleted.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Province not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   remove(@Param('id') id: string): Promise<void> {
     return this.provincesService.remove(id);
   }
 
   @Post(':id/restore')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Restore a soft-deleted province' })
-  @ApiResponse({ status: 200, description: 'Province restored successfully' })
+  @ApiOkResponse({ 
+    description: 'Province restored successfully',
+    type: Province
+  })
+  @ApiNotFoundResponse({
+    description: 'Province not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   async restore(@Param('id') id: string) {
     return this.provincesService.restore(id);
   }
 
   @Get('deleted')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all soft-deleted provinces' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all soft-deleted provinces',
     type: [Province],
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async findDeleted() {
     return this.provincesService.findDeleted();

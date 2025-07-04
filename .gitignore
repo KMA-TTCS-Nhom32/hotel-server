@@ -62,4 +62,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 event.json
 swagger.json
 swagger.yaml
-generated
+hotel-sdk

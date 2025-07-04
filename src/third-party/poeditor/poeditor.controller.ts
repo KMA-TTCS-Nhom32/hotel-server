@@ -1,5 +1,11 @@
 import { Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiOperation, 
+  ApiTags, 
+  ApiOkResponse, 
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse
+} from '@nestjs/swagger';
 import { PoeditorService } from './poeditor.service';
 import { AddTranslationDto, GetTranslationsRequestDto, ListTranslationResponseDto } from './dtos';
 import { Public, Roles } from '@/modules/auth/decorators';
@@ -15,13 +21,14 @@ export class PoeditorController {
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @Post('translations')
   @ApiOperation({ summary: 'Add translations to POEditor project' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Translations added successfully',
   })
-  @ApiResponse({
-    status: 400,
+  @ApiBadRequestResponse({
     description: 'Invalid input data',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async addTranslation(@Body() dto: AddTranslationDto) {
     return this.poeditorService.addTranslation(dto);
@@ -30,13 +37,11 @@ export class PoeditorController {
   @Public()
   @Post('translations-list')
   @ApiOperation({ summary: 'Get translations from POEditor project' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Translations fetched successfully',
     type: ListTranslationResponseDto,
   })
-  @ApiResponse({
-    status: 400,
+  @ApiBadRequestResponse({
     description: 'Invalid input data',
   })
   async getTranslations(

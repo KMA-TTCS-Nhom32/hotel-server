@@ -8,9 +8,20 @@ import {
   Delete,
   UseGuards,
   Query,
-  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels, ApiHeader } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiExtraModels, 
+  ApiHeader, 
+  ApiOkResponse, 
+  ApiCreatedResponse, 
+  ApiNoContentResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse,
+  ApiConflictResponse
+} from '@nestjs/swagger';
 import { Language } from '@prisma/client';
 import { PreferredLanguage } from '@/common/decorators';
 import { BranchService } from './branch.service';
@@ -39,17 +50,14 @@ export class BranchController {
   @Roles(UserRole.ADMIN)
   @Post()
   @ApiOperation({ summary: 'Create a new branch' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Branch has been successfully created.',
     type: Branch,
   })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
+  @ApiBadRequestResponse({
     description: 'Invalid input data.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   create(@Body() createBranchDto: CreateBranchDto): Promise<Branch> {
@@ -64,8 +72,7 @@ export class BranchController {
     description: 'Language preference (en, vi)',
     required: false,
   })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns latest branches',
     type: [Branch],
   })
@@ -79,8 +86,7 @@ export class BranchController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get all branches with pagination and filters' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns paginated branches list',
     type: BranchesPaginationResultDto,
   })
@@ -92,8 +98,7 @@ export class BranchController {
   @Public()
   @Get('infinite')
   @ApiOperation({ summary: 'Get branches with infinite scroll for client app' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns branches with infinite pagination',
     type: BranchesInfinitePaginationResultDto,
   })
@@ -110,8 +115,7 @@ export class BranchController {
     description: 'Language preference (en, vi)',
     required: false,
   })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns a branch',
     type: BranchDetail,
   })
@@ -126,17 +130,14 @@ export class BranchController {
   @Roles(UserRole.ADMIN)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a branch' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Branch has been successfully updated.',
     type: Branch,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Branch not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto) {
@@ -147,20 +148,16 @@ export class BranchController {
   @Roles(UserRole.ADMIN)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a branch' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Branch has been successfully deleted.',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Branch not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
+  @ApiConflictResponse({
     description: 'Cannot delete branch with active bookings.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   async remove(@Param('id') id: string): Promise<void> {
@@ -171,7 +168,7 @@ export class BranchController {
   @Roles(UserRole.ADMIN)
   @Post(':id/restore')
   @ApiOperation({ summary: 'Restore a soft-deleted branch' })
-  @ApiResponse({ status: 200, description: 'Branch restored successfully' })
+  @ApiOkResponse({ description: 'Branch restored successfully' })
   async restore(@Param('id') id: string) {
     return this.branchService.restore(id);
   }
@@ -180,8 +177,7 @@ export class BranchController {
   @Roles(UserRole.ADMIN)
   @Get('deleted')
   @ApiOperation({ summary: 'Get all soft-deleted branches' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all soft-deleted branches',
     type: [Branch],
   })
