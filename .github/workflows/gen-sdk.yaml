@@ -51,10 +51,14 @@ jobs:
       - name: 🔐 Create .env file
         run: |
           touch .env
+          echo API_PREFIX=api >> .env
           echo DATABASE_URL='${{ secrets.DATABASE_URL }}' >> .env
           echo JWT_SECRET=my_jwt_secret >> .env
           echo JWT_ACCESS_TOKEN_EXPIRED=30m >> .env
           echo JWT_REFRESH_TOKEN_EXPIRED=3d >> .env
+          echo REDIS_PROD_HOST='${{ secrets.REDIS_PROD_HOST }}' >> .env
+          echo REDIS_PROD_PORT='${{ secrets.REDIS_PROD_PORT }}' >> .env
+          echo REDIS_PROD_PASSWORD='${{ secrets.REDIS_PROD_PASSWORD }}' >> .env
 
       - name: ✅ Build the backend server
         run: pnpm build
