@@ -1,4 +1,4 @@
-name: SDK Generator
+name: SDK Generator v1
 
 on:
   push:
