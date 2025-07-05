@@ -131,9 +131,11 @@ jobs:
 
       - name: 🔄 Sync new SDK into target repo
         run: |
-          # Keep .git fully intact and leave package.json in place
-          find node-sdk-repo \( -path "node-sdk-repo/.git" -o -name "package.json" \) -prune -false -o -mindepth 1 -exec rm -rf {} +
-          cp -R hotel-sdk/* node-sdk-repo/
+          rsync -av --delete \
+            --exclude .git \
+            --exclude package.json \
+            hotel-sdk/ node-sdk-repo/
+
 
       - name: 📂 List files in node-sdk-repo after sync
         run: ls -la node-sdk-repo
