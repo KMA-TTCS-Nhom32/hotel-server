@@ -1,4 +1,4 @@
-name: SDK Generator v1.2
+name: SDK Generator v1.4
 
 on:
   push:
@@ -136,7 +136,6 @@ jobs:
             --exclude package.json \
             hotel-sdk/ node-sdk-repo/
 
-
       - name: 📂 List files in node-sdk-repo after sync
         run: ls -la node-sdk-repo
 
@@ -161,7 +160,8 @@ jobs:
           git config user.name "sondoannam-bot"
           git config user.email "sondoannam202@gmail.com"
           git add .
-          git commit -m "chore: 🤖 update SDK from backend ${{ github.sha }} [skip ci]"
+          git diff --cached --quiet || \  
+            git commit -m "chore: 🤖 update SDK from backend ${{ github.sha }} [skip ci]"  
           git tag v${{ env.VERSION }}
           git push origin main --follow-tags
 
