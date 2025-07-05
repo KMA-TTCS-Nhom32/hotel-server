@@ -62,6 +62,21 @@ export class ProvincesController {
     return this.provincesService.findMany({ page, pageSize }, filters, sort);
   }
 
+  @Get('deleted')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all soft-deleted provinces' })
+  @ApiOkResponse({
+    description: 'Returns all soft-deleted provinces',
+    type: [Province],
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
+  async findDeleted() {
+    return this.provincesService.findDeleted();
+  }
+
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get province by ID' })
@@ -127,20 +142,5 @@ export class ProvincesController {
   })
   async restore(@Param('id') id: string) {
     return this.provincesService.restore(id);
-  }
-
-  @Get('deleted')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all soft-deleted provinces' })
-  @ApiOkResponse({
-    description: 'Returns all soft-deleted provinces',
-    type: [Province],
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthorized',
-  })
-  async findDeleted() {
-    return this.provincesService.findDeleted();
   }
 }

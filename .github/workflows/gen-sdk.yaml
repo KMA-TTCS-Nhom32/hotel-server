@@ -166,8 +166,7 @@ jobs:
           git config user.name "sondoannam-bot"
           git config user.email "sondoannam202@gmail.com"
           git add .
-          git diff --cached --quiet || \  
-            git commit -m "chore: 🤖 update SDK from backend ${{ github.sha }} [skip ci]"  
+          git diff --cached --quiet || git commit -m "chore: 🤖 update SDK from backend ${{ github.sha }} [skip ci]"
           git tag v${{ env.VERSION }}
           git push origin main --follow-tags
 
