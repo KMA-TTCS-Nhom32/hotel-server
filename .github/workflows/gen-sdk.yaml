@@ -152,6 +152,12 @@ jobs:
         env:
           VERSION: ${{ env.VERSION }}
 
+      - name: 🔎 View updated package.json
+        run: |
+          cd node-sdk-repo
+          echo "📄 Updated package.json:"
+          cat package.json
+
       - name: 📦 Push changes to GitHub
         run: |
           cd node-sdk-repo
