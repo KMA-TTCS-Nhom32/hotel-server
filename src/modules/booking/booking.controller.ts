@@ -2,7 +2,16 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from
 import { Request } from 'express';
 
 import { BookingService } from './booking.service';
-import { ApiExtraModels, ApiOkResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiExtraModels, 
+  ApiOkResponse, 
+  ApiOperation, 
+  ApiTags,
+  ApiNotFoundResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiCreatedResponse
+} from '@nestjs/swagger';
 import {
   BookingsPaginationResultDto,
   CancelBookingDto,
@@ -38,9 +47,15 @@ export class BookingController {
   @ApiOperation({
     summary: 'Create a new booking online',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description: 'Booking has been successfully created.',
     type: Booking,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid booking data',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   createBookingOnline(@Req() req: Request, @Body() createDto: CreateBookingOnlineDto) {
     const user = req.user as JwtUser;
@@ -59,9 +74,15 @@ export class BookingController {
   @ApiOperation({
     summary: 'Create a new booking directly at the hotel',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     description: 'Booking has been successfully created.',
     type: Booking,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid booking data',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   createBookingDirectly(@Req() req: Request, @Body() createDto: CreateBookingAtHotelDto) {
     const user = req.user as JwtUser;
@@ -97,6 +118,12 @@ export class BookingController {
     description: 'Returns booking details',
     type: Booking,
   })
+  @ApiNotFoundResponse({
+    description: 'Booking not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   findById(@Param('bookingId') bookingId: string) {
     return this.bookingService.findById(bookingId);
   }
@@ -110,6 +137,9 @@ export class BookingController {
   @ApiOkResponse({
     description: 'Returns paginated bookings list',
     type: BookingsPaginationResultDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   getBookings(@Query() queryDto: QueryBookingsDto) {
     const { page, pageSize, filters, sort } = queryDto;
@@ -126,6 +156,15 @@ export class BookingController {
     description: 'Booking status has been successfully updated',
     type: Booking,
   })
+  @ApiNotFoundResponse({
+    description: 'Booking not found',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid status transition',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+  })
   updateBookingStatus(
     @Param('bookingId') bookingId: string,
     @Body() updateDto: UpdateBookingStatusDto,
@@ -140,6 +179,15 @@ export class BookingController {
   @ApiOkResponse({
     description: 'Booking has been successfully canceled',
     type: Booking,
+  })
+  @ApiNotFoundResponse({
+    description: 'Booking not found',
+  })
+  @ApiBadRequestResponse({
+    description: 'Cannot cancel booking in current status',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   cancelBooking(
     @Param('bookingId') bookingId: string,

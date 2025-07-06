@@ -1,5 +1,11 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiOperation, 
+  ApiTags,
+  ApiOkResponse,
+  ApiUnprocessableEntityResponse,
+  ApiBadRequestResponse 
+} from '@nestjs/swagger';
 import { VerificationService } from './verification.service';
 import { VerifyCodeDto, VerifyCodeResponseDto, VerifyEmailOTP } from './dto';
 import { Public } from '../auth/decorators';
@@ -13,14 +19,15 @@ export class VerificationController {
   @Post('verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify a code' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Code verified successfully',
     type: VerifyCodeResponseDto,
   })
-  @ApiResponse({
-    status: HttpStatus.UNPROCESSABLE_ENTITY,
+  @ApiUnprocessableEntityResponse({
     description: 'Invalid or expired verification code',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
   })
   async verifyCode(@Body() verifyCodeDto: VerifyCodeDto) {
     return this.verificationService.verifyCode(
@@ -34,14 +41,15 @@ export class VerificationController {
   @Post('verify-email-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify an email OTP' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Email OTP verified successfully',
     type: VerifyCodeResponseDto,
   })
-  @ApiResponse({
-    status: HttpStatus.UNPROCESSABLE_ENTITY,
+  @ApiUnprocessableEntityResponse({
     description: 'Invalid or expired verification code',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data',
   })
   async verifyEmailOTP(@Body() verifyCodeDto: VerifyEmailOTP) {
     const { email, code } = verifyCodeDto;

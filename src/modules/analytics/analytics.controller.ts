@@ -1,5 +1,5 @@
 import { Controller, Get, HttpException, HttpStatus, Query, UseGuards } from '@nestjs/common';
-import { ApiExtraModels, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import {
   AnalyticsSummaryDto,
@@ -29,8 +29,7 @@ export class AnalyticsController {
 
   @Get('summary')
   @ApiOperation({ summary: 'Get analytics summary for a branch' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     type: AnalyticsSummaryDto,
   })
   async getAnalyticsSummary(@Query() query: GetAnalyticsQueryDto): Promise<AnalyticsSummaryDto> {
@@ -54,8 +53,7 @@ export class AnalyticsController {
 
   @Get('revenue')
   @ApiOperation({ summary: 'Get revenue analytics' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     type: RevenueTimelineDto,
   })
   async getRevenueAnalytics(@Query() query: GetAnalyticsQueryDto): Promise<RevenueTimelineDto> {
@@ -76,8 +74,7 @@ export class AnalyticsController {
 
   @Get('occupancy')
   @ApiOperation({ summary: 'Get occupancy rate analytics' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     type: OccupancyRateResponseDto,
   })
   async getOccupancyRate(@Query() query: GetAnalyticsQueryDto): Promise<OccupancyRateResponseDto> {
@@ -101,8 +98,7 @@ export class AnalyticsController {
 
   @Get('room-performance')
   @ApiOperation({ summary: 'Get room performance analytics' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     type: [RoomPerformanceDto],
   })
   async getRoomPerformance(@Query() query: GetAnalyticsQueryDto): Promise<RoomPerformanceDto[]> {

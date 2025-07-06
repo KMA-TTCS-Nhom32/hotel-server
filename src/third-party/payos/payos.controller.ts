@@ -9,7 +9,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PayosService } from './payos.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiOperation, 
+  ApiTags, 
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiNotFoundResponse 
+} from '@nestjs/swagger';
 import {
   CreatePaymentRequestDto,
   PaymentResponseDto,
@@ -27,10 +34,12 @@ export class PayosController {
 
   @Post('payment-request')
   @ApiOperation({ summary: 'Create a new payment request' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Payment request created successfully',
     type: PaymentResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid payment request data',
   })
   createPaymentRequest(@Body() createDto: CreatePaymentRequestDto) {
     return this.payosService.createPaymentRequest(createDto);
@@ -38,10 +47,15 @@ export class PayosController {
 
   @Post('cancel-payment')
   @ApiOperation({ summary: 'Cancel a payment link' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Payment cancelled successfully',
     type: PaymentResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid payment cancellation request',
+  })
+  @ApiNotFoundResponse({
+    description: 'Payment link not found',
   })
   cancelPayment(@Body() cancelDto: CancelPaymentRequestDto) {
     return this.payosService.cancelPaymentLink(cancelDto);
@@ -51,10 +65,15 @@ export class PayosController {
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @Get('payment-status/:paymentLinkId')
   @ApiOperation({ summary: 'Get payment status' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Payment status retrieved successfully',
     type: PaymentResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Payment link not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   getPaymentStatus(@Param('paymentLinkId') paymentLinkId: string) {
     return this.payosService.getPaymentStatus(paymentLinkId);
@@ -63,10 +82,12 @@ export class PayosController {
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Handle payment confirmation webhook' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Webhook processed successfully',
     type: Boolean,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid webhook data',
   })
   handleWebhook(@Body() webhookData: ConfirmPaymentWebhookDto) {
     return this.payosService.validatePaymentConfirmation(webhookData);

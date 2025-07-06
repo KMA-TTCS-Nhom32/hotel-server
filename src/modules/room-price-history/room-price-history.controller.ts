@@ -7,10 +7,18 @@ import {
   Delete,
   UseGuards,
   Get,
-  HttpStatus,
 } from '@nestjs/common';
 import { RoomPriceHistoryService } from './room-price-history.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiOperation, 
+  ApiTags, 
+  ApiCreatedResponse, 
+  ApiBadRequestResponse,
+  ApiOkResponse,
+  ApiNotFoundResponse,
+  ApiNoContentResponse,
+  ApiUnauthorizedResponse
+} from '@nestjs/swagger';
 import { CreateRoomPriceHistoryDto, UpdateRoomPriceHistoryDto } from './dtos';
 import { RoomPriceHistory } from './models.ts';
 import { RolesGuard } from '@/modules/auth/guards';
@@ -26,14 +34,15 @@ export class RoomPriceHistoryController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new room price history' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Room price history has been successfully created.',
     type: RoomPriceHistory,
   })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
+  @ApiBadRequestResponse({
     description: 'At least one price must be provided.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   create(@Body() createDto: CreateRoomPriceHistoryDto) {
     return this.roomPriceHistoryService.create(createDto);
@@ -41,10 +50,12 @@ export class RoomPriceHistoryController {
 
   @Get('room-detail/:roomDetailId')
   @ApiOperation({ summary: 'Get all price histories for a specific room detail' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all price histories for the room detail',
     type: [RoomPriceHistory],
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   findManyByRoomDetail(@Param('roomDetailId') roomDetailId: string) {
     return this.roomPriceHistoryService.findMany(roomDetailId);
@@ -52,14 +63,15 @@ export class RoomPriceHistoryController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a room price history' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room price history has been successfully updated.',
     type: RoomPriceHistory,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room price history not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   update(@Param('id') id: string, @Body() updateDto: UpdateRoomPriceHistoryDto) {
     return this.roomPriceHistoryService.update(id, updateDto);
@@ -67,13 +79,14 @@ export class RoomPriceHistoryController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a room price history' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Room price history has been successfully deleted.',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room price history not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   remove(@Param('id') id: string) {
     return this.roomPriceHistoryService.remove(id);

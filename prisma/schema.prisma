@@ -105,7 +105,7 @@ model HotelBranch {
     slug        String
     description String
     phone       String
-    is_active   Boolean      @default(true)
+    is_active   Boolean      @default(false)
     address     String
     location    Json?        @default("{ \"latitude\": \"0\", \"longitude\": \"0\" }")
     provinceId  String
@@ -157,11 +157,11 @@ model HotelRoom {
 }
 
 model HotelRoomTranslation {
-    id        String   @id @default(cuid())
-    roomId    String
-    room      HotelRoom @relation(fields: [roomId], references: [id])
-    language  Language
-    name      String
+    id       String    @id @default(cuid())
+    roomId   String
+    room     HotelRoom @relation(fields: [roomId], references: [id])
+    language Language
+    name     String
 
     @@unique([roomId, language])
 }
@@ -186,7 +186,7 @@ model RoomDetail {
     base_price_per_day      Decimal            @db.Decimal(9, 0)
     special_price_per_day   Decimal?           @db.Decimal(9, 0)
     roomPriceHistories      RoomPriceHistory[]
-    promotions              RoomPromotion[]
+    promotions              RoomPromotion[]    @relation("RoomToPromotion")
     max_adults              Int                @default(2)
     max_children            Int                @default(2)
     quantity                Int                @default(1)
@@ -213,15 +213,15 @@ model RoomDetailTranslation {
 }
 
 model Amenity {
-    id                 String               @id @default(cuid())
-    name               String
-    slug               String
-    icon               Json // Icon URL or code
-    type               AmenityType
-    rooms              RoomDetail[]
-    branches           HotelBranch[]
-    createdAt          DateTime             @default(now())
-    updatedAt          DateTime             @updatedAt
+    id        String        @id @default(cuid())
+    name      String
+    slug      String
+    icon      Json // Icon URL or code
+    type      AmenityType
+    rooms     RoomDetail[]
+    branches  HotelBranch[]
+    createdAt DateTime      @default(now())
+    updatedAt DateTime      @updatedAt
 
     translations AmenityTranslation[]
 }
@@ -363,6 +363,19 @@ model RoomPriceHistory {
     is_applied      Boolean    @default(false)
     createdAt       DateTime   @default(now())
     updatedAt       DateTime   @updatedAt
+
+    translations RoomPriceHistoryTranslation[]
+}
+
+model RoomPriceHistoryTranslation {
+    id                 String           @id @default(cuid())
+    roomPriceHistoryId String
+    roomPriceHistory   RoomPriceHistory @relation(fields: [roomPriceHistoryId], references: [id])
+    language           Language
+    name               String
+    description        String
+
+    @@unique([roomPriceHistoryId, language])
 }
 
 enum RoomPriceType {
@@ -391,6 +404,7 @@ model RefreshToken {
 model RoomPromotion {
     id             String       @id @default(cuid())
     code           String       @unique
+    description    String
     applied_type   BookingType
     discount_type  DiscountType
     discount_value Float
@@ -399,9 +413,25 @@ model RoomPromotion {
     min_hours      Int?
     min_nights     Int?
     min_days       Int?
-    applied_rooms  RoomDetail[]
+    total_used     Int          @default(0)
+    total_code     Int?
+    rooms          RoomDetail[] @relation("RoomToPromotion")
+    isDeleted      Boolean      @default(false)
+    deletedAt      DateTime?
     createdAt      DateTime     @default(now())
     updatedAt      DateTime     @updatedAt
+
+    translations PromotionTranslation[]
+}
+
+model PromotionTranslation {
+    id              String        @id @default(cuid())
+    roomPromotionId String
+    roomPromotion   RoomPromotion @relation(fields: [roomPromotionId], references: [id])
+    language        Language
+    description     String
+
+    @@unique([roomPromotionId, language])
 }
 
 enum DiscountType {

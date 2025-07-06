@@ -8,16 +8,26 @@ import {
   Delete,
   UseGuards,
   Query,
-  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExtraModels } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiExtraModels, 
+  ApiOkResponse, 
+  ApiCreatedResponse, 
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiConflictResponse
+} from '@nestjs/swagger';
 import { RoomDetailService } from './room-detail.service';
 import { UserRole } from '@prisma/client';
 import { RolesGuard } from '@/modules/auth/guards';
 import { Public, Roles } from '@/modules/auth/decorators';
 import { RoomDetail } from './models';
 import {
-    CreateRoomDetailDto,
+  CreateRoomDetailDto,
   FilterRoomDetailDto,
   QueryRoomDetailDto,
   RoomDetailPaginationResultDto,
@@ -36,17 +46,14 @@ export class RoomDetailController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new room detail' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Room detail has been successfully created.',
     type: RoomDetail,
   })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
+  @ApiBadRequestResponse({
     description: 'Invalid input data.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   create(@Body() createRoomDetailDto: CreateRoomDetailDto): Promise<RoomDetail> {
@@ -56,8 +63,7 @@ export class RoomDetailController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get all room details with pagination and filters' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns paginated room details list',
     type: RoomDetailPaginationResultDto,
   })
@@ -69,8 +75,7 @@ export class RoomDetailController {
   @Public()
   @Get('infinite')
   @ApiOperation({ summary: 'Get all room details with infinite pagination and filters' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns paginated room details list',
     type: RoomDetailInfinitePaginationResultDto,
   })
@@ -82,13 +87,11 @@ export class RoomDetailController {
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get a room detail by id' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room detail found',
     type: RoomDetail,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room detail not found.',
   })
   findOne(@Param('id') id: string): Promise<RoomDetail> {
@@ -99,17 +102,14 @@ export class RoomDetailController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a room detail' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room detail has been successfully updated.',
     type: RoomDetail,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room detail not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   update(
@@ -123,20 +123,16 @@ export class RoomDetailController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Soft delete a room detail' })
-  @ApiResponse({
-    status: HttpStatus.NO_CONTENT,
+  @ApiNoContentResponse({
     description: 'Room detail has been successfully deleted.',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'Room detail not found.',
   })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
+  @ApiConflictResponse({
     description: 'Cannot delete room detail with active bookings.',
   })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
+  @ApiUnauthorizedResponse({
     description: 'Unauthorized.',
   })
   remove(@Param('id') id: string): Promise<void> {
@@ -147,10 +143,15 @@ export class RoomDetailController {
   @Roles(UserRole.ADMIN)
   @Post(':id/restore')
   @ApiOperation({ summary: 'Restore a soft-deleted room detail' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Room detail restored successfully',
     type: RoomDetail,
+  })
+  @ApiNotFoundResponse({
+    description: 'Room detail not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   async restore(@Param('id') id: string) {
     return this.roomDetailService.restore(id);
@@ -160,10 +161,12 @@ export class RoomDetailController {
   @Roles(UserRole.ADMIN)
   @Get('deleted')
   @ApiOperation({ summary: 'Get all soft-deleted room details' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Returns all soft-deleted room details',
     type: [RoomDetail],
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   async findDeleted() {
     return this.roomDetailService.findDeleted();

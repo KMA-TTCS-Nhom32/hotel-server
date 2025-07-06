@@ -13,7 +13,16 @@ import {
   Delete,
   HttpException,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiExtraModels, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { 
+  ApiOkResponse, 
+  ApiExtraModels, 
+  ApiOperation, 
+  ApiTags,
+  ApiNotFoundResponse,
+  ApiUnprocessableEntityResponse,
+  ApiConflictResponse,
+  ApiUnauthorizedResponse
+} from '@nestjs/swagger';
 import { Request } from 'express';
 
 import { UsersService } from './users.service';
@@ -64,13 +73,14 @@ export class UsersController {
   @Post('/block-action/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Block or unblock a user' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'User blocked/unblocked successfully',
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'User not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async blockUser(
     @Req() req: Request,
@@ -87,14 +97,15 @@ export class UsersController {
   @Get('admin/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get detailed user information (Admin only)' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'User details retrieved successfully',
     type: UserDetail,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'User not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async adminGetUserDetail(@Param('id') id: string) {
     return this.usersService.adminGetUserDetail(id);
@@ -105,18 +116,21 @@ export class UsersController {
   @Patch('admin/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user information (Admin only)' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'User updated successfully',
     type: UserDetail,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'User not found',
   })
-  @ApiResponse({
-    status: HttpStatus.UNPROCESSABLE_ENTITY,
+  @ApiUnprocessableEntityResponse({
     description: 'Invalid role change request',
+  })
+  @ApiConflictResponse({
+    description: 'Cannot change own role',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async adminUpdateUser(
     @Param('id') id: string,
@@ -143,18 +157,18 @@ export class UsersController {
   @Delete('/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete a user (Admin only)' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'User deleted successfully',
     type: User,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'User not found',
   })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
+  @ApiConflictResponse({
     description: 'User has active bookings',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async deleteUser(@Param('id') id: string, @Body() deleteDto: DeleteUserDto) {
     return this.usersService.softDelete(id, deleteDto.reason);
@@ -165,14 +179,15 @@ export class UsersController {
   @Post('/:id/restore')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Restore a deleted user (Admin only)' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'User restored successfully',
     type: User,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiNotFoundResponse({
     description: 'User not found',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
   })
   async restoreUser(@Param('id') id: string) {
     return this.usersService.restore(id);

@@ -191,6 +191,7 @@ export class BookingService extends BaseService {
         start_time,
         end_time,
         guest_details,
+        promotion_code,
         ...createBookingDto
       } = createDto;
 
@@ -205,6 +206,53 @@ export class BookingService extends BaseService {
           },
           HttpStatus.BAD_REQUEST,
         );
+      }
+
+      // Check if promotion code is valid and get promotion details
+      let promotion = null;
+      if (promotion_code) {
+        try {
+          promotion = await this.databaseService.roomPromotion.findFirst({
+            where: {
+              code: { equals: promotion_code, mode: 'insensitive' },
+              start_date: { lte: new Date() },
+              end_date: { gte: new Date() },
+              isDeleted: false,
+              rooms: {
+                some: {
+                  id: detailId,
+                },
+              },
+            },
+          });
+
+          if (!promotion) {
+            throw new HttpException(
+              {
+                status: HttpStatus.BAD_REQUEST,
+                error: 'Invalid or expired promotion code for this room',
+              },
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+
+          // Check if the promotion has reached its usage limit
+          if (promotion.total_code && promotion.total_used >= promotion.total_code) {
+            throw new HttpException(
+              {
+                status: HttpStatus.BAD_REQUEST,
+                error: 'This promotion has reached its usage limit',
+              },
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+        } catch (error) {
+          if (error instanceof HttpException) {
+            throw error;
+          }
+          // If there's another error, just use no promotion
+          promotion = null;
+        }
       }
 
       const roomsInBooking = await this.databaseService.hotelRoom.findMany({
@@ -279,32 +327,62 @@ export class BookingService extends BaseService {
 
       const code = await this.generateBookingCode();
 
-      const booking = await this.databaseService.booking.create({
-        data: {
-          code,
-          type,
-          ...prepareDto,
-          ...createBookingDto,
-          roomId: firstAvailableRoom.id,
-          start_date: this.formatStringDate(start_date),
-          end_date: this.formatStringDate(end_date),
-          start_time,
-          end_time,
-          total_amount,
-          guest_details: guest_details as any,
-        },
+      // Create booking in a transaction to ensure both booking creation and promotion counter update
+      const booking = await this.databaseService.$transaction(async (prisma) => {
+        // Create the booking
+        const newBooking = await prisma.booking.create({
+          data: {
+            code,
+            type,
+            ...prepareDto,
+            ...createBookingDto,
+            roomId: firstAvailableRoom.id,
+            start_date: this.formatStringDate(start_date),
+            end_date: this.formatStringDate(end_date),
+            start_time,
+            end_time,
+            total_amount,
+            promotion_code: promotion?.code,
+            guest_details: guest_details as any,
+          },
+        });
+
+        // If a valid promotion code was used, increment the total_used counter
+        if (promotion) {
+          await prisma.roomPromotion.update({
+            where: { id: promotion.id },
+            data: {
+              total_used: {
+                increment: 1,
+              },
+            },
+          });
+        }
+
+        return newBooking;
       });
 
       return new Booking(booking as any);
     } catch (error) {
       console.error('BookingService -> createOnline -> error', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
 
   async createAtHotel(createDto: CreateBookingAtHotelDto, prepareDto: PrepareBookingDto) {
     try {
-      const currentRoom = await this.roomService.findById(createDto.roomId);
+      const currentRoom = await this.databaseService.hotelRoom.findFirst({
+        where: {
+          id: createDto.roomId,
+          isDeleted: false,
+        },
+        include: {
+          detail: true,
+        },
+      });
 
       if (currentRoom.status !== HotelRoomStatus.AVAILABLE) {
         throw new HttpException(
@@ -326,6 +404,7 @@ export class BookingService extends BaseService {
         ...createBookingDto
       } = createDto;
 
+      const roomDetail = new RoomDetail(currentRoom.detail);
       const total_amount = this.calculateTotalAmount(
         {
           type,
@@ -334,11 +413,12 @@ export class BookingService extends BaseService {
           start_time,
           end_time,
         },
-        currentRoom.detail,
+        roomDetail,
       );
 
       const code = await this.generateBookingCode();
 
+      // Create booking directly (no promotion handling for at-hotel bookings)
       const booking = await this.databaseService.booking.create({
         data: {
           code,
@@ -357,6 +437,9 @@ export class BookingService extends BaseService {
       return new Booking(booking as any);
     } catch (error) {
       console.error('BookingService -> createAtHotel -> error', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

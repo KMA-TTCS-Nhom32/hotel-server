@@ -47,16 +47,16 @@ export default [
       '@typescript-eslint/ban-types': 'error',
 
       // Code style (integrated with Prettier)
-      'prettier/prettier': [
-        'error',
-        {
-          singleQuote: true,
-          trailingComma: 'all',
-          printWidth: 100,
-          tabWidth: 2,
-          endOfLine: 'auto',
-        },
-      ],
+      //   'prettier/prettier': [
+      //     'error',
+      //     {
+      //       singleQuote: true,
+      //       trailingComma: 'all',
+      //       printWidth: 100,
+      //       tabWidth: 2,
+      //       endOfLine: 'auto',
+      //     },
+      //   ],
     },
   },
   // Extra configuration for specific file patterns if needed

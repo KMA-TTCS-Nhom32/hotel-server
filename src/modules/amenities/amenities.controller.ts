@@ -10,7 +10,17 @@ import {
   UseGuards,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiResponse, ApiOperation, ApiExtraModels } from '@nestjs/swagger';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiExtraModels, 
+  ApiOkResponse, 
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiUnauthorizedResponse,
+  ApiBadRequestResponse,
+  ApiNoContentResponse,
+} from '@nestjs/swagger';
 import {
   AmenitiesPaginationResultDto,
   CreateAmenityDto,
@@ -34,8 +44,7 @@ export class AmenitiesController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'Get amenities' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Amenities found',
     type: AmenitiesPaginationResultDto,
   })
@@ -47,6 +56,14 @@ export class AmenitiesController {
 
   @Public()
   @Get(':id')
+  @ApiOperation({ summary: 'Get amenity by ID' })
+  @ApiOkResponse({
+    description: 'Amenity found',
+    type: Amenity,
+  })
+  @ApiNotFoundResponse({
+    description: 'Amenity not found',
+  })
   async findOne(@Param('id') id: string) {
     return this.amenitiesService.findOne(id);
   }
@@ -55,10 +72,15 @@ export class AmenitiesController {
   @Roles(UserRole.ADMIN)
   @Post()
   @ApiOperation({ summary: 'Create new amenity' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @ApiCreatedResponse({
     description: 'Amenity has been successfully created.',
     type: Amenity,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
   })
   async create(@Body() dto: CreateAmenityDto) {
     return this.amenitiesService.create(dto);
@@ -68,16 +90,36 @@ export class AmenitiesController {
   @Roles(UserRole.ADMIN)
   @Put(':id')
   @ApiOperation({ summary: 'Update amenity' })
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'Amenity has been successfully updated.',
     type: Amenity,
+  })
+  @ApiNotFoundResponse({
+    description: 'Amenity not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid input data.',
   })
   async update(@Param('id') id: string, @Body() dto: UpdateAmenityDto) {
     return this.amenitiesService.update(id, dto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete amenity' })
+  @ApiNoContentResponse({
+    description: 'Amenity has been successfully deleted.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Amenity not found.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized.',
+  })
   async remove(@Param('id') id: string) {
     return this.amenitiesService.remove(id);
   }

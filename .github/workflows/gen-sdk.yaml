@@ -1,0 +1,184 @@
+name: SDK Generator v1.8
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  generate-and-build-sdk:
+    name: Generate OpenAPI JSON
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[generate-sdk]')) ||
+          (github.event_name == 'pull_request' && contains(github.event.pull_request.title,  '[generate-sdk]')) }}
+
+    steps:
+      - name: ✅ Checkout backend repo
+        uses: actions/checkout@v4
+
+      - name: ✅ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: ✅ Setup PNPM
+        uses: pnpm/action-setup@v3
+        with:
+          version: '9.11.0'
+
+      - name: 🧠 Get pnpm store path
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: 💾 Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: ✅ Install dependencies & devDependencies
+        run: pnpm install --prod=false
+
+      - name: 🧪 Run database generation
+        run: pnpm pgenerate
+
+      - name: 🔐 Create .env file
+        run: |
+          touch .env
+          echo NODE_ENV=production >> .env
+          echo PORT=4005 >> .env
+          echo API_PREFIX=api >> .env
+          echo DATABASE_URL='${{ secrets.DATABASE_URL }}' >> .env
+          echo JWT_SECRET=my_jwt_secret >> .env
+          echo JWT_ACCESS_TOKEN_EXPIRED=30m >> .env
+          echo JWT_REFRESH_TOKEN_EXPIRED=3d >> .env
+          echo REDIS_PROD_HOST='${{ secrets.REDIS_PROD_HOST }}' >> .env
+          echo REDIS_PROD_PORT='${{ secrets.REDIS_PROD_PORT }}' >> .env
+          echo REDIS_PROD_PASSWORD='${{ secrets.REDIS_PROD_PASSWORD }}' >> .env
+
+      - name: ✅ Build the backend server
+        run: pnpm build
+
+      - name: ✅ Install concurrently & wait-on
+        run: pnpm add -D concurrently wait-on
+
+      - name: 🚀 Start backend server and generate OPENAPI JSON
+        run: |
+          ./node_modules/.bin/concurrently -k -s first -n "SERVER,GET-SWAGGER-JSON" -c "bgGreen.bold,bgCyan.bold" \
+            "pnpm start" \
+            "./node_modules/.bin/wait-on http://localhost:4005/docs-json && node ./libs/common/scripts/gen-swagger-json.js"
+
+      - name: 🔍 Debug Generated JSON
+        run: |
+          echo "📂 Listing workspace files:"
+          ls -la
+          echo "📝 First few lines of swagger.json:"
+          head -n 5 swagger.json
+
+      - name: 🧬 Generate SDK from OpenAPI
+        run: |
+          ./node_modules/.bin/openapi-generator-cli generate
+
+      - name: 📦 Upload SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotel-sdk
+          path: hotel-sdk
+
+      - name: 🧾 Check generated SDK
+        run: ls -la hotel-sdk
+
+  publish-sdk:
+    name: 🚀 Push repo & Publish SDK
+    runs-on: ubuntu-latest
+    needs: generate-and-build-sdk
+
+    steps:
+      - name: ✅ Checkout backend repo
+        uses: actions/checkout@v4
+
+      - name: ✅ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📥 Download SDK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hotel-sdk
+          path: hotel-sdk
+
+      - name: 🔁 Clone SDK repo
+        uses: actions/checkout@v4
+        with:
+          repository: KMA-TTCS-Nhom32/node-sdk
+          token: ${{ secrets.GH_PAT }}
+          path: node-sdk-repo
+          ref: main
+      
+      - name: 📄 Current workspace
+        run: |
+          echo "📂 Current workspace files:"
+          ls -la
+          echo "📂 Node SDK repo files:"
+          ls -la node-sdk-repo
+
+      - name: 🔄 Sync new SDK into target repo
+        run: |
+          rsync -av --delete \
+            --exclude .git \
+            --exclude package.json \
+            hotel-sdk/ node-sdk-repo/
+
+      - name: 📂 List files in node-sdk-repo after sync
+        run: ls -la node-sdk-repo
+
+      - name: 📦 Bump version in package.json
+        run: |
+          cd node-sdk-repo
+          new_version=$(date +%Y.%m.%d.%H%M%S)
+          jq ".version = \"$new_version\"" package.json > tmp.json && mv tmp.json package.json
+          echo "VERSION=$new_version" >> $GITHUB_ENV
+
+      - name: 🧠 Prepare SDK metadata
+        working-directory: node-sdk-repo
+        run: node ../libs/common/scripts/prepare-sdk-pkg.js
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: 🔎 View updated package.json
+        run: |
+          cd node-sdk-repo
+          echo "📄 Updated package.json:"
+          cat package.json
+
+      - name: 📦 Push changes to GitHub
+        run: |
+          cd node-sdk-repo
+          npm install
+          git config remote.origin.url
+          git config user.name "sondoannam-bot"
+          git config user.email "sondoannam202@gmail.com"
+          git add .
+          git diff --cached --quiet || git commit -m "chore: 🤖 update SDK from backend ${{ github.sha }} [skip ci]"
+          git tag v${{ env.VERSION }}
+          git push origin main --follow-tags
+
+      - name: 📦 Publish SDK to npm
+        run: |
+          cd node-sdk-repo
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+          npm publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 🧾 Log SDK Publish Info
+        run: |
+          echo "🆕 SDK version: ${{ env.VERSION }}"
+          echo "🔗 Backend commit: ${{ github.sha }}"

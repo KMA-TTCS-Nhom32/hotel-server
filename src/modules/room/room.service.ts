@@ -56,7 +56,20 @@ export class RoomService extends BaseService {
       await this.checkSlugExisted(createHotelRoomDto.slug, createHotelRoomDto.detailId);
 
       const createdRoom = await this.databaseService.hotelRoom.create({
-        data: createHotelRoomDto,
+        data: {
+          ...createHotelRoomDto,
+          translations: {
+            create: createHotelRoomDto.translations
+              ? createHotelRoomDto.translations.map((t) => ({
+                  language: t.language,
+                  name: t.name,
+                }))
+              : [],
+          },
+        },
+        include: {
+          translations: true,
+        },
       });
 
       return new HotelRoom(createdRoom);
@@ -71,8 +84,9 @@ export class RoomService extends BaseService {
       const room = await this.databaseService.hotelRoom.findUnique({
         where: { id },
         include: {
-          detail: true,
+          // detail: true,
           bookings: true,
+          translations: true,
         },
       });
 
@@ -86,7 +100,7 @@ export class RoomService extends BaseService {
         );
       }
 
-      return new HotelRoom(room as any);
+      return new HotelRoom(room);
     } catch (error) {
       console.error('Find room by ID error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -144,14 +158,15 @@ export class RoomService extends BaseService {
             _count: {
               select: { bookings: true },
             },
-            detail: true,
+            // detail: true,
+            translations: true,
           },
         }),
         this.databaseService.hotelRoom.count({ where }),
       ]);
 
       return createPaginatedResponse(
-        rooms.map((room) => new HotelRoom(room as any)),
+        rooms.map((room) => new HotelRoom(room)),
         total,
         page,
         pageSize,
@@ -170,11 +185,12 @@ export class RoomService extends BaseService {
           _count: {
             select: { bookings: true },
           },
-          detail: true,
+          // detail: true,
+          translations: true,
         },
       });
 
-      return rooms.map((room) => new HotelRoom(room as any));
+      return rooms.map((room) => new HotelRoom(room));
     } catch (error) {
       this.logger.error('RoomService -> findManyByBranchId -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -193,9 +209,55 @@ export class RoomService extends BaseService {
         await this.roomDetailService.checkUpdateRoomDetailAvailable(roomToUpdate.detailId);
       }
 
-      const updatedRoom = await this.databaseService.hotelRoom.update({
-        where: { id },
-        data: updateHotelRoomDto,
+      const updatedRoom = await this.databaseService.$transaction(async (prisma) => {
+        // Update base room data
+        let room = await prisma.hotelRoom.update({
+          where: { id },
+          data: {
+            name: updateHotelRoomDto.name,
+            slug: updateHotelRoomDto.slug,
+            status: updateHotelRoomDto.status,
+          },
+          include: {
+            translations: true,
+          },
+        });
+
+        // Handle translations if provided
+        if (updateHotelRoomDto.translations?.length > 0) {
+          const currentTranslations = room.translations || [];
+
+          for (const translation of updateHotelRoomDto.translations) {
+            const existingTranslation = currentTranslations.find(
+              (t) => t.language === translation.language,
+            );
+
+            if (existingTranslation) {
+              await prisma.hotelRoomTranslation.update({
+                where: { id: existingTranslation.id },
+                data: { name: translation.name },
+              });
+            } else {
+              await prisma.hotelRoomTranslation.create({
+                data: {
+                  roomId: id,
+                  language: translation.language,
+                  name: translation.name,
+                },
+              });
+            }
+          }
+
+          // Fetch the updated room with translations
+          room = await prisma.hotelRoom.findUnique({
+            where: { id },
+            include: {
+              translations: true,
+            },
+          });
+        }
+
+        return room;
       });
 
       return new HotelRoom(updatedRoom);
@@ -246,12 +308,15 @@ export class RoomService extends BaseService {
     }
   }
 
-  async restore(id: string): Promise<HotelRoom> {
+  async restore(id: string) {
     try {
       const restoredRoom = await this.restoreDeleted<HotelRoom>('hotelRoom', id);
       await this.roomDetailService.checkUpdateRoomDetailAvailable(restoredRoom.detailId);
 
-      return new HotelRoom(restoredRoom);
+      return {
+        success: true,
+        message: 'Room restored successfully',
+      };
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);

@@ -1,16 +1,28 @@
 import { AbstractModel } from 'libs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { HotelRoomStatus } from '@prisma/client';
-import { RoomDetail } from '@/modules/room-detail/models';
 import { Booking } from '@/modules/booking/models';
-// import { RoomPriceHistory } from '@/modules/room-price/models';
-// import { RoomPromotion } from '@/modules/promotions/models';
-// import { Review } from '@/modules/reviews/models';
+import { PrismaRoom } from '../interfaces';
 
 export class HotelRoom extends AbstractModel {
-  constructor(data: Partial<HotelRoom>) {
+  constructor(data: Partial<PrismaRoom>) {
     super();
-    Object.assign(this, data);
+
+    const { translations, ...processedData } = data;
+
+    let processedTranslations = [];
+
+    if (translations) {
+      processedTranslations = translations.map((translation) => ({
+        language: translation.language,
+        name: translation.name,
+      }));
+    }
+
+    Object.assign(this, {
+      ...processedData,
+      translations: processedTranslations,
+    });
   }
 
   @ApiProperty({
@@ -42,11 +54,11 @@ export class HotelRoom extends AbstractModel {
   })
   detailId: string;
 
-  @ApiPropertyOptional({
-    type: () => RoomDetail,
-    description: 'Room detail',
-  })
-  detail?: RoomDetail;
+//   @ApiPropertyOptional({
+//     type: () => RoomDetail,
+//     description: 'Room detail',
+//   })
+//   detail?: RoomDetail;
 
   @ApiPropertyOptional({ type: () => [Booking], description: 'List of bookings' })
   bookings?: Booking[];
@@ -62,21 +74,21 @@ export class HotelRoom extends AbstractModel {
     bookings: number;
   };
 
-//   @ApiProperty({
-//     type: 'array',
-//     items: {
-//       type: 'object',
-//       properties: {
-//         language: { type: 'string' },
-//         name: { type: 'string' },
-//       },
-//     },
-//     description: 'List of translations for the hotel room',
-//   })
-//   translations: {
-//     language: string;
-//     name: string;
-//   }[];
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        language: { type: 'string' },
+        name: { type: 'string' },
+      },
+    },
+    description: 'List of translations for the hotel room',
+  })
+  translations: {
+    language: string;
+    name: string;
+  }[];
 }
 
 //   @ApiProperty({ type: () => [RoomPriceHistory], required: false })

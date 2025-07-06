@@ -15,6 +15,7 @@
     "images",
     "scripts",
     "auth",
-    "database"
+    "database",
+    "[generate-sdk] "
   ]
 }

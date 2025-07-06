@@ -1,6 +1,8 @@
 import { HotelRoomStatus } from '@prisma/client';
-import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { HotelRoomTranslationDto } from './translation.dto';
 
 export class CreateHotelRoomDto {
   @ApiProperty({
@@ -38,6 +40,17 @@ export class CreateHotelRoomDto {
   @IsString()
   @IsNotEmpty()
   detailId: string;
+
+  @ApiPropertyOptional({
+    type: [HotelRoomTranslationDto],
+    description: 'Translations for the hotel room',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HotelRoomTranslationDto)
+  translations?: HotelRoomTranslationDto[];
 }
 
 export class UpdateHotelRoomDto extends PartialType(OmitType(CreateHotelRoomDto, ['detailId'])) {}
