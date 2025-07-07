@@ -10,6 +10,10 @@ pkg.repository = {
   type: 'git',
   url: 'git+https://github.com/KMA-TTCS-Nhom32/hotel-server.git',
 };
+pkg.scripts = {
+  "prepare": "npm run build",
+  "build": "tsc && tsc -p tsconfig.esm.json"
+};
 pkg.files = Array.from(new Set([...(pkg.files || []), "dist", "README.md"]));
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
