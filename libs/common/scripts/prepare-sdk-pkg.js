@@ -14,6 +14,9 @@ pkg.scripts = {
   "prepare": "npm run build",
   "build": "tsc && tsc -p tsconfig.esm.json"
 };
+pkg.main = 'dist/index.js';
+pkg.typings = 'dist/index.d.ts';
+pkg.module = 'dist/esm/index.js';
 pkg.files = Array.from(new Set([...(pkg.files || []), "dist", "README.md"]));
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 
