@@ -28,3 +28,8 @@ const ignoreList = ['node_modules', '.npmrc'];
     fs.appendFileSync(path, '\n' + newEntries.join('\n'));
   }
 });
+
+// add dist to .gitignore
+if (!fs.readFileSync(gitignorePath, 'utf8').includes('dist')) {
+  fs.appendFileSync(gitignorePath, '\ndist');
+}

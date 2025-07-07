@@ -13,8 +13,8 @@
         "gitRepoId": "node-sdk",
         "verbose": false,
         "globalProperty": {
-          "apiDocs": false,
-          "modelDocs": false
+          "apiDocs": true,
+          "modelDocs": true
         },
         "additionalProperties": {
           "npmName": "@ahomevilla-hotel/node-sdk",
