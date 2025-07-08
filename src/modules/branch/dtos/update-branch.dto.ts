@@ -20,17 +20,9 @@ export class UpdateBranchDto extends PartialType(CreateBranchDto) {
   })
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true }) // Add 'each: true' to validate each item in the array
+  @ValidateNested({ each: true })
   @Type(() => NearBy)
   nearBy?: NearBy[];
-  
-  // Add a method to handle the transformation of nearBy
-  setNearBy(data: any[]) {
-    if (Array.isArray(data)) {
-      this.nearBy = data.map(item => new NearBy(item));
-    }
-    return this;
-  }
 
   @ApiPropertyOptional({
     type: [BranchTranslationDto],

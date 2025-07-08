@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  Logger,
 } from '@nestjs/common';
 import { 
   ApiTags, 
@@ -44,6 +45,7 @@ import {
 @ApiExtraModels(QueryBranchesDto, FilterBranchesDto, SortBranchDto)
 @Controller('branches')
 export class BranchController {
+  private readonly logger = new Logger(BranchController.name);
   constructor(private readonly branchService: BranchService) {}
 
   @UseGuards(RolesGuard)
@@ -141,6 +143,7 @@ export class BranchController {
     description: 'Unauthorized.',
   })
   async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto) {
+    this.logger.log(`Updating branch with ID: ${id}`, `nearBy: ${JSON.stringify(updateBranchDto.nearBy)}`);
     return this.branchService.update(id, updateBranchDto);
   }
 
