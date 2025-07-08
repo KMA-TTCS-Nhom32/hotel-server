@@ -232,6 +232,11 @@ export class BranchService extends BaseService {
 
   private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
     this.logger.log('Preparing update data', updateBranchDto);
+    
+    // Create a shallow copy of the update DTO
+    const baseUpdateData = { ...updateBranchDto };
+    
+    // Build the updateData object without spreading the full DTO
     const updateData = {
       ...(updateBranchDto.thumbnail && {
         thumbnail: this.formatImage(updateBranchDto.thumbnail),
@@ -242,20 +247,31 @@ export class BranchService extends BaseService {
       ...(updateBranchDto.amenityIds && {
         amenities: { set: updateBranchDto.amenityIds.map((id) => ({ id })) },
       }),
-      ...(updateBranchDto.nearBy && {
-        nearBy: updateBranchDto.nearBy,
-      }),
       ...(updateBranchDto.provinceId && {
         province: { connect: { id: updateBranchDto.provinceId } },
       }),
-      ...updateBranchDto,
     };
-
-    delete updateData.amenityIds;
-    delete updateData.provinceId;
-    delete updateData.translations; // Remove translations from main update data
-
-    return updateData as any;
+    
+    // Add other properties from the DTO
+    for (const [key, value] of Object.entries(baseUpdateData)) {
+      if (!['thumbnail', 'images', 'amenityIds', 'provinceId', 'translations'].includes(key)) {
+        updateData[key] = value;
+      }
+    }
+    
+    // Handle nearBy separately to ensure proper structure
+    if (updateBranchDto.nearBy && Array.isArray(updateBranchDto.nearBy)) {
+      this.logger.log('Processing nearBy data:', JSON.stringify(updateBranchDto.nearBy));
+      updateData['nearBy'] = updateBranchDto.nearBy.map(item => ({
+        name: item.name || '',
+        distance: item.distance || ''
+      }));
+    }
+    
+    // For debugging
+    this.logger.log('Final update data object:', JSON.stringify(updateData, null, 2));
+    
+    return updateData;
   }
 
   async update(id: string, updateBranchDto: UpdateBranchDto) {
@@ -285,7 +301,7 @@ export class BranchService extends BaseService {
 
         // 2. Prepare update data
         const updateData = this.prepareUpdateData(updateBranchDto);
-        this.logger.log('Update data prepared', updateData);
+        this.logger.log('Update data prepared', JSON.stringify(updateData, null, 2));
         
         // 3. Update branch with new data
         if (Object.keys(updateData).length > 0) {
