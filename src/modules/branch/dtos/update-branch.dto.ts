@@ -2,7 +2,7 @@ import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { CreateBranchDto, BranchTranslationDto } from './create-branch.dto';
 import { NearBy } from '../models';
 import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 export class UpdateBranchDto extends PartialType(CreateBranchDto) {
   @ApiPropertyOptional({
@@ -22,12 +22,6 @@ export class UpdateBranchDto extends PartialType(CreateBranchDto) {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => NearBy)
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) {
-      return value.map(item => new NearBy(item));
-    }
-    return value;
-  }, { toClassOnly: true })
   nearBy?: NearBy[];
 
   @ApiPropertyOptional({

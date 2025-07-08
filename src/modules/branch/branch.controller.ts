@@ -26,9 +26,9 @@ import {
 import { Language } from '@prisma/client';
 import { PreferredLanguage } from '@/common/decorators';
 import { BranchService } from './branch.service';
-import { CreateBranchDto } from './dtos/create-branch.dto';
+import { BranchTranslationDto, CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
-import { Branch, BranchDetail } from './models';
+import { Branch, BranchDetail, NearBy } from './models';
 import { RolesGuard } from '../auth/guards';
 import { Public, Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
@@ -42,7 +42,7 @@ import {
 } from './dtos';
 
 @ApiTags('Branches')
-@ApiExtraModels(QueryBranchesDto, FilterBranchesDto, SortBranchDto)
+@ApiExtraModels(QueryBranchesDto, FilterBranchesDto, SortBranchDto, NearBy, BranchTranslationDto)
 @Controller('branches')
 export class BranchController {
   private readonly logger = new Logger(BranchController.name);

@@ -20,22 +20,6 @@ export class NearBy {
     description: 'Distance from the branch',
   })
   distance: string;
-  
-  // Add constructor to ensure properties are set properly
-  constructor(data?: Partial<NearBy>) {
-    if (data) {
-      this.name = data.name || '';
-      this.distance = data.distance || '';
-    }
-  }
-  
-  // Method to convert to plain object
-  toJSON() {
-    return {
-      name: this.name,
-      distance: this.distance
-    };
-  }
 }
 
 export class Branch extends AbstractModel {

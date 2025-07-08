@@ -282,8 +282,8 @@ export class BranchService extends BaseService {
     if (updateBranchDto.nearBy && Array.isArray(updateBranchDto.nearBy)) {
       this.logger.log('Processing nearBy data:', JSON.stringify(updateBranchDto.nearBy));
       updateData['nearBy'] = updateBranchDto.nearBy.map(item => ({
-        name: item.name || '',
-        distance: item.distance || ''
+        name: item.name || undefined,
+        distance: item.distance || undefined
       }));
     }
     
