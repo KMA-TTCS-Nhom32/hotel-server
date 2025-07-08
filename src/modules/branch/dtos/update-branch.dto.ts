@@ -19,9 +19,9 @@ export class UpdateBranchDto extends PartialType(CreateBranchDto) {
     description: 'Nearby locations',
   })
   @IsOptional()
+  @IsArray()
   @ValidateNested()
   @Type(() => NearBy)
-  @IsArray()
   nearBy?: NearBy[];
 
   @ApiPropertyOptional({

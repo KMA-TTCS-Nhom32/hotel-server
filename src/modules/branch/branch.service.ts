@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '@/database/database.service';
 import { BaseService } from '@/common/services/base.service';
@@ -23,6 +24,8 @@ import {
 
 @Injectable()
 export class BranchService extends BaseService {
+  private readonly logger = new Logger(BranchService.name);
+
   constructor(protected readonly databaseService: DatabaseService) {
     super(databaseService);
   }
@@ -179,10 +182,10 @@ export class BranchService extends BaseService {
   }
 
   async findByIdOrSlug(
-    identifier: string, 
+    identifier: string,
     preferredLanguage?: Language,
-    includeDeleted = false
-  ): Promise<Branch> {
+    includeDeleted = false,
+  ): Promise<BranchDetail> {
     try {
       const branch = await this.databaseService.hotelBranch.findFirst({
         where: this.mergeWithBaseWhere(
@@ -228,7 +231,7 @@ export class BranchService extends BaseService {
   }
 
   private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
-    console.log('nearBy', updateBranchDto.nearBy);
+    this.logger.log('Preparing update data', updateBranchDto);
     const updateData = {
       ...(updateBranchDto.thumbnail && {
         thumbnail: this.formatImage(updateBranchDto.thumbnail),
@@ -278,29 +281,38 @@ export class BranchService extends BaseService {
           );
         }
 
+        const isIncludeTranslations = updateBranchDto.translations?.length > 0;
+
         // 2. Prepare update data
         const updateData = this.prepareUpdateData(updateBranchDto);
-
-        // 3. Update branch
-        let updatedBranch = await prisma.hotelBranch.update({
-          where: { id },
-          data: updateData,
-          include: {
-            province: {
-              include: {
-                translations: true,
+        this.logger.log('Update data prepared', updateData);
+        
+        // 3. Update branch with new data
+        if (Object.keys(updateData).length > 0) {
+          const updated = await prisma.hotelBranch.update({
+            where: { id },
+            data: updateData,
+            include: {
+              province: {
+                include: {
+                  translations: true,
+                },
               },
+              amenities: true,
+              rooms: {
+                where: { isDeleted: false },
+              },
+              translations: true, // Include translations
             },
-            amenities: true,
-            rooms: {
-              where: { isDeleted: false },
-            },
-            translations: true, // Include translations
-          },
-        });
+          });
+
+          if (!isIncludeTranslations) {
+            return new BranchDetail(updated);
+          }
+        }
 
         // 4. Handle translations separately if provided
-        if (updateBranchDto.translations?.length > 0) {
+        if (isIncludeTranslations) {
           const currentTranslations = existingBranch.translations || [];
 
           for (const translation of updateBranchDto.translations) {
@@ -331,24 +343,24 @@ export class BranchService extends BaseService {
               });
             }
           }
-
-          // Fetch the updated branch with new translations
-          updatedBranch = await prisma.hotelBranch.findUnique({
-            where: { id },
-            include: {
-              province: {
-                include: {
-                  translations: true,
-                },
-              },
-              amenities: true,
-              rooms: {
-                where: { isDeleted: false },
-              },
-              translations: true,
-            },
-          });
         }
+
+        // Fetch the updated branch with new translations
+        const updatedBranch = await prisma.hotelBranch.findUnique({
+          where: { id },
+          include: {
+            province: {
+              include: {
+                translations: true,
+              },
+            },
+            amenities: true,
+            rooms: {
+              where: { isDeleted: false },
+            },
+            translations: true,
+          },
+        });
 
         return new BranchDetail(updatedBranch);
       });
