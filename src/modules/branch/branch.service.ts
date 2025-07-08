@@ -231,7 +231,26 @@ export class BranchService extends BaseService {
   }
 
   private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
-    this.logger.log('Preparing update data', updateBranchDto);
+    this.logger.log('Preparing update data - Raw DTO:', JSON.stringify(updateBranchDto, null, 2));
+    
+    // Log the nearBy data specifically to inspect its structure
+    if (updateBranchDto.nearBy) {
+      this.logger.log('Raw nearBy data:', JSON.stringify(updateBranchDto.nearBy, null, 2));
+      
+      // Check if the items have the expected properties
+      updateBranchDto.nearBy.forEach((item, index) => {
+        this.logger.log(`NearBy item ${index}:`, 
+          JSON.stringify({
+            name: item.name,
+            distance: item.distance,
+            constructor: item.constructor?.name,
+            prototype: Object.getPrototypeOf(item)?.constructor?.name,
+            hasOwnProperty_name: Object.prototype.hasOwnProperty.call(item, 'name'),
+            hasOwnProperty_distance: Object.prototype.hasOwnProperty.call(item, 'distance')
+          })
+        );
+      });
+    }
     
     // Create a shallow copy of the update DTO
     const baseUpdateData = { ...updateBranchDto };
