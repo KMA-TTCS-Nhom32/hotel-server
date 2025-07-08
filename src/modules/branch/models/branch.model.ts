@@ -7,18 +7,23 @@ import { RoomDetail } from '@/modules/room-detail/models';
 import { PrismaBranch, PrismaBranchDetail } from '../interfaces';
 import { Language } from '@prisma/client';
 import { getTranslation, getAvailableLanguages } from '@/common/utils/translation.util';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class NearBy {
   @ApiProperty({
     type: String,
     description: 'Name of the nearby location',
   })
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiProperty({
     type: String,
     description: 'Distance from the branch',
   })
+  @IsNotEmpty()
+  @IsString()
   distance: string;
 }
 
@@ -53,21 +58,21 @@ export class Branch extends AbstractModel {
     // with the preferred language but still keep all translations)
     if (preferredLanguage && processedTranslations.length > 0) {
       this.name = getTranslation<Branch>(
-        { ...this, translations: processedTranslations }, 
-        'name', 
-        preferredLanguage
+        { ...this, translations: processedTranslations },
+        'name',
+        preferredLanguage,
       );
-      
+
       this.description = getTranslation<Branch>(
-        { ...this, translations: processedTranslations }, 
-        'description', 
-        preferredLanguage
+        { ...this, translations: processedTranslations },
+        'description',
+        preferredLanguage,
       );
-      
+
       this.address = getTranslation<Branch>(
-        { ...this, translations: processedTranslations }, 
-        'address', 
-        preferredLanguage
+        { ...this, translations: processedTranslations },
+        'address',
+        preferredLanguage,
       );
     }
   }
@@ -175,7 +180,7 @@ export class Branch extends AbstractModel {
     address: string;
     nearBy: NearBy[];
   }[];
-  
+
   @ApiProperty({
     type: 'array',
     items: {

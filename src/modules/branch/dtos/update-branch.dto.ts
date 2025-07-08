@@ -17,11 +17,21 @@ export class UpdateBranchDto extends PartialType(CreateBranchDto) {
   @ApiPropertyOptional({
     type: [NearBy],
     description: 'Nearby locations',
+    examples: [
+      {
+        name: 'Central Park',
+        distance: '1.5 km',
+      },
+      {
+        name: 'City Mall',
+        distance: '2.0 km',
+      },
+    ],
   })
   @IsOptional()
-  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => NearBy)
+  @IsArray()
   nearBy?: NearBy[];
 
   @ApiPropertyOptional({
@@ -29,8 +39,8 @@ export class UpdateBranchDto extends PartialType(CreateBranchDto) {
     description: 'Translations for the branch',
   })
   @IsOptional()
-  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BranchTranslationDto)
+  @IsArray()
   translations?: BranchTranslationDto[];
 }
