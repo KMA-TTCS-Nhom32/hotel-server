@@ -51,9 +51,9 @@ export class BranchTranslationDto {
     description: 'Translated nearby locations information',
   })
   @IsOptional()
-  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => NearBy)
+  @IsArray()
   nearBy?: NearBy[];
 }
 

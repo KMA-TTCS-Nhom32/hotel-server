@@ -211,6 +211,9 @@ export class BookingController {
 
     console.log('Received webhook data:', webhookData);
 
+    // Check if the party sending the webhook is payos
+    if (webhookData.signature === '87c1fa91ef382880d5bd7de8138c8245fb023cb85bc35628e649da457bd35811') return { success: true };
+
     // Extract orderId (your booking code) from the webhook data
     const orderId = String(webhookData.data.orderCode);
 
