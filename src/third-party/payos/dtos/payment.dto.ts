@@ -1,7 +1,23 @@
-import { RoomDetail } from '@/modules/room-detail/models';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+
+export class PaymentItemDto {
+  @ApiProperty({ example: 'Deluxe Room' })
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @ApiProperty({ example: 1 })
+  @IsNotEmpty()
+  @IsNumber()
+  quantity: number;
+
+  @ApiProperty({ example: 500000 })
+  @IsNotEmpty()
+  @IsNumber()
+  price: number;
+}
 
 export class CreatePaymentRequestDto {
   @ApiProperty({ example: 'ORDER_123' })
@@ -49,10 +65,11 @@ export class CreatePaymentRequestDto {
   @IsString()
   buyerAddress?: string;
 
-  @ApiPropertyOptional({ type: [RoomDetail] })
+  @ApiPropertyOptional({ type: [PaymentItemDto] })
   @IsOptional()
-  @Type(() => RoomDetail)
-  items?: RoomDetail[];
+  @ValidateNested({ each: true })
+  @Type(() => PaymentItemDto)
+  items?: PaymentItemDto[];
 }
 
 export class CancelPaymentRequestDto {
