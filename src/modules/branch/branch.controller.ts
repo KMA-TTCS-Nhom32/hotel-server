@@ -147,10 +147,6 @@ export class BranchController {
     description: 'Unauthorized.',
   })
   async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto) {
-    this.logger.log(
-      `Updating branch with ID: ${id}`,
-      `nearBy: ${JSON.stringify(updateBranchDto.nearBy)}`,
-    );
     return this.branchService.update(id, updateBranchDto);
   }
 

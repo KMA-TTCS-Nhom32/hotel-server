@@ -7,7 +7,7 @@ import { RoomDetail } from '@/modules/room-detail/models';
 import { PrismaBranch, PrismaBranchDetail } from '../interfaces';
 import { Language } from '@prisma/client';
 import { getTranslation, getAvailableLanguages } from '@/common/utils/translation.util';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumberString } from 'class-validator';
 
 export class NearBy {
   @ApiProperty({
@@ -29,21 +29,21 @@ export class NearBy {
 
 export class Location {
   @ApiProperty({
-    type: Number,
+    type: String,
     description: 'Latitude of the location',
     example: '21.028511',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsNumberString()
   latitude: string;
 
   @ApiProperty({
-    type: Number,
+    type: String,
     description: 'Longitude of the location',
     example: '105.804817',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsNumberString()
   longitude: string;
 }
 
