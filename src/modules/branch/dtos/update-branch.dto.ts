@@ -17,7 +17,7 @@ export class UpdateBranchDto extends PartialType(CreateBranchDto) {
   @ApiPropertyOptional({
     type: [NearBy],
     description: 'Nearby locations',
-    examples: [
+    example: [
       {
         name: 'Central Park',
         distance: '1.5 km',
