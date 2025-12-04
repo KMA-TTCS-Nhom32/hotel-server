@@ -31,16 +31,20 @@ export class Location {
   @ApiProperty({
     type: Number,
     description: 'Latitude of the location',
-    example: 21.028511,
+    example: '21.028511',
   })
-  latitude: number;
+  @IsNotEmpty()
+  @IsString()
+  latitude: string;
 
   @ApiProperty({
     type: Number,
     description: 'Longitude of the location',
-    example: 105.804817,
+    example: '105.804817',
   })
-  longitude: number;
+  @IsNotEmpty()
+  @IsString()
+  longitude: string;
 }
 
 export class Branch extends AbstractModel {
