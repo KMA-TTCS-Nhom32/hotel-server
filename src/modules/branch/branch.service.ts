@@ -44,6 +44,9 @@ export class BranchService extends BaseService {
           ...createBranchDto,
           thumbnail: this.formatImage(createBranchDto.thumbnail),
           images: createBranchDto.images.map((img) => this.formatImage(img)),
+          location: createBranchDto.location
+            ? JSON.parse(JSON.stringify(createBranchDto.location))
+            : undefined,
           translations: {
             create:
               createBranchDto.translations?.map((translation) => ({
@@ -232,29 +235,30 @@ export class BranchService extends BaseService {
 
   private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
     this.logger.log('Preparing update data - Raw DTO:', JSON.stringify(updateBranchDto, null, 2));
-    
+
     // Log the nearBy data specifically to inspect its structure
     if (updateBranchDto.nearBy) {
       this.logger.log('Raw nearBy data:', JSON.stringify(updateBranchDto.nearBy, null, 2));
-      
+
       // Check if the items have the expected properties
       updateBranchDto.nearBy.forEach((item, index) => {
-        this.logger.log(`NearBy item ${index}:`, 
+        this.logger.log(
+          `NearBy item ${index}:`,
           JSON.stringify({
             name: item.name,
             distance: item.distance,
             constructor: item.constructor?.name,
             prototype: Object.getPrototypeOf(item)?.constructor?.name,
             hasOwnProperty_name: Object.prototype.hasOwnProperty.call(item, 'name'),
-            hasOwnProperty_distance: Object.prototype.hasOwnProperty.call(item, 'distance')
-          })
+            hasOwnProperty_distance: Object.prototype.hasOwnProperty.call(item, 'distance'),
+          }),
         );
       });
     }
-    
+
     // Create a shallow copy of the update DTO
     const baseUpdateData = { ...updateBranchDto };
-    
+
     // Build the updateData object without spreading the full DTO
     const updateData = {
       ...(updateBranchDto.thumbnail && {
@@ -269,27 +273,34 @@ export class BranchService extends BaseService {
       ...(updateBranchDto.provinceId && {
         province: { connect: { id: updateBranchDto.provinceId } },
       }),
+      ...(updateBranchDto.location && {
+        location: JSON.parse(JSON.stringify(updateBranchDto.location)),
+      }),
     };
-    
+
     // Add other properties from the DTO
     for (const [key, value] of Object.entries(baseUpdateData)) {
-      if (!['thumbnail', 'images', 'amenityIds', 'provinceId', 'translations'].includes(key)) {
+      if (
+        !['thumbnail', 'images', 'amenityIds', 'provinceId', 'translations', 'location'].includes(
+          key,
+        )
+      ) {
         updateData[key] = value;
       }
     }
-    
+
     // Handle nearBy separately to ensure proper structure
     if (updateBranchDto.nearBy && Array.isArray(updateBranchDto.nearBy)) {
       this.logger.log('Processing nearBy data:', JSON.stringify(updateBranchDto.nearBy));
-      updateData['nearBy'] = updateBranchDto.nearBy.map(item => ({
+      updateData['nearBy'] = updateBranchDto.nearBy.map((item) => ({
         name: item.name || undefined,
-        distance: item.distance || undefined
+        distance: item.distance || undefined,
       }));
     }
-    
+
     // For debugging
     this.logger.log('Final update data object:', JSON.stringify(updateData, null, 2));
-    
+
     return updateData;
   }
 
@@ -321,7 +332,7 @@ export class BranchService extends BaseService {
         // 2. Prepare update data
         const updateData = this.prepareUpdateData(updateBranchDto);
         this.logger.log('Update data prepared', JSON.stringify(updateData, null, 2));
-        
+
         // 3. Update branch with new data
         if (Object.keys(updateData).length > 0) {
           const updated = await prisma.hotelBranch.update({

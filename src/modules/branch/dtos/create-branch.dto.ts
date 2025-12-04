@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Language } from '@prisma/client';
-import { NearBy } from '../models';
+import { Location, NearBy } from '../models';
 
 export class BranchTranslationDto {
   @ApiProperty({
@@ -139,6 +139,16 @@ export class CreateBranchDto {
   @IsNotEmpty()
   @IsString()
   address: string;
+
+  @ApiPropertyOptional({
+    type: Location,
+    example: { latitude: 21.028511, longitude: 105.804817 },
+    description: "The branch's geographical location.",
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => Location)
+  location?: Location;
 
   @ApiProperty({
     example: 4.5,

@@ -10,25 +10,25 @@ import {
   Query,
   Logger,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiExtraModels, 
-  ApiHeader, 
-  ApiOkResponse, 
-  ApiCreatedResponse, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiExtraModels,
+  ApiHeader,
+  ApiOkResponse,
+  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
   ApiNotFoundResponse,
-  ApiConflictResponse
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { Language } from '@prisma/client';
 import { PreferredLanguage } from '@/common/decorators';
 import { BranchService } from './branch.service';
 import { BranchTranslationDto, CreateBranchDto } from './dtos/create-branch.dto';
 import { UpdateBranchDto } from './dtos/update-branch.dto';
-import { Branch, BranchDetail, NearBy } from './models';
+import { Branch, BranchDetail, Location, NearBy } from './models';
 import { RolesGuard } from '../auth/guards';
 import { Public, Roles } from '../auth/decorators';
 import { UserRole } from '@prisma/client';
@@ -42,7 +42,14 @@ import {
 } from './dtos';
 
 @ApiTags('Branches')
-@ApiExtraModels(QueryBranchesDto, FilterBranchesDto, SortBranchDto, NearBy, BranchTranslationDto)
+@ApiExtraModels(
+  QueryBranchesDto,
+  FilterBranchesDto,
+  SortBranchDto,
+  Location,
+  NearBy,
+  BranchTranslationDto,
+)
 @Controller('branches')
 export class BranchController {
   private readonly logger = new Logger(BranchController.name);
@@ -80,7 +87,7 @@ export class BranchController {
   })
   getLatestBranches(
     @Query() getLastestBranchesDto: GetLastestBranchesDto,
-    @PreferredLanguage() language: Language
+    @PreferredLanguage() language: Language,
   ) {
     return this.branchService.getLatestBranches(getLastestBranchesDto.limit, language);
   }
@@ -121,10 +128,7 @@ export class BranchController {
     description: 'Returns a branch',
     type: BranchDetail,
   })
-  findOne(
-    @Param('idOrSlug') idOrSlug: string,
-    @PreferredLanguage() language: Language
-  ) {
+  findOne(@Param('idOrSlug') idOrSlug: string, @PreferredLanguage() language: Language) {
     return this.branchService.findByIdOrSlug(idOrSlug, language);
   }
 
@@ -143,7 +147,10 @@ export class BranchController {
     description: 'Unauthorized.',
   })
   async update(@Param('id') id: string, @Body() updateBranchDto: UpdateBranchDto) {
-    this.logger.log(`Updating branch with ID: ${id}`, `nearBy: ${JSON.stringify(updateBranchDto.nearBy)}`);
+    this.logger.log(
+      `Updating branch with ID: ${id}`,
+      `nearBy: ${JSON.stringify(updateBranchDto.nearBy)}`,
+    );
     return this.branchService.update(id, updateBranchDto);
   }
 

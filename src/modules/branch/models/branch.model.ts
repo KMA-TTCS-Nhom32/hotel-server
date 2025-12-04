@@ -27,6 +27,22 @@ export class NearBy {
   distance: string;
 }
 
+export class Location {
+  @ApiProperty({
+    type: Number,
+    description: 'Latitude of the location',
+    example: 21.028511,
+  })
+  latitude: number;
+
+  @ApiProperty({
+    type: Number,
+    description: 'Longitude of the location',
+    example: 105.804817,
+  })
+  longitude: number;
+}
+
 export class Branch extends AbstractModel {
   constructor(data: Partial<PrismaBranch>, preferredLanguage?: Language) {
     super();
@@ -145,12 +161,12 @@ export class Branch extends AbstractModel {
   })
   address: string;
 
-  //   @ApiProperty({
-  //     type: Object,
-  //     example: { latitude: 10.762622, longitude: 106.660172 },
-  //     description: "Branch's geographical location",
-  //   })
-  //   location: { latitude: number; longitude: number };
+  @ApiPropertyOptional({
+    type: Location,
+    example: { latitude: 21.028511, longitude: 105.804817 },
+    description: "Branch's geographical location",
+  })
+  location?: Location;
 
   @ApiProperty({
     type: Number,
