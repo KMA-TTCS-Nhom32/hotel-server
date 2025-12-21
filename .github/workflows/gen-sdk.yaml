@@ -21,12 +21,12 @@ jobs:
       - name: ✅ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           
       - name: ✅ Setup PNPM
         uses: pnpm/action-setup@v3
         with:
-          version: '9.11.0'
+          version: 'latest'
 
       - name: 🧠 Get pnpm store path
         id: pnpm-cache
