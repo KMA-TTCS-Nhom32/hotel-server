@@ -17,5 +17,6 @@
     "auth",
     "database",
     "[generate-sdk] "
-  ]
+  ],
+  "prisma.pinToPrisma6": true
 }

@@ -17,12 +17,12 @@ export class CleanupService implements OnModuleInit {
   private readonly config = getCleanupConfig(this.configService);
 
   private readonly modelDependencyOrder = [
-    'booking',       // Delete bookings first
-    'review',        // Then reviews
-    'hotelRoom',     // Then rooms
-    'roomDetail',    // Then room details
-    'hotelBranch',   // Then branches
-    'province',      // Finally provinces
+    'booking', // Delete bookings first
+    'review', // Then reviews
+    'hotelRoom', // Then rooms
+    'roomDetail', // Then room details
+    'hotelBranch', // Then branches
+    'province', // Finally provinces
   ];
 
   onModuleInit() {
@@ -62,32 +62,35 @@ export class CleanupService implements OnModuleInit {
               where: {
                 isDeleted: true,
                 deletedAt: { lt: cutoffDate },
-                bookings: { none: { status: { in: ['PENDING', 'CHECKED_IN'] } } }
+                bookings: { none: { status: { in: ['PENDING', 'CHECKED_IN'] } } },
               },
             });
             results[model] = deleteResult.count;
-          }
-          else if (this.config.safetyChecks.preventDeleteWithActiveRooms && model === 'hotelBranch') {
+          } else if (
+            this.config.safetyChecks.preventDeleteWithActiveRooms &&
+            model === 'hotelBranch'
+          ) {
             const deleteResult = await prisma[model].deleteMany({
               where: {
                 isDeleted: true,
                 deletedAt: { lt: cutoffDate },
-                rooms: { none: { isDeleted: false } }
+                rooms: { none: { isDeleted: false } },
               },
             });
             results[model] = deleteResult.count;
-          }
-          else if (this.config.safetyChecks.preventDeleteWithActiveBranches && model === 'province') {
+          } else if (
+            this.config.safetyChecks.preventDeleteWithActiveBranches &&
+            model === 'province'
+          ) {
             const deleteResult = await prisma[model].deleteMany({
               where: {
                 isDeleted: true,
                 deletedAt: { lt: cutoffDate },
-                branches: { none: { isDeleted: false } }
+                branches: { none: { isDeleted: false } },
               },
             });
             results[model] = deleteResult.count;
-          }
-          else {
+          } else {
             // Default deletion without safety checks for other models
             const deleteResult = await prisma[model].deleteMany({
               where: {
