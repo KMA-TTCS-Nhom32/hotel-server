@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { compare } from 'bcrypt';
+import { compare } from 'bcryptjs';
 
 import { UsersService } from '@/modules/users/users.service';
 import { AuthErrorMessageEnum, CommonErrorMessagesEnum } from 'libs/common/enums';
