@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/sw
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { customSwaggerCss } from './common/utils/swagger.util';
+import { ExposedEnumsDto } from './common/dtos/exposed-enums.dto';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -42,7 +43,9 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  const document = SwaggerModule.createDocument(app, documentConfig, {});
+  const document = SwaggerModule.createDocument(app, documentConfig, {
+    extraModels: [ExposedEnumsDto],
+  });
 
   const swaggerCustomOptions: SwaggerCustomOptions = {
     customSiteTitle: 'AHomeVilla RESTful API documentations',
