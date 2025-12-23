@@ -47,11 +47,11 @@ export class RoomDetail extends AbstractModel {
   })
   branchId: string;
 
-  //   @ApiProperty({
-  //     type: () => Branch,
-  //     description: 'Branch where this room is located',
-  //   })
-  //   branch?: Branch;
+  @ApiProperty({
+    type: () => Branch,
+    description: 'Branch where this room is located',
+  })
+  branch?: Branch;
 
   @ApiProperty({ type: Image, description: "Hotel Room's thumbnail image" })
   thumbnail: Image;

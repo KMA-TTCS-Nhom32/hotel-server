@@ -12,7 +12,7 @@ export class VerificationService {
 
   async createVerification(userId: string, type: AccountIdentifier) {
     const code = this.generateOTP();
-    const expires_at = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
 
     // Delete any existing verification codes
     await this.databaseService.verification.deleteMany({
