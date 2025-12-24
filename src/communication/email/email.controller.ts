@@ -1,5 +1,11 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiOkResponse, ApiTooManyRequestsResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiTooManyRequestsResponse,
+  ApiServiceUnavailableResponse,
+} from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Public } from '@/modules/auth/decorators/public.decorator';
 import { EmailService } from './email.service';
@@ -11,6 +17,28 @@ import { ResponseWithMessage } from '@/common/models';
 @UseGuards(ThrottlerGuard)
 export class EmailController {
   constructor(private readonly emailService: EmailService) {}
+
+  @Get('health')
+  @Public()
+  @ApiOperation({ summary: 'Check email service health status' })
+  @ApiOkResponse({
+    description: 'Email service is healthy',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'healthy' },
+        smtp: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiServiceUnavailableResponse({ description: 'Email service is unhealthy' })
+  async checkHealth() {
+    const smtpHealthy = await this.emailService.isSmtpHealthy();
+    return {
+      status: smtpHealthy ? 'healthy' : 'unhealthy',
+      smtp: smtpHealthy,
+    };
+  }
 
   @Post('send-verification')
   @Public()

@@ -54,8 +54,28 @@ export class EmailService implements OnModuleInit {
       // Test queue connection
       await this.emailQueue.isReady();
       this.logger.log('Successfully connected to Redis Cloud');
+      // Verify SMTP connection
+      await this.transporter.verify();
+      this.logger.log('SMTP connection verified successfully');
     } catch (error) {
-      this.logger.error('Failed to connect to Redis Cloud:', error);
+      this.logger.error('Email module initialization error:', {
+        message: error.message,
+        code: error.code,
+      });
+    }
+  }
+
+  /**
+   * Checks if the SMTP connection is healthy
+   * @returns Promise<boolean> - true if SMTP is connected, false otherwise
+   */
+  async isSmtpHealthy(): Promise<boolean> {
+    try {
+      await this.transporter.verify();
+      return true;
+    } catch (error) {
+      this.logger.error('SMTP health check failed:', error.message);
+      return false;
     }
   }
 
@@ -123,11 +143,13 @@ export class EmailService implements OnModuleInit {
       this.logger.debug(`Email sent successfully to ${to}. MessageId: ${result.messageId}`);
       return true;
     } catch (error) {
-      this.logger.error('Error in sendVerificationEmail:', {
+      this.logger.error('Error in sendVerificationEmail:');
+      this.logger.error('Object:', {
         error: error.message,
-        stack: error.stack,
+        code: error.code,
+        command: error.command,
+        responseCode: error.responseCode,
         to,
-        code,
       });
       return false;
     }
