@@ -14,6 +14,13 @@ import { Branch, BranchDetail, NearBy } from './models';
 import { Image } from '@/modules/images/models';
 import { Language } from '@prisma/client';
 import { FilterBranchesDto, SortBranchDto } from './dtos/query-branches.dto';
+import {
+  CacheService,
+  CACHE_KEYS,
+  CACHE_TTL,
+  buildListCacheKey,
+  buildCacheKey,
+} from '@/common/cache';
 
 import {
   getPaginationParams,
@@ -26,8 +33,31 @@ import {
 export class BranchService extends BaseService {
   private readonly logger = new Logger(BranchService.name);
 
-  constructor(protected readonly databaseService: DatabaseService) {
+  constructor(
+    protected readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+  ) {
     super(databaseService);
+  }
+
+  /**
+   * Invalidates all branch-related cache entries.
+   */
+  private async invalidateBranchCache(branchId?: string): Promise<void> {
+    // Invalidate latest branches cache (all limit variations)
+    const keysToInvalidate = [
+      buildCacheKey(CACHE_KEYS.BRANCHES.LATEST, '3'),
+      buildCacheKey(CACHE_KEYS.BRANCHES.LATEST, '5'),
+      buildCacheKey(CACHE_KEYS.BRANCHES.LATEST, '10'),
+    ];
+
+    if (branchId) {
+      keysToInvalidate.push(buildCacheKey(CACHE_KEYS.BRANCHES.DETAIL, branchId));
+    }
+
+    await this.cacheService.invalidate(...keysToInvalidate);
+    // Also invalidate pattern-based keys for list queries
+    await this.cacheService.delByPattern(CACHE_KEYS.BRANCHES.ALL);
   }
 
   private formatImage(image: Image): Record<string, any> {
@@ -63,6 +93,9 @@ export class BranchService extends BaseService {
         },
       });
 
+      // Invalidate cache after creating a new branch
+      await this.invalidateBranchCache();
+
       return new Branch(branchData);
     } catch (error) {
       console.error('Create branch error:', error);
@@ -72,25 +105,34 @@ export class BranchService extends BaseService {
 
   async getLatestBranches(limit?: number, preferredLanguage?: Language) {
     try {
-      const branches = await this.databaseService.hotelBranch.findMany({
-        where: { is_active: true, isDeleted: false },
-        take: limit ?? 3,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          province: {
+      const actualLimit = limit ?? 3;
+      const cacheKey = buildCacheKey(CACHE_KEYS.BRANCHES.LATEST, String(actualLimit));
+
+      return await this.cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const branches = await this.databaseService.hotelBranch.findMany({
+            where: { is_active: true, isDeleted: false },
+            take: actualLimit,
+            orderBy: {
+              createdAt: 'desc',
+            },
             include: {
+              province: {
+                include: {
+                  translations: true,
+                },
+              },
               translations: true,
             },
-          },
-          translations: true,
-        },
-      });
+          });
 
-      return branches.map((branch) => new Branch(branch, preferredLanguage));
+          return branches.map((branch) => new Branch(branch, preferredLanguage));
+        },
+        CACHE_TTL.BRANCHES_LATEST,
+      );
     } catch (error) {
-      console.error('Get latest branches error:', error);
+      this.logger.error('Get latest branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
@@ -104,84 +146,124 @@ export class BranchService extends BaseService {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      const where = this.mergeWithBaseWhere(
-        {
-          ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
-          ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
-          ...(filterOptions?.provinceId ? { provinceId: filterOptions.provinceId } : {}),
-          ...(filterOptions?.keyword
-            ? {
-                OR: [
-                  { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                  { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                  { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                ],
-              }
-            : {}),
-          ...(filterOptions?.amenities?.length
-            ? {
-                amenities: {
-                  some: {
-                    slug: {
-                      in: filterOptions.amenities,
-                    },
-                  },
-                },
-              }
-            : {}),
-        },
-        includeDeleted,
-      );
-
-      if (filterOptions?.provinceSlug) {
-        where.province = {
-          slug: filterOptions.provinceSlug,
-        };
-      }
-
-      // Build sort conditions
-      const orderBy = sortOptions?.reduce(
-        (acc, { orderBy: field, order }) => ({
-          ...acc,
-          [field]: order.toLowerCase(),
-        }),
-        {},
-      );
-
-      const [branches, total] = await this.databaseService.$transaction([
-        this.databaseService.hotelBranch.findMany({
-          where,
-          skip,
-          take,
-          orderBy,
-          include: {
-            province: {
-              include: {
-                translations: true,
-              },
-            },
-            // amenities: true,
-            // rooms: {
-            //   select: {
-            //     id: true,
-            //   },
-            // },
-            translations: true, // Include translations
-          },
-        }),
-        this.databaseService.hotelBranch.count({ where }),
-      ]);
-
-      return createPaginatedResponse(
-        branches.map((branch) => new Branch(branch)),
-        total,
+      // Build cache key based on query parameters
+      const cacheKey = buildListCacheKey(CACHE_KEYS.BRANCHES.LIST, {
         page,
         pageSize,
+        filters: filterOptions,
+        sort: sortOptions,
+      });
+
+      // Try to get from cache first (only if not including deleted)
+      if (!includeDeleted) {
+        return await this.cacheService.getOrSet(
+          cacheKey,
+          () =>
+            this.fetchBranches(
+              skip,
+              take,
+              page,
+              pageSize,
+              filterOptions,
+              sortOptions,
+              includeDeleted,
+            ),
+          CACHE_TTL.BRANCHES_LIST,
+        );
+      }
+
+      return this.fetchBranches(
+        skip,
+        take,
+        page,
+        pageSize,
+        filterOptions,
+        sortOptions,
+        includeDeleted,
       );
     } catch (error) {
-      console.error('Find branches error:', error);
+      this.logger.error('Find branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
+  }
+
+  private async fetchBranches(
+    skip: number,
+    take: number,
+    page: number,
+    pageSize: number,
+    filterOptions?: FilterBranchesDto,
+    sortOptions?: SortBranchDto[],
+    includeDeleted = false,
+  ) {
+    const where = this.mergeWithBaseWhere(
+      {
+        ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
+        ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
+        ...(filterOptions?.provinceId ? { provinceId: filterOptions.provinceId } : {}),
+        ...(filterOptions?.keyword
+          ? {
+              OR: [
+                { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+        ...(filterOptions?.amenities?.length
+          ? {
+              amenities: {
+                some: {
+                  slug: {
+                    in: filterOptions.amenities,
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+      includeDeleted,
+    );
+
+    if (filterOptions?.provinceSlug) {
+      where.province = {
+        slug: filterOptions.provinceSlug,
+      };
+    }
+
+    // Build sort conditions
+    const orderBy = sortOptions?.reduce(
+      (acc, { orderBy: field, order }) => ({
+        ...acc,
+        [field]: order.toLowerCase(),
+      }),
+      {},
+    );
+
+    const [branches, total] = await this.databaseService.$transaction([
+      this.databaseService.hotelBranch.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        include: {
+          province: {
+            include: {
+              translations: true,
+            },
+          },
+          translations: true,
+        },
+      }),
+      this.databaseService.hotelBranch.count({ where }),
+    ]);
+
+    return createPaginatedResponse(
+      branches.map((branch) => new Branch(branch)),
+      total,
+      page,
+      pageSize,
+    );
   }
 
   async findByIdOrSlug(
@@ -190,47 +272,65 @@ export class BranchService extends BaseService {
     includeDeleted = false,
   ): Promise<BranchDetail> {
     try {
-      const branch = await this.databaseService.hotelBranch.findFirst({
-        where: this.mergeWithBaseWhere(
-          {
-            OR: [{ id: identifier }, { slug: identifier }],
-          },
-          includeDeleted,
-        ),
-        include: {
-          province: {
-            include: {
-              translations: true,
-            },
-          },
-          amenities: true,
-          rooms: {
-            where: { isDeleted: false },
-            include: {
-              amenities: true,
-              roomPriceHistories: true,
-            },
-          },
-          translations: true, // Include translations
-        },
-      });
+      const cacheKey = buildCacheKey(CACHE_KEYS.BRANCHES.DETAIL, identifier);
 
-      if (!branch) {
-        throw new HttpException(
-          {
-            status: HttpStatus.NOT_FOUND,
-            message: 'Branch not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
+      // Don't cache if including deleted
+      if (includeDeleted) {
+        return this.fetchBranchByIdOrSlug(identifier, preferredLanguage, includeDeleted);
       }
 
-      // Pass the preferred language to the constructor
-      return new BranchDetail(branch, preferredLanguage);
+      return await this.cacheService.getOrSet(
+        cacheKey,
+        () => this.fetchBranchByIdOrSlug(identifier, preferredLanguage, includeDeleted),
+        CACHE_TTL.BRANCH_DETAIL,
+      );
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
+  }
+
+  private async fetchBranchByIdOrSlug(
+    identifier: string,
+    preferredLanguage?: Language,
+    includeDeleted = false,
+  ): Promise<BranchDetail> {
+    const branch = await this.databaseService.hotelBranch.findFirst({
+      where: this.mergeWithBaseWhere(
+        {
+          OR: [{ id: identifier }, { slug: identifier }],
+        },
+        includeDeleted,
+      ),
+      include: {
+        province: {
+          include: {
+            translations: true,
+          },
+        },
+        amenities: true,
+        rooms: {
+          where: { isDeleted: false },
+          include: {
+            amenities: true,
+            roomPriceHistories: true,
+          },
+        },
+        translations: true,
+      },
+    });
+
+    if (!branch) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: 'Branch not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return new BranchDetail(branch, preferredLanguage);
   }
 
   private prepareUpdateData(updateBranchDto: UpdateBranchDto) {
@@ -387,6 +487,9 @@ export class BranchService extends BaseService {
           },
         });
 
+        // Invalidate cache after update
+        await this.invalidateBranchCache(id);
+
         return new BranchDetail(updatedBranch);
       });
     } catch (error) {
@@ -436,11 +539,15 @@ export class BranchService extends BaseService {
           );
         }
       });
+
+      // Invalidate cache after deletion
+      await this.invalidateBranchCache(id);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
+
   async restore(id: string): Promise<Branch> {
     try {
       const restoredBranch = await this.restoreDeleted('hotelBranch', id, {
@@ -452,6 +559,9 @@ export class BranchService extends BaseService {
         amenities: true,
         translations: true,
       });
+
+      // Invalidate cache after restoration
+      await this.invalidateBranchCache(id);
 
       return new Branch(restoredBranch);
     } catch (error) {
@@ -491,61 +601,77 @@ export class BranchService extends BaseService {
     try {
       const skip = (page - 1) * limit;
 
-      const where = this.mergeWithBaseWhere({
-        ...(filterOptions?.is_active !== undefined ? { is_active: filterOptions.is_active } : {}),
-        ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
-        ...(filterOptions?.keyword
-          ? {
-              OR: [
-                { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
-              ],
-            }
-          : {}),
+      // Build cache key based on query parameters
+      const cacheKey = buildListCacheKey(CACHE_KEYS.BRANCHES.INFINITE, {
+        page,
+        pageSize: limit,
+        filters: filterOptions,
+        sort: sortOptions,
       });
 
-      // Add amenities filter if provided
-      if (filterOptions?.amenities?.length) {
-        where.amenities = {
-          some: {
-            slug: {
-              in: filterOptions.amenities,
-            },
-          },
-        };
-      }
+      return await this.cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const where = this.mergeWithBaseWhere({
+            ...(filterOptions?.is_active !== undefined
+              ? { is_active: filterOptions.is_active }
+              : {}),
+            ...(filterOptions?.rating ? { rating: filterOptions.rating } : {}),
+            ...(filterOptions?.keyword
+              ? {
+                  OR: [
+                    { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                    { description: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                    { address: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                  ],
+                }
+              : {}),
+          });
 
-      // Build sort conditions
-      const orderBy = sortOptions?.reduce(
-        (acc, { orderBy: field, order }) => ({
-          ...acc,
-          [field]: order.toLowerCase(),
-        }),
-        {},
-      );
+          // Add amenities filter if provided
+          if (filterOptions?.amenities?.length) {
+            where.amenities = {
+              some: {
+                slug: {
+                  in: filterOptions.amenities,
+                },
+              },
+            };
+          }
 
-      const items = await this.databaseService.hotelBranch.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: {
-          amenities: true,
-          province: {
+          // Build sort conditions
+          const orderBy = sortOptions?.reduce(
+            (acc, { orderBy: field, order }) => ({
+              ...acc,
+              [field]: order.toLowerCase(),
+            }),
+            {},
+          );
+
+          const items = await this.databaseService.hotelBranch.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy,
             include: {
+              amenities: true,
+              province: {
+                include: {
+                  translations: true,
+                },
+              },
               translations: true,
             },
-          },
-          translations: true,
+          });
+
+          const branches = items.map((branch) => new Branch(branch));
+
+          return createInfinityPaginationResponse(branches, { page, limit });
         },
-      });
-
-      const branches = items.map((branch) => new Branch(branch));
-
-      return createInfinityPaginationResponse(branches, { page, limit });
+        CACHE_TTL.BRANCHES_INFINITE,
+      );
     } catch (error) {
-      console.error('Find infinite branches error:', error);
+      this.logger.error('Find infinite branches error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

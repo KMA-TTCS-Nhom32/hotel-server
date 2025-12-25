@@ -24,6 +24,7 @@ import { EmailModule } from './communication/email/email.module';
 import { LanguageInterceptor } from './common/interceptors/language.interceptor';
 
 import { getBullConfig } from './config';
+import { CacheModule } from './common/cache';
 import { ProvincesModule } from './modules/provinces/provinces.module';
 import { RoomDetailModule } from './modules/room-detail/room-detail.module';
 import { RoomModule } from './modules/room/room.module';
@@ -51,6 +52,7 @@ import { RoomPromotionModule } from './modules/room-promotion/room-promotion.mod
       useFactory: getBullConfig,
       inject: [ConfigService],
     }),
+    CacheModule,
     DatabaseModule,
     CloudinaryModule,
     AuthModule,

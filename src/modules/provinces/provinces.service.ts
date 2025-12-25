@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '@/database/database.service';
 import { CreateProvinceDto, UpdateProvinceDto } from './dtos/create-update-province.dto';
@@ -11,12 +12,38 @@ import { Province } from './models';
 import { FilterProvincesDto, SortProvinceDto } from './dtos/query-provinces.dto';
 import { getPaginationParams, createPaginatedResponse, PaginationParams } from 'libs/common/utils';
 import { BaseService } from '@/common/services/base.service';
-import { PrismaProvince } from './interfaces';
+import {
+  CacheService,
+  CACHE_KEYS,
+  CACHE_TTL,
+  buildListCacheKey,
+  buildCacheKey,
+} from '@/common/cache';
 
 @Injectable()
 export class ProvincesService extends BaseService {
-  constructor(protected readonly databaseService: DatabaseService) {
+  private readonly logger = new Logger(ProvincesService.name);
+
+  constructor(
+    protected readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+  ) {
     super(databaseService);
+  }
+
+  /**
+   * Invalidates all province-related cache entries.
+   */
+  private async invalidateProvinceCache(provinceId?: string): Promise<void> {
+    const keysToInvalidate = [buildCacheKey(CACHE_KEYS.PROVINCES.LIST, 'all')];
+
+    if (provinceId) {
+      keysToInvalidate.push(buildCacheKey(CACHE_KEYS.PROVINCES.DETAIL, provinceId));
+    }
+
+    await this.cacheService.invalidate(...keysToInvalidate);
+    // Also invalidate pattern-based keys for list queries
+    await this.cacheService.delByPattern(CACHE_KEYS.PROVINCES.ALL);
   }
 
   private async validateUniqueFields(
@@ -88,6 +115,9 @@ export class ProvincesService extends BaseService {
         },
       });
 
+      // Invalidate cache after creating a new province
+      await this.invalidateProvinceCache();
+
       return new Province(province);
     } catch (error) {
       console.error('Create province error details:', error);
@@ -132,77 +162,107 @@ export class ProvincesService extends BaseService {
     try {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
-      const where = this.mergeWithBaseWhere(
-        filterOptions?.keyword
-          ? {
-              OR: [
-                { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
-                { zip_code: { contains: filterOptions.keyword } },
-              ],
-            }
-          : {},
-        includeDeleted,
-      );
-
-      const orderBy = sortOptions?.reduce(
-        (acc, { orderBy: field, order }) => ({
-          ...acc,
-          [field]: order.toLowerCase(),
-        }),
-        {},
-      );
-
-      const [provinces, total] = await this.databaseService.$transaction([
-        this.databaseService.province.findMany({
-          where,
-          skip,
-          take,
-          orderBy,
-          include: {
-            _count: true,
-            translations: true, // Include translations
-          },
-        }),
-        this.databaseService.province.count({ where }),
-      ]);
-
-      return createPaginatedResponse(
-        provinces.map((province) => new Province(province)),
-        total,
+      // Build cache key based on query parameters
+      const cacheKey = buildListCacheKey(CACHE_KEYS.PROVINCES.LIST, {
         page,
         pageSize,
+        filters: filterOptions,
+        sort: sortOptions,
+      });
+
+      // Try to get from cache first
+      return await this.cacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const where = this.mergeWithBaseWhere(
+            filterOptions?.keyword
+              ? {
+                  OR: [
+                    { name: { contains: filterOptions.keyword, mode: 'insensitive' } },
+                    { zip_code: { contains: filterOptions.keyword } },
+                  ],
+                }
+              : {},
+            includeDeleted,
+          );
+
+          const orderBy = sortOptions?.reduce(
+            (acc, { orderBy: field, order }) => ({
+              ...acc,
+              [field]: order.toLowerCase(),
+            }),
+            {},
+          );
+
+          const [provinces, total] = await this.databaseService.$transaction([
+            this.databaseService.province.findMany({
+              where,
+              skip,
+              take,
+              orderBy,
+              include: {
+                _count: true,
+                translations: true,
+              },
+            }),
+            this.databaseService.province.count({ where }),
+          ]);
+
+          return createPaginatedResponse(
+            provinces.map((province) => new Province(province)),
+            total,
+            page,
+            pageSize,
+          );
+        },
+        CACHE_TTL.PROVINCES_LIST,
       );
     } catch (error) {
-      console.error('Find provinces error:', error);
+      this.logger.error('Find provinces error:', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
 
   async findById(id: string, includeDeleted = false): Promise<Province> {
     try {
-      const province = await this.databaseService.province.findFirst({
-        where: this.mergeWithBaseWhere({ id }, includeDeleted),
-        include: {
-          _count: true,
-          translations: true, // Include translations
-        },
-      });
+      const cacheKey = buildCacheKey(CACHE_KEYS.PROVINCES.DETAIL, id);
 
-      if (!province) {
-        throw new HttpException(
-          {
-            status: HttpStatus.NOT_FOUND,
-            message: 'Province not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
+      // Don't cache if including deleted
+      if (includeDeleted) {
+        return this.fetchProvinceById(id, includeDeleted);
       }
 
-      return new Province(province);
+      return await this.cacheService.getOrSet(
+        cacheKey,
+        () => this.fetchProvinceById(id, includeDeleted),
+        CACHE_TTL.PROVINCE_DETAIL,
+      );
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
+  }
+
+  private async fetchProvinceById(id: string, includeDeleted: boolean): Promise<Province> {
+    const province = await this.databaseService.province.findFirst({
+      where: this.mergeWithBaseWhere({ id }, includeDeleted),
+      include: {
+        _count: true,
+        translations: true,
+      },
+    });
+
+    if (!province) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          message: 'Province not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return new Province(province);
   }
 
   async update(id: string, updateProvinceDto: UpdateProvinceDto): Promise<Province> {
@@ -262,6 +322,9 @@ export class ProvincesService extends BaseService {
         });
       }
 
+      // Invalidate cache after updating
+      await this.invalidateProvinceCache(id);
+
       return new Province(updatedProvince);
     } catch (error) {
       console.error('Update province error:', error);
@@ -315,6 +378,9 @@ export class ProvincesService extends BaseService {
           );
         }
       });
+
+      // Invalidate cache after deletion
+      await this.invalidateProvinceCache(id);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
@@ -324,6 +390,9 @@ export class ProvincesService extends BaseService {
   async restore(id: string): Promise<Province> {
     try {
       await this.restoreDeleted<Province>('province', id);
+
+      // Invalidate cache after restoration
+      await this.invalidateProvinceCache(id);
 
       // Fetch the complete province with translations after restoration
       return this.findById(id, false);
