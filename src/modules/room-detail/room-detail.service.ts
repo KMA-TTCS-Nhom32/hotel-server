@@ -19,6 +19,10 @@ import {
 import { Image } from '../images/models';
 import { BaseService } from '@/common/services';
 import { parseDate } from 'libs/common/utils/date.util';
+import { BookingStatus, HotelRoomStatus } from '@prisma/client';
+
+/** Represents a map of detailId to Set of booked roomIds */
+type BookedRoomsByDetailMap = Map<string, Set<string>>;
 
 @Injectable()
 export class RoomDetailService extends BaseService {
@@ -35,22 +39,239 @@ export class RoomDetailService extends BaseService {
     };
   }
 
-  //   private async checkAvailableForBooking(detailId: string) {
-  //     let isAvailable = false;
+  /**
+   * Fetches overlapping bookings for the given time range and returns a map of detailId -> Set of booked roomIds.
+   * This is the core of the 2-query optimization approach.
+   */
+  private async getOverlappingBookedRoomIds(
+    startDate: string,
+    endDate: string,
+    startTime: string,
+    endTime: string,
+  ): Promise<BookedRoomsByDetailMap> {
+    const parsedStartDate = parseDate(startDate);
+    const parsedEndDate = parseDate(endDate);
 
-  //     const availableRoom = await this.databaseService.hotelRoom.findFirst({
-  //       where: {
-  //         detailId,
-  //         status: 'AVAILABLE',
-  //       },
-  //     });
+    const overlappingBookings = await this.databaseService.booking.findMany({
+      where: {
+        status: {
+          in: [BookingStatus.PENDING, BookingStatus.WAITING_FOR_CHECK_IN, BookingStatus.CHECKED_IN],
+        },
+        isDeleted: false,
+        OR: [
+          // Date range overlap: booking dates overlap with search dates
+          {
+            AND: [{ start_date: { lte: parsedEndDate } }, { end_date: { gte: parsedStartDate } }],
+          },
+        ],
+      },
+      select: {
+        roomId: true,
+        start_date: true,
+        end_date: true,
+        start_time: true,
+        end_time: true,
+        room: {
+          select: {
+            detailId: true,
+          },
+        },
+      },
+    });
 
-  //     if (availableRoom) {
-  //       isAvailable = true;
-  //     }
+    // Filter bookings that actually overlap with the requested time slot
+    const bookedRoomsByDetail: BookedRoomsByDetailMap = new Map();
 
-  //     return isAvailable;
-  //   }
+    for (const booking of overlappingBookings) {
+      const bookingStartDate = booking.start_date;
+      const bookingEndDate = booking.end_date;
+
+      // Check if there's actual time overlap
+      const hasTimeOverlap = this.checkTimeOverlap(
+        parsedStartDate,
+        parsedEndDate,
+        startTime,
+        endTime,
+        bookingStartDate,
+        bookingEndDate,
+        booking.start_time,
+        booking.end_time,
+      );
+
+      if (hasTimeOverlap) {
+        const detailId = booking.room.detailId;
+        if (!bookedRoomsByDetail.has(detailId)) {
+          bookedRoomsByDetail.set(detailId, new Set());
+        }
+        bookedRoomsByDetail.get(detailId).add(booking.roomId);
+      }
+    }
+
+    return bookedRoomsByDetail;
+  }
+
+  /**
+   * Checks if two booking time ranges overlap.
+   * Handles the complex logic of date + time overlap checking.
+   */
+  private checkTimeOverlap(
+    searchStartDate: Date,
+    searchEndDate: Date,
+    searchStartTime: string,
+    searchEndTime: string,
+    bookingStartDate: Date,
+    bookingEndDate: Date,
+    bookingStartTime: string,
+    bookingEndTime: string,
+  ): boolean {
+    // Normalize dates to compare just the date part
+    const searchStart = searchStartDate.getTime();
+    const searchEnd = searchEndDate.getTime();
+    const bookingStart = bookingStartDate.getTime();
+    const bookingEnd = bookingEndDate.getTime();
+
+    // No date overlap at all
+    if (bookingEnd < searchStart || bookingStart > searchEnd) {
+      return false;
+    }
+
+    // If dates span multiple days, there's definitely overlap in middle days
+    if (bookingStart < searchStart && bookingEnd > searchEnd) {
+      return true;
+    }
+
+    // Same day booking - need to check time overlap
+    if (bookingStart === searchStart && bookingEnd === searchEnd && searchStart === searchEnd) {
+      // Both are same single day - check time overlap
+      // Times are in HH:mm format
+      return !(bookingEndTime <= searchStartTime || bookingStartTime >= searchEndTime);
+    }
+
+    // Partial date overlap - check edge cases
+    // If booking ends on search start date, check if booking end time > search start time
+    if (bookingEnd === searchStart && bookingStart < searchStart) {
+      return bookingEndTime > searchStartTime;
+    }
+
+    // If booking starts on search end date, check if booking start time < search end time
+    if (bookingStart === searchEnd && bookingEnd > searchEnd) {
+      return bookingStartTime < searchEndTime;
+    }
+
+    // If search ends on booking start date
+    if (searchEnd === bookingStart && searchStart < bookingStart) {
+      return searchEndTime > bookingStartTime;
+    }
+
+    // If search starts on booking end date
+    if (searchStart === bookingEnd && searchEnd > bookingEnd) {
+      return searchStartTime < bookingEndTime;
+    }
+
+    // For other overlapping cases (middle days), there's overlap
+    return true;
+  }
+
+  /**
+   * Calculates available rooms count for a room detail based on overlapping bookings.
+   */
+  private calculateAvailableRoomsCount(
+    flatRooms: Array<{ id: string; status: HotelRoomStatus; isDeleted: boolean }>,
+    bookedRoomIds: Set<string> | undefined,
+  ): number {
+    // Get rooms that are eligible (not deleted, not in maintenance)
+    const eligibleRooms = flatRooms.filter(
+      (room) => !room.isDeleted && room.status !== HotelRoomStatus.MAINTENANCE,
+    );
+
+    if (!bookedRoomIds || bookedRoomIds.size === 0) {
+      return eligibleRooms.length;
+    }
+
+    // Count rooms that are not in the booked set
+    return eligibleRooms.filter((room) => !bookedRoomIds.has(room.id)).length;
+  }
+
+  /**
+   * Common include options for room detail queries with availability calculation.
+   */
+  private readonly roomDetailWithAvailabilityInclude = {
+    amenities: true,
+    branch: true,
+    translations: true,
+    flat_rooms: {
+      where: { isDeleted: false },
+      select: {
+        id: true,
+        status: true,
+        isDeleted: true,
+      },
+    },
+  } as const;
+
+  /**
+   * Processes room details to calculate availability and filter out fully booked ones.
+   * This is the common logic shared between findMany and findManyInfinite.
+   */
+  private processRoomDetailsWithAvailability(
+    roomDetails: Array<any>,
+    bookedRoomsByDetail: BookedRoomsByDetailMap,
+    hasTimeFilter: boolean,
+  ): RoomDetail[] {
+    return roomDetails
+      .map((roomDetail) => {
+        const bookedRoomIds = bookedRoomsByDetail.get(roomDetail.id);
+        const availableRoomsCount = this.calculateAvailableRoomsCount(
+          roomDetail.flat_rooms,
+          bookedRoomIds,
+        );
+
+        // Destructure flat_rooms as it's only used for availability calculation
+        const { flat_rooms, ...roomDetailData } = roomDetail;
+
+        return {
+          roomDetailData,
+          availableRoomsCount,
+        };
+      })
+      .filter(({ availableRoomsCount }) => {
+        // If time filter is provided, only return room types with available rooms
+        return !hasTimeFilter || availableRoomsCount > 0;
+      })
+      .map(
+        ({ roomDetailData, availableRoomsCount }) =>
+          new RoomDetail(roomDetailData, {
+            availableRoomsCount: hasTimeFilter ? availableRoomsCount : undefined,
+          }),
+      );
+  }
+
+  /**
+   * Gets overlapping bookings map if time filter is provided, otherwise returns empty map.
+   */
+  private async getBookedRoomsMapIfNeeded(
+    filterOptions?: FilterRoomDetailDto,
+  ): Promise<{ bookedRoomsByDetail: BookedRoomsByDetailMap; hasTimeFilter: boolean }> {
+    const hasTimeFilter = !!(
+      filterOptions?.startDate &&
+      filterOptions?.endDate &&
+      filterOptions?.startTime &&
+      filterOptions?.endTime
+    );
+
+    if (!hasTimeFilter) {
+      return { bookedRoomsByDetail: new Map(), hasTimeFilter: false };
+    }
+
+    const bookedRoomsByDetail = await this.getOverlappingBookedRoomIds(
+      filterOptions.startDate,
+      filterOptions.endDate,
+      filterOptions.startTime,
+      filterOptions.endTime,
+    );
+
+    return { bookedRoomsByDetail, hasTimeFilter };
+  }
 
   private async checkSlugExisted(slug: string, branchId: string, id?: string) {
     const existedSlug = await this.databaseService.roomDetail.findFirst({
@@ -131,19 +352,17 @@ export class RoomDetailService extends BaseService {
       rating_to,
       maxPrice,
       minPrice,
-      startDate,
-      endDate,
-      startTime,
-      endTime,
       adults,
       children,
       bookingType,
     } = filterOptions;
 
-    let where: any = {
+    const where: any = {
+      // Ensure room detail has at least one active room
       flat_rooms: {
         some: {
           isDeleted: false,
+          status: { not: HotelRoomStatus.MAINTENANCE },
         },
       },
       ...(keyword && {
@@ -173,84 +392,20 @@ export class RoomDetailService extends BaseService {
       ...(minPrice &&
         maxPrice &&
         bookingType && {
-          // OR: [
-          //   { base_price_per_hour: { gte: minPrice } },
-          //   { base_price_per_night: { gte: minPrice } },
-          //   { base_price_per_day: { gte: minPrice } },
-          // ],
           ...(bookingType === 'HOURLY' && {
             base_price_per_hour: { gte: minPrice, lte: maxPrice },
           }),
           ...(bookingType === 'NIGHTLY' && {
-            // AND: [
-            //   { base_price_per_night: { gte: minPrice } },
-            //   { base_price_per_night: { lte: maxPrice } },
-            // ],
             base_price_per_night: { gte: minPrice, lte: maxPrice },
           }),
           ...(bookingType === 'DAILY' && {
-            // AND: [
-            //   { base_price_per_day: { gte: minPrice } },
-            //   { base_price_per_day: { lte: maxPrice } },
-            // ],
             base_price_per_day: { gte: minPrice, lte: maxPrice },
           }),
         }),
     };
 
-    if (startDate && endDate && startTime && endTime) {
-      where = {
-        ...where,
-        flat_rooms: {
-          some: {
-            isDeleted: false,
-            status: {
-              not: 'MAINTENANCE',
-            },
-            // At least one room should not have overlapping bookings
-            AND: [
-              {
-                bookings: {
-                  none: {
-                    AND: [
-                      {
-                        status: {
-                          in: ['PENDING', 'WAITING_FOR_CHECK_IN', 'CHECKED_IN'],
-                        },
-                      },
-                      {
-                        OR: [
-                          // Check date range overlap
-                          {
-                            AND: [
-                              { start_date: { lte: parseDate(endDate) } },
-                              { end_date: { gte: parseDate(startDate) } },
-                            ],
-                          },
-                          // Check same-day time overlap
-                          {
-                            AND: [
-                              { start_date: { equals: parseDate(startDate) } },
-                              { start_time: { lte: endTime } },
-                            ],
-                          },
-                          {
-                            AND: [
-                              { end_date: { equals: parseDate(endDate) } },
-                              { end_time: { gte: startTime } },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-            ],
-          },
-        },
-      };
-    }
+    // Note: Date/time filtering is now handled separately via getOverlappingBookedRoomIds
+    // and post-query filtering to calculate availableRoomsCount
 
     return this.mergeWithBaseWhere(where);
   }
@@ -274,32 +429,39 @@ export class RoomDetailService extends BaseService {
       const { skip, take, page, pageSize } = getPaginationParams(paginationOptions);
 
       const where = filterOptions ? this.prepareFilterOptions(filterOptions) : {};
-
       const orderBy = sortOptions ? this.prepareSortOptions(sortOptions) : {};
 
+      // Get overlapping bookings if time filter is provided
+      const { bookedRoomsByDetail, hasTimeFilter } =
+        await this.getBookedRoomsMapIfNeeded(filterOptions);
+
+      // Fetch room details with flat_rooms for availability calculation
       const [roomDetails, total] = await this.databaseService.$transaction([
         this.databaseService.roomDetail.findMany({
           where,
           skip,
           take,
           orderBy,
-          include: {
-            amenities: true,
-            branch: true,
-            translations: true,
-          },
+          include: this.roomDetailWithAvailabilityInclude,
         }),
         this.databaseService.roomDetail.count({ where }),
       ]);
 
+      // Process room details with availability calculation
+      const processedRoomDetails = this.processRoomDetailsWithAvailability(
+        roomDetails,
+        bookedRoomsByDetail,
+        hasTimeFilter,
+      );
+
       return createPaginatedResponse(
-        roomDetails.map((roomDetail) => new RoomDetail(roomDetail)),
-        total,
+        processedRoomDetails,
+        hasTimeFilter ? processedRoomDetails.length : total,
         page,
         pageSize,
       );
     } catch (error) {
-      console.error('Find room details error:', error);
+      this.logger.error('RoomDetailService -> findMany -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }
@@ -423,22 +585,26 @@ export class RoomDetailService extends BaseService {
             );
 
             if (existingTranslation) {
-              translationPromises.push(tx.roomDetailTranslation.update({
-                where: { id: existingTranslation.id },
-                data: {
-                  name: translation.name,
-                  description: translation.description,
-                },
-              }));
+              translationPromises.push(
+                tx.roomDetailTranslation.update({
+                  where: { id: existingTranslation.id },
+                  data: {
+                    name: translation.name,
+                    description: translation.description,
+                  },
+                }),
+              );
             } else {
-              translationPromises.push(tx.roomDetailTranslation.create({
-                data: {
-                  roomDetailId: id,
-                  language: translation.language,
-                  name: translation.name,
-                  description: translation.description,
-                },
-              }));
+              translationPromises.push(
+                tx.roomDetailTranslation.create({
+                  data: {
+                    roomDetailId: id,
+                    language: translation.language,
+                    name: translation.name,
+                    description: translation.description,
+                  },
+                }),
+              );
             }
           }
 
@@ -472,27 +638,31 @@ export class RoomDetailService extends BaseService {
       const skip = (page - 1) * limit;
 
       const where = filterOptions ? this.prepareFilterOptions(filterOptions) : {};
-
       const orderBy = sortOptions ? this.prepareSortOptions(sortOptions) : {};
 
+      // Get overlapping bookings if time filter is provided
+      const { bookedRoomsByDetail, hasTimeFilter } =
+        await this.getBookedRoomsMapIfNeeded(filterOptions);
+
+      // Fetch room details with flat_rooms for availability calculation
       const roomDetails = await this.databaseService.roomDetail.findMany({
         where,
         skip,
         take: limit,
         orderBy,
-        include: {
-          amenities: true,
-          branch: true,
-          translations: true,
-        },
+        include: this.roomDetailWithAvailabilityInclude,
       });
 
-      return createInfinityPaginationResponse<RoomDetail>(
-        roomDetails.map((roomDetail) => new RoomDetail(roomDetail)),
-        { page, limit },
+      // Process room details with availability calculation
+      const processedRoomDetails = this.processRoomDetailsWithAvailability(
+        roomDetails,
+        bookedRoomsByDetail,
+        hasTimeFilter,
       );
+
+      return createInfinityPaginationResponse<RoomDetail>(processedRoomDetails, { page, limit });
     } catch (error) {
-      console.error('Find room details error:', error);
+      this.logger.error('RoomDetailService -> findManyInfinite -> error', error);
       throw new InternalServerErrorException(CommonErrorMessagesEnum.RequestFailed);
     }
   }

@@ -7,13 +7,13 @@ import { Image } from '@/modules/images/models';
 import { Branch } from '@/modules/branch/models';
 import Decimal from 'decimal.js';
 import { RoomPriceHistory } from '@/modules/room-price-history/models.ts';
-import { PrismaRoomDetail } from '../interfaces';
+import { PrismaRoomDetail, RoomDetailConstructorOptions } from '../interfaces';
 
 export class RoomDetail extends AbstractModel {
-  constructor(data: Partial<PrismaRoomDetail>) {
+  constructor(data: Partial<PrismaRoomDetail>, options?: RoomDetailConstructorOptions) {
     super();
 
-    const { translations, amenities, roomPriceHistories, ...processedData } = data;
+    const { translations, amenities, roomPriceHistories, flat_rooms, ...processedData } = data;
 
     const processedTranslations =
       translations?.map((translation) => ({
@@ -27,6 +27,7 @@ export class RoomDetail extends AbstractModel {
       amenities: amenities?.map((amenity) => new Amenity(amenity)) || [],
       roomPriceHistories: roomPriceHistories?.map((history) => new RoomPriceHistory(history)) || [],
       translations: processedTranslations,
+      availableRoomsCount: options?.availableRoomsCount,
     });
   }
 
@@ -143,6 +144,14 @@ export class RoomDetail extends AbstractModel {
     description: 'Whether this room is available for booking',
   })
   is_available: boolean;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 3,
+    description:
+      'Number of rooms available for the requested time slot (only present when filtering by date/time)',
+  })
+  availableRoomsCount?: number;
 
   @ApiProperty({
     type: 'array',
