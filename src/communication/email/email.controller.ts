@@ -9,7 +9,7 @@ import {
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Public } from '@/modules/auth/decorators/public.decorator';
 import { EmailService } from './email.service';
-import { VerificationEmailDto } from './dtos';
+import { VerificationEmailDto, EmailHealthResponseDto } from './dtos';
 import { ResponseWithMessage } from '@/common/models';
 
 @ApiTags('Email')
@@ -22,17 +22,11 @@ export class EmailController {
   @Public()
   @ApiOperation({ summary: 'Check email service health status' })
   @ApiOkResponse({
-    description: 'Email service is healthy',
-    schema: {
-      type: 'object',
-      properties: {
-        status: { type: 'string', example: 'healthy' },
-        smtp: { type: 'boolean', example: true },
-      },
-    },
+    description: 'Email service health status',
+    type: EmailHealthResponseDto,
   })
   @ApiServiceUnavailableResponse({ description: 'Email service is unhealthy' })
-  async checkHealth() {
+  async checkHealth(): Promise<EmailHealthResponseDto> {
     const smtpHealthy = await this.emailService.isSmtpHealthy();
     return {
       status: smtpHealthy ? 'healthy' : 'unhealthy',
