@@ -210,13 +210,18 @@ export class RoomDetailService extends BaseService {
   } as const;
 
   /**
-   * Processes room details to calculate availability and filter out fully booked ones.
+   * Processes room details to calculate availability and optionally filter out fully booked ones.
    * This is the common logic shared between findMany and findManyInfinite.
+   * @param roomDetails - Raw room details from database
+   * @param bookedRoomsByDetail - Map of detailId to Set of booked roomIds
+   * @param hasTimeFilter - Whether time filter was provided
+   * @param excludeFullyBooked - When true, filters out room details with no available rooms
    */
   private processRoomDetailsWithAvailability(
     roomDetails: Array<any>,
     bookedRoomsByDetail: BookedRoomsByDetailMap,
     hasTimeFilter: boolean,
+    excludeFullyBooked: boolean = true,
   ): RoomDetail[] {
     return roomDetails
       .map((roomDetail) => {
@@ -235,8 +240,10 @@ export class RoomDetailService extends BaseService {
         };
       })
       .filter(({ availableRoomsCount }) => {
-        // If time filter is provided, only return room types with available rooms
-        return !hasTimeFilter || availableRoomsCount > 0;
+        // If time filter is provided and excludeFullyBooked is true, filter out fully booked rooms
+        if (!hasTimeFilter) return true;
+        if (!excludeFullyBooked) return true;
+        return availableRoomsCount > 0;
       })
       .map(
         ({ roomDetailData, availableRoomsCount }) =>
@@ -448,10 +455,12 @@ export class RoomDetailService extends BaseService {
       ]);
 
       // Process room details with availability calculation
+      const excludeFullyBooked = filterOptions?.excludeFullyBooked ?? true;
       const processedRoomDetails = this.processRoomDetailsWithAvailability(
         roomDetails,
         bookedRoomsByDetail,
         hasTimeFilter,
+        excludeFullyBooked,
       );
 
       return createPaginatedResponse(
@@ -654,10 +663,12 @@ export class RoomDetailService extends BaseService {
       });
 
       // Process room details with availability calculation
+      const excludeFullyBooked = filterOptions?.excludeFullyBooked ?? true;
       const processedRoomDetails = this.processRoomDetailsWithAvailability(
         roomDetails,
         bookedRoomsByDetail,
         hasTimeFilter,
+        excludeFullyBooked,
       );
 
       return createInfinityPaginationResponse<RoomDetail>(processedRoomDetails, { page, limit });

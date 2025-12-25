@@ -7,11 +7,12 @@ import {
   IsArray,
   IsDecimal,
   IsNumber,
+  IsBoolean,
 } from 'class-validator';
 import { HotelRoomType, HotelRoomBedType, BookingType } from '@prisma/client';
 import { QueryManyWithPaginationDto, SortDto } from '@/common/dtos';
 import { JsonTransform } from 'libs/common';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import Decimal from 'decimal.js';
 import { RoomDetail } from '../models';
 // import { IsDateFormat } from '@/common/decorators/is-date-format.decorator';
@@ -122,7 +123,7 @@ export class FilterRoomDetailDto {
   })
   @IsOptional()
   @IsString()
-//   @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
+  //   @IsDateFormat('DD-MM-YYYY', { message: 'startDate must be in format DD-MM-YYYY' })
   startDate?: string;
 
   @ApiPropertyOptional({
@@ -132,7 +133,7 @@ export class FilterRoomDetailDto {
   })
   @IsOptional()
   @IsString()
-//   @IsDateFormat('DD-MM-YYYY', { message: 'endDate must be in format DD-MM-YYYY' })
+  //   @IsDateFormat('DD-MM-YYYY', { message: 'endDate must be in format DD-MM-YYYY' })
   endDate?: string;
 
   @ApiPropertyOptional({
@@ -180,6 +181,18 @@ export class FilterRoomDetailDto {
   @IsOptional()
   @IsNumber()
   children?: number;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: true,
+    default: true,
+    description:
+      'When true (default), excludes room details with no available rooms. Set to false to include all room details (useful for branch detail screen where unavailable rooms are shown as disabled).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  excludeFullyBooked?: boolean = true;
 }
 
 export class SortRoomDetailDto extends SortDto<RoomDetail> {}
