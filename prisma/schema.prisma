@@ -17,7 +17,9 @@ datasource db {
 model User {
     id               String             @id @default(cuid())
     email            String?            @unique
+    email_hash       String?            @unique
     phone            String?            @unique
+    phone_hash       String?            @unique
     name             String
     avatar           Json?
     role             UserRole           @default(USER)
@@ -47,7 +49,7 @@ model User {
     blockHistory     UserBlockHistory[] @relation("BlockedUser")
     blockedByMe      UserBlockHistory[] @relation("BlockedBy")
 
-    @@unique([email, phone])
+    @@unique([email_hash, phone_hash])
 }
 
 enum AccountIdentifier {
