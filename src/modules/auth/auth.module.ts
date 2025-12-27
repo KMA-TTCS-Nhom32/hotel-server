@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
+  AccountLockoutService,
   CommonService,
   LoginService,
   RefreshTokenService,
@@ -53,7 +54,8 @@ import { EmailModule } from '@/communication/email/email.module';
     LoginService,
     RegisterService,
     RefreshTokenService,
+    AccountLockoutService,
   ],
-  exports: [AuthService],
+  exports: [AuthService, AccountLockoutService],
 })
 export class AuthModule {}

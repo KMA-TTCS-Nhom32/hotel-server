@@ -49,6 +49,7 @@
     "@openapitools/openapi-generator-cli": "^2.21.0",
     "@payos/node": "^1.0.10",
     "@prisma/client": "6.11.0",
+    "@types/sanitize-html": "^2.16.0",
     "bcryptjs": "^3.0.3",
     "bull": "^4.16.4",
     "cache-manager": "^7.2.7",
@@ -71,7 +72,9 @@
     "reflect-metadata": "0.2.2",
     "rimraf": "^5.0.0",
     "rxjs": "^7.8.1",
+    "sanitize-html": "^2.17.0",
     "socket.io": "^4.8.1",
+    "helmet": "^8.1.0",
     "uuid": "11.0.3"
   },
   "devDependencies": {
