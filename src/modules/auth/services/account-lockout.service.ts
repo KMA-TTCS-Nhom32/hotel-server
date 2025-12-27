@@ -1,5 +1,7 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import Redis from 'ioredis';
 
 /**
  * Configuration for account lockout
@@ -27,12 +29,55 @@ export interface LockoutStatus {
 /**
  * Service to manage account lockout after failed login attempts.
  * Uses Redis cache for temporary storage of lockout data.
+ * Implements atomic operations to prevent race conditions.
  */
 @Injectable()
-export class AccountLockoutService {
+export class AccountLockoutService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AccountLockoutService.name);
+  private redisClient: Redis | null = null;
 
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /**
+   * Initialize direct Redis connection for atomic operations
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      const isProduction = this.configService.get('NODE_ENV') === 'production';
+      const redisHost = isProduction
+        ? this.configService.get('REDIS_PROD_HOST')
+        : this.configService.get('REDIS_HOST');
+      const redisPort = isProduction
+        ? this.configService.get('REDIS_PROD_PORT')
+        : this.configService.get('REDIS_PORT');
+      const redisPassword = isProduction
+        ? this.configService.get('REDIS_PROD_PASSWORD')
+        : this.configService.get('REDIS_PASSWORD');
+
+      if (redisHost && redisPort) {
+        this.redisClient = new Redis({
+          host: redisHost,
+          port: parseInt(redisPort, 10),
+          password: redisPassword || undefined,
+          lazyConnect: true,
+          retryStrategy: (times) => Math.min(times * 50, 2000),
+        });
+
+        await this.redisClient.connect();
+        this.logger.log('Redis client connected for atomic lockout operations');
+      } else {
+        this.logger.warn(
+          'Redis not configured, using non-atomic fallback (not recommended for production)',
+        );
+      }
+    } catch (error) {
+      this.logger.error('Failed to connect Redis client for lockout service:', error);
+      this.redisClient = null;
+    }
+  }
 
   /**
    * Generates cache key for failed attempts counter
@@ -97,20 +142,27 @@ export class AccountLockoutService {
   }
 
   /**
-   * Records a failed login attempt and locks the account if threshold is reached
+   * Records a failed login attempt and locks the account if threshold is reached.
+   * Uses Redis INCR for atomic increment to prevent race conditions.
    * @param identifier - Email or phone number
    * @returns Updated lockout status
    */
   async recordFailedAttempt(identifier: string): Promise<LockoutStatus> {
     try {
       const failedAttemptsKey = this.getFailedAttemptsKey(identifier);
+      let newAttempts: number;
 
-      // Get current failed attempts
-      const currentAttempts = (await this.cache.get<number>(failedAttemptsKey)) ?? 0;
-      const newAttempts = currentAttempts + 1;
-
-      // Update failed attempts counter
-      await this.cache.set(failedAttemptsKey, newAttempts, LOCKOUT_CONFIG.ATTEMPT_WINDOW_MS);
+      if (this.redisClient) {
+        // Use atomic INCR operation to prevent race conditions
+        newAttempts = await this.atomicIncrement(failedAttemptsKey);
+      } else {
+        // Fallback for non-Redis environments (development/testing)
+        // WARNING: This has race condition vulnerability
+        this.logger.warn('Using non-atomic increment - race condition possible');
+        const currentAttempts = (await this.cache.get<number>(failedAttemptsKey)) ?? 0;
+        newAttempts = currentAttempts + 1;
+        await this.cache.set(failedAttemptsKey, newAttempts, LOCKOUT_CONFIG.ATTEMPT_WINDOW_MS);
+      }
 
       this.logger.warn(
         `Failed login attempt ${newAttempts}/${LOCKOUT_CONFIG.MAX_FAILED_ATTEMPTS} for ${identifier}`,
@@ -134,6 +186,27 @@ export class AccountLockoutService {
   }
 
   /**
+   * Atomically increments the failed attempts counter using Redis INCR.
+   * Sets TTL on first increment.
+   * @param key - Redis key for failed attempts
+   * @returns New counter value after increment
+   */
+  private async atomicIncrement(key: string): Promise<number> {
+    const ttlSeconds = Math.ceil(LOCKOUT_CONFIG.ATTEMPT_WINDOW_MS / 1000);
+
+    // Use Redis transaction for atomic increment with TTL
+    const results = await this.redisClient.multi().incr(key).expire(key, ttlSeconds).exec();
+
+    // Extract the INCR result (first command result)
+    const incrResult = results?.[0];
+    if (incrResult && incrResult[0] === null) {
+      return incrResult[1] as number;
+    }
+
+    throw new Error('Failed to execute atomic increment');
+  }
+
+  /**
    * Locks an account for the configured duration
    * @param identifier - Email or phone number
    */
@@ -152,7 +225,13 @@ export class AccountLockoutService {
       const failedAttemptsKey = this.getFailedAttemptsKey(identifier);
       const lockoutKey = this.getLockoutKey(identifier);
 
-      await Promise.all([this.cache.del(failedAttemptsKey), this.cache.del(lockoutKey)]);
+      if (this.redisClient) {
+        // Use Redis DEL for atomic deletion
+        await this.redisClient.del(failedAttemptsKey, lockoutKey);
+      } else {
+        // Fallback to cache manager
+        await Promise.all([this.cache.del(failedAttemptsKey), this.cache.del(lockoutKey)]);
+      }
 
       this.logger.debug(`Cleared lockout data for ${identifier}`);
     } catch (error) {
@@ -167,5 +246,15 @@ export class AccountLockoutService {
   async unlockAccount(identifier: string): Promise<void> {
     await this.clearLockout(identifier);
     this.logger.log(`Account manually unlocked: ${identifier}`);
+  }
+
+  /**
+   * Cleanup Redis connection on module destroy
+   */
+  async onModuleDestroy(): Promise<void> {
+    if (this.redisClient) {
+      await this.redisClient.quit();
+      this.logger.log('Redis client disconnected');
+    }
   }
 }

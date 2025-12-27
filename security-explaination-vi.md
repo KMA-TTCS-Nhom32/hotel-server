@@ -794,11 +794,6 @@ Hai cơ chế này **bổ trợ lẫn nhau**, tạo thành hệ thống phòng t
 
 ---
 
-Ok bro, tiếp tục nha 👊
-Dưới đây là **bản tiếng Việt đầy đủ cho Section 4 và Conclusion**, giữ **nguyên format Markdown**, thuật ngữ chuẩn, viết theo phong cách **báo cáo kỹ thuật / đồ án bảo mật**. Thầy cô đọc là thấy rõ tư duy hệ thống liền.
-
----
-
 ## 4. Đảm bảo an toàn dữ liệu trong quá trình truyền (Ensuring Data Security During Transmission)
 
 ### 4.1 Tại sao bảo mật dữ liệu khi truyền lại quan trọng?
