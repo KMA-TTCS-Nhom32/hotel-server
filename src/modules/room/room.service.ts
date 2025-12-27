@@ -108,7 +108,7 @@ export class RoomService extends BaseService {
   }
 
   private prepareFilterOptions(filterOptions: FilterHotelRoomDto) {
-    const { keyword, detailId, detailSlug, status } = filterOptions;
+    const { keyword, detailId, detailSlug, status, branchId, branchSlug } = filterOptions;
 
     const where: any = {
       ...(keyword && {
@@ -120,6 +120,8 @@ export class RoomService extends BaseService {
       ...(status && { status }),
       ...(detailId && { detailId }),
       ...(detailSlug && { detail: { slug: detailSlug } }),
+      ...(branchId && { detail: { branchId } }),
+      ...(branchSlug && { detail: { branch: { slug: branchSlug } } }),
       detail: { isDeleted: false },
     };
 

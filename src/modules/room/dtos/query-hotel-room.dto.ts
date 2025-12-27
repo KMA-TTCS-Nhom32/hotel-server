@@ -54,6 +54,24 @@ export class FilterHotelRoomDto {
   @IsOptional()
   @IsString()
   detailSlug?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'branchId',
+    description: 'Filter by branch ID',
+  })
+  @IsOptional()
+  @IsString()
+  branchId?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'branch-slug',
+    description: 'Filter by branch slug',
+  })
+  @IsOptional()
+  @IsString()
+  branchSlug?: string;
 }
 
 export class SortHotelRoomDto extends SortDto<HotelRoom> {}
