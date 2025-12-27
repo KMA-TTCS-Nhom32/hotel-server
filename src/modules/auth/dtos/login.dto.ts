@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MinLength, Matches } from 'class-validator';
 import { AuthErrorMessageEnum } from 'libs/common/enums';
+import { Sanitize } from '@/common/decorators';
 
 export class LoginDto {
   @ApiProperty({
@@ -8,6 +9,7 @@ export class LoginDto {
     description: "The user's email address or phone number.",
     type: String,
   })
+  @Sanitize()
   @IsString()
   @IsNotEmpty()
   @Matches(/^([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})$|^(\+?\d{10,12})$/, {

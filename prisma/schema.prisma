@@ -257,8 +257,8 @@ enum HotelRoomType {
 
 enum HotelRoomStatus {
     AVAILABLE
-    BOOKED
-    OCCUPIED
+    // BOOKED
+    // OCCUPIED
     MAINTENANCE
 }
 

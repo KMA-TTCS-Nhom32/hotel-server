@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ChangePasswordDto, LoginDto, UpdateProfileDto } from './dtos';
 import { TokenResponse } from './types';
 import {
+  AccountLockoutService,
   LoginService,
   RefreshTokenService,
   RegisterService,
@@ -29,23 +30,68 @@ export class AuthService {
     private readonly verificationService: VerificationService,
     private readonly databaseService: DatabaseService,
     private readonly commonService: CommonService,
+    private readonly accountLockoutService: AccountLockoutService,
   ) {}
 
   async authenticate(loginDto: LoginDto, ip?: string, device?: string) {
-    const user = await this.loginService.validateLogin(loginDto.emailOrPhone, loginDto.password);
+    const identifier = loginDto.emailOrPhone;
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.tokenService.generateAccessToken(user),
-      this.refreshTokenService.createRefreshToken(user.id, ip, device),
-    ]);
+    // Check if account is locked
+    const lockoutStatus = await this.accountLockoutService.getLockoutStatus(identifier);
+    if (lockoutStatus.isLocked) {
+      const remainingMinutes = Math.ceil(
+        (lockoutStatus.lockoutEndsAt.getTime() - Date.now()) / 60000,
+      );
+      throw new HttpException(
+        {
+          status: HttpStatus.TOO_MANY_REQUESTS,
+          message: `Account is temporarily locked due to too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+          lockoutEndsAt: lockoutStatus.lockoutEndsAt,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
-    const accessTokenExpires = this.tokenService.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED');
+    try {
+      const user = await this.loginService.validateLogin(loginDto.emailOrPhone, loginDto.password);
 
-    return {
-      accessToken,
-      accessTokenExpires,
-      refreshToken,
-    };
+      // Clear lockout on successful login
+      await this.accountLockoutService.clearLockout(identifier);
+
+      const [accessToken, refreshToken] = await Promise.all([
+        this.tokenService.generateAccessToken(user),
+        this.refreshTokenService.createRefreshToken(user.id, ip, device),
+      ]);
+
+      const accessTokenExpires = this.tokenService.getTokenExpiration('JWT_ACCESS_TOKEN_EXPIRED');
+
+      return {
+        accessToken,
+        accessTokenExpires,
+        refreshToken,
+      };
+    } catch (error) {
+      // Record failed attempt for wrong password errors
+      if (
+        error instanceof HttpException &&
+        error.getResponse()['message'] === AuthErrorMessageEnum.WrongUsernameOrPassword
+      ) {
+        const updatedStatus = await this.accountLockoutService.recordFailedAttempt(identifier);
+
+        // Add remaining attempts info to the error
+        const response = error.getResponse() as Record<string, any>;
+        throw new HttpException(
+          {
+            ...response,
+            remainingAttempts: updatedStatus.remainingAttempts,
+            isLocked: updatedStatus.isLocked,
+          },
+          error.getStatus(),
+        );
+      }
+
+      throw error;
+    }
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenResponse> {
