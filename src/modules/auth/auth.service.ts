@@ -29,7 +29,7 @@ export class AuthService {
     private readonly verificationService: VerificationService,
     private readonly databaseService: DatabaseService,
     private readonly commonService: CommonService,
-  ) {}
+  ) { }
 
   async authenticate(loginDto: LoginDto, ip?: string, device?: string) {
     const user = await this.loginService.validateLogin(loginDto.emailOrPhone, loginDto.password);
@@ -224,9 +224,24 @@ export class AuthService {
 
   async resetPasswordWithEmail(dto: ResetPasswordWithOTPEmailDto) {
     const user = await this.loginService.findUserOrThrow(dto.email, 'email');
+    console.log('[AuthService] resetPasswordWithEmail - Bắt đầu đặt lại mật khẩu cho:', { email: dto.email, userId: user.id });
 
     // Verify OTP
     await this.verificationService.verifyCode(user.id, dto.code, AccountIdentifier.EMAIL);
+    console.log('[AuthService] resetPasswordWithEmail - OTP hợp lệ');
+
+    // Check if new password is same as old password
+    const isSameAsOldPassword = await this.loginService.comparePassword(dto.newPassword, user.password);
+    if (isSameAsOldPassword) {
+      console.log('[AuthService] resetPasswordWithEmail - Lỗi: Mật khẩu mới trùng với mật khẩu cũ');
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: 'Mật khẩu mới không được trùng với mật khẩu cũ',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     // Update password
     const hashedPassword = await hashPassword(dto.newPassword);
@@ -234,13 +249,36 @@ export class AuthService {
       where: { id: user.id },
       data: { password: hashedPassword },
     });
+    console.log('[AuthService] resetPasswordWithEmail - Đã cập nhật mật khẩu mới');
 
     // Revoke all refresh tokens for security
     await this.refreshTokenService.revokeAllUserTokens(user.id);
+    console.log('[AuthService] resetPasswordWithEmail - Đã thu hồi tất cả token');
 
     return {
       success: true,
-      message: 'Password has been reset successfully',
+      message: 'Đặt lại mật khẩu thành công',
+    };
+  }
+
+  /**
+   * Verify OTP code for forgot password (without resetting yet)
+   * This allows for a separate verification step before password reset
+   */
+  async verifyForgotPasswordOTP(email: string, code: string) {
+    console.log('[AuthService] verifyForgotPasswordOTP called:', { email, code: code.substring(0, 2) + '****' });
+
+    const user = await this.loginService.findUserOrThrow(email, 'email');
+    console.log('[AuthService] User found for OTP verification:', { userId: user.id, email });
+
+    // Verify OTP without deleting (so it can be used for password reset)
+    const result = await this.verificationService.verifyCodeWithOutDelete(user.id, code, AccountIdentifier.EMAIL);
+    console.log('[AuthService] OTP verification result:', result);
+
+    return {
+      success: true,
+      message: 'OTP verified successfully',
+      userId: user.id,
     };
   }
 

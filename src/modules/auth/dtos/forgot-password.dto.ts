@@ -10,6 +10,25 @@ export class InitiateForgotPasswordEmailDto {
   email: string;
 }
 
+export class VerifyForgotPasswordOTPDto {
+  @ApiProperty({
+    description: 'Email address of the user',
+    example: 'user@example.com'
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    description: 'Six digit verification code sent to email',
+    example: '123456',
+    minLength: 6,
+    maxLength: 6
+  })
+  @IsString()
+  @Length(6, 6)
+  code: string;
+}
+
 export class ResetPasswordWithOTPEmailDto {
   @ApiProperty({
     description: 'Email address of the user',

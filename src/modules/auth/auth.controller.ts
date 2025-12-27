@@ -40,6 +40,7 @@ import {
   LogoutResponseDto,
   InitiateForgotPasswordEmailDto,
   ResetPasswordWithOTPEmailDto,
+  VerifyForgotPasswordOTPDto,
   RegisterDto,
   UpdateProfileDto,
   ChangePasswordDto,
@@ -54,7 +55,7 @@ import { User } from '../users/models';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-  ) {}
+  ) { }
 
   @Public()
   @UseGuards(LoginThrottlerGuard)
@@ -212,7 +213,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Initiate forgot password process' })
   @ApiOkResponse({ description: 'Password reset initiated successfully' })
   async initiateForgotPassword(@Body() dto: InitiateForgotPasswordEmailDto) {
-    return this.authService.initiateForgotPasswordForEmail(dto.email);
+    console.log('[AuthController] initiateForgotPassword called:', { email: dto.email });
+    const result = await this.authService.initiateForgotPasswordForEmail(dto.email);
+    console.log('[AuthController] initiateForgotPassword result:', result);
+    return result;
+  }
+
+  @Post('forgot-password/email/verify')
+  @Public()
+  @ApiOperation({ summary: 'Verify OTP code for forgot password' })
+  @ApiOkResponse({ description: 'OTP verified successfully' })
+  @ApiUnprocessableEntityResponse({ description: 'Invalid or expired OTP' })
+  async verifyForgotPasswordOTP(@Body() dto: VerifyForgotPasswordOTPDto) {
+    console.log('[AuthController] verifyForgotPasswordOTP called:', { email: dto.email, code: dto.code.substring(0, 2) + '****' });
+    const result = await this.authService.verifyForgotPasswordOTP(dto.email, dto.code);
+    console.log('[AuthController] verifyForgotPasswordOTP result:', result);
+    return result;
   }
 
   @Post('forgot-password/email/reset')
@@ -221,7 +237,10 @@ export class AuthController {
   @ApiOkResponse({ description: 'Password reset successfully' })
   @ApiUnprocessableEntityResponse({ description: 'Invalid or expired OTP' })
   async resetPasswordWithOTP(@Body() dto: ResetPasswordWithOTPEmailDto) {
-    return this.authService.resetPasswordWithEmail(dto);
+    console.log('[AuthController] resetPasswordWithOTP called:', { email: dto.email });
+    const result = await this.authService.resetPasswordWithEmail(dto);
+    console.log('[AuthController] resetPasswordWithOTP result:', result);
+    return result;
   }
 
   @Get('profile')
