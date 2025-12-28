@@ -1,19 +1,58 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { CACHE_TTL } from './cache.constants';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+import { CACHE_TTL, CACHE_NAMESPACE } from './cache.constants';
 
 /**
  * Reusable cache service that provides helper methods for common caching operations.
  * Includes automatic cache invalidation patterns and cache warming capabilities.
  */
 @Injectable()
-export class CacheService implements OnModuleInit {
+export class CacheService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheService.name);
+  private redisClient: Redis | null = null;
 
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly configService: ConfigService,
+  ) {}
 
   async onModuleInit() {
-    this.logger.log('CacheService initialized');
+    // Create a separate Redis client for pattern-based operations
+    try {
+      const isProduction = this.configService.get('NODE_ENV') === 'production';
+      const redisHost = isProduction
+        ? this.configService.get('REDIS_PROD_HOST')
+        : this.configService.get('REDIS_HOST');
+      const redisPort = isProduction
+        ? this.configService.get('REDIS_PROD_PORT')
+        : this.configService.get('REDIS_PORT');
+      const redisPassword = isProduction
+        ? this.configService.get('REDIS_PROD_PASSWORD')
+        : this.configService.get('REDIS_PASSWORD');
+
+      this.redisClient = new Redis({
+        host: redisHost,
+        port: parseInt(redisPort, 10),
+        password: redisPassword || undefined,
+      });
+
+      this.redisClient.on('error', (err) => {
+        this.logger.error('Redis client error:', err);
+      });
+
+      this.logger.log('CacheService initialized with direct Redis client for pattern operations');
+    } catch (error) {
+      this.logger.warn('Could not initialize Redis client for pattern operations:', error.message);
+    }
+  }
+
+  async onModuleDestroy() {
+    if (this.redisClient) {
+      await this.redisClient.quit();
+      this.logger.log('CacheService Redis client disconnected');
+    }
   }
 
   /**
@@ -66,31 +105,39 @@ export class CacheService implements OnModuleInit {
 
   /**
    * Deletes all keys matching a pattern.
-   * Note: This uses the underlying store's functionality if available.
+   * Uses direct Redis client for pattern-based deletion.
    * @param pattern - The pattern to match (e.g., 'provinces:*')
    */
-  async delByPattern(pattern: string): Promise<void> {
+  async delByPattern(pattern: string): Promise<number> {
+    if (!this.redisClient) {
+      this.logger.warn('Redis client not available for pattern deletion');
+      return 0;
+    }
+
     try {
-      // Access the underlying Keyv store to use pattern-based deletion
-      const store = (this.cache as any).stores?.[0];
+      // Keys in Redis are prefixed with the namespace
+      const fullPattern = `${CACHE_NAMESPACE}:${pattern}`;
+      const keys = await this.redisClient.keys(fullPattern);
 
-      if (store?.clear) {
-        // If the store supports namespace/pattern clearing
-        // For Keyv Redis, we need to use the Redis client directly
-        const client = store?.opts?.store?.client || store?.client;
-
-        if (client && typeof client.keys === 'function') {
-          const keys = await client.keys(`*${pattern.replace('*', '')}*`);
-          if (keys.length > 0) {
-            await Promise.all(keys.map((key: string) => client.del(key)));
-            this.logger.debug(`Cache DEL by pattern: ${pattern} (${keys.length} keys)`);
-          }
-        } else {
-          this.logger.warn(`Pattern deletion not supported, clearing entire cache namespace`);
-        }
+      if (keys.length === 0) {
+        this.logger.debug(`No keys found matching pattern: ${fullPattern}`);
+        return 0;
       }
+
+      // Delete all matching keys
+      const deletedCount = await this.redisClient.del(...keys);
+      this.logger.log(`Cache DEL by pattern: ${fullPattern} (${deletedCount} keys deleted)`);
+
+      // Also clear in-memory cache by deleting each key without namespace prefix
+      for (const key of keys) {
+        const keyWithoutNamespace = key.replace(`${CACHE_NAMESPACE}:`, '');
+        await this.cache.del(keyWithoutNamespace);
+      }
+
+      return deletedCount;
     } catch (error) {
       this.logger.error(`Cache DEL by pattern error for ${pattern}:`, error);
+      return 0;
     }
   }
 
