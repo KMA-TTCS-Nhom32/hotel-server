@@ -8,7 +8,7 @@ import Redis from 'ioredis';
  */
 export const LOCKOUT_CONFIG = {
   /** Maximum failed attempts before lockout */
-  MAX_FAILED_ATTEMPTS: 5,
+  MAX_FAILED_ATTEMPTS: 3,
   /** Lockout duration in milliseconds (15 minutes) */
   LOCKOUT_DURATION_MS: 15 * 60 * 1000,
   /** Window for counting failed attempts in milliseconds (30 minutes) */
@@ -100,8 +100,14 @@ export class AccountLockoutService implements OnModuleInit, OnModuleDestroy {
   async isLocked(identifier: string): Promise<boolean> {
     try {
       const lockoutKey = this.getLockoutKey(identifier);
-      const lockoutTime = await this.cache.get<number>(lockoutKey);
-      return lockoutTime !== null && lockoutTime !== undefined;
+
+      if (this.redisClient) {
+        const lockoutTime = await this.redisClient.get(lockoutKey);
+        return lockoutTime !== null;
+      } else {
+        const lockoutTime = await this.cache.get<number>(lockoutKey);
+        return lockoutTime !== null && lockoutTime !== undefined;
+      }
     } catch (error) {
       this.logger.error(`Error checking lockout status for ${identifier}:`, error);
       return false; // Fail open to not block legitimate users
@@ -117,10 +123,24 @@ export class AccountLockoutService implements OnModuleInit, OnModuleDestroy {
       const lockoutKey = this.getLockoutKey(identifier);
       const failedAttemptsKey = this.getFailedAttemptsKey(identifier);
 
-      const [lockoutTime, failedAttempts] = await Promise.all([
-        this.cache.get<number>(lockoutKey),
-        this.cache.get<number>(failedAttemptsKey),
-      ]);
+      let lockoutTime: number | null = null;
+      let failedAttempts: number | null = null;
+
+      if (this.redisClient) {
+        // Use Redis directly for consistency with atomic operations
+        const [lockoutValue, attemptsValue] = await Promise.all([
+          this.redisClient.get(lockoutKey),
+          this.redisClient.get(failedAttemptsKey),
+        ]);
+        lockoutTime = lockoutValue ? parseInt(lockoutValue, 10) : null;
+        failedAttempts = attemptsValue ? parseInt(attemptsValue, 10) : null;
+      } else {
+        // Fallback to cache manager
+        [lockoutTime, failedAttempts] = await Promise.all([
+          this.cache.get<number>(lockoutKey),
+          this.cache.get<number>(failedAttemptsKey),
+        ]);
+      }
 
       const currentAttempts = failedAttempts ?? 0;
       const isLocked = lockoutTime !== null && lockoutTime !== undefined;
@@ -213,7 +233,14 @@ export class AccountLockoutService implements OnModuleInit, OnModuleDestroy {
   private async lockAccount(identifier: string): Promise<void> {
     const lockoutKey = this.getLockoutKey(identifier);
     const lockoutEndsAt = Date.now() + LOCKOUT_CONFIG.LOCKOUT_DURATION_MS;
-    await this.cache.set(lockoutKey, lockoutEndsAt, LOCKOUT_CONFIG.LOCKOUT_DURATION_MS);
+    const ttlSeconds = Math.ceil(LOCKOUT_CONFIG.LOCKOUT_DURATION_MS / 1000);
+
+    if (this.redisClient) {
+      // Use Redis directly with TTL
+      await this.redisClient.setex(lockoutKey, ttlSeconds, lockoutEndsAt.toString());
+    } else {
+      await this.cache.set(lockoutKey, lockoutEndsAt, LOCKOUT_CONFIG.LOCKOUT_DURATION_MS);
+    }
   }
 
   /**
