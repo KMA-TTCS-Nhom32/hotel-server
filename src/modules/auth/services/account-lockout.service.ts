@@ -275,6 +275,104 @@ export class AccountLockoutService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Account manually unlocked: ${identifier}`);
   }
 
+  // ============================================================
+  // TEST METHODS - FOR PRESENTATION/DEMO ONLY
+  // Remove or protect these in production!
+  // ============================================================
+
+  /**
+   * [TEST] Gets all lockout-related keys and their values
+   * @returns All failed attempts and lockout data
+   */
+  async getAllLockoutData(): Promise<{
+    failedAttempts: Array<{ identifier: string; attempts: number; ttl: number }>;
+    lockedAccounts: Array<{ identifier: string; lockoutEndsAt: Date; ttl: number }>;
+  }> {
+    if (!this.redisClient) {
+      return { failedAttempts: [], lockedAccounts: [] };
+    }
+
+    try {
+      // Find all failed attempts keys
+      const failedAttemptsKeys = await this.redisClient.keys(
+        `${LOCKOUT_CONFIG.FAILED_ATTEMPTS_PREFIX}*`,
+      );
+      const lockoutKeys = await this.redisClient.keys(`${LOCKOUT_CONFIG.LOCKOUT_PREFIX}*`);
+
+      // Get failed attempts data
+      const failedAttempts = await Promise.all(
+        failedAttemptsKeys.map(async (key) => {
+          const [value, ttl] = await Promise.all([
+            this.redisClient.get(key),
+            this.redisClient.ttl(key),
+          ]);
+          return {
+            identifier: key.replace(LOCKOUT_CONFIG.FAILED_ATTEMPTS_PREFIX, ''),
+            attempts: parseInt(value || '0', 10),
+            ttl,
+          };
+        }),
+      );
+
+      // Get locked accounts data
+      const lockedAccounts = await Promise.all(
+        lockoutKeys.map(async (key) => {
+          const [value, ttl] = await Promise.all([
+            this.redisClient.get(key),
+            this.redisClient.ttl(key),
+          ]);
+          return {
+            identifier: key.replace(LOCKOUT_CONFIG.LOCKOUT_PREFIX, ''),
+            lockoutEndsAt: new Date(parseInt(value || '0', 10)),
+            ttl,
+          };
+        }),
+      );
+
+      return { failedAttempts, lockedAccounts };
+    } catch (error) {
+      this.logger.error('Error getting all lockout data:', error);
+      return { failedAttempts: [], lockedAccounts: [] };
+    }
+  }
+
+  /**
+   * [TEST] Clears all lockout data (failed attempts and lockouts)
+   * @returns Number of keys deleted
+   */
+  async clearAllLockouts(): Promise<{ deletedCount: number; message: string }> {
+    if (!this.redisClient) {
+      return { deletedCount: 0, message: 'Redis not connected' };
+    }
+
+    try {
+      // Find all lockout-related keys
+      const failedAttemptsKeys = await this.redisClient.keys(
+        `${LOCKOUT_CONFIG.FAILED_ATTEMPTS_PREFIX}*`,
+      );
+      const lockoutKeys = await this.redisClient.keys(`${LOCKOUT_CONFIG.LOCKOUT_PREFIX}*`);
+
+      const allKeys = [...failedAttemptsKeys, ...lockoutKeys];
+
+      if (allKeys.length === 0) {
+        return { deletedCount: 0, message: 'No lockout data to clear' };
+      }
+
+      // Delete all keys
+      const deletedCount = await this.redisClient.del(...allKeys);
+
+      this.logger.log(`[TEST] Cleared ${deletedCount} lockout keys`);
+
+      return {
+        deletedCount,
+        message: `Cleared ${deletedCount} lockout keys (${failedAttemptsKeys.length} failed attempts, ${lockoutKeys.length} lockouts)`,
+      };
+    } catch (error) {
+      this.logger.error('Error clearing all lockouts:', error);
+      return { deletedCount: 0, message: `Error: ${error.message}` };
+    }
+  }
+
   /**
    * Cleanup Redis connection on module destroy
    */

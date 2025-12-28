@@ -12,6 +12,7 @@ import {
   Param,
   Query,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -261,5 +262,39 @@ export class AuthController {
   async changePassword(@Req() req: Request, @Body() changePasswordDto: ChangePasswordDto) {
     const user = req.user as JwtUser;
     return this.authService.changePassword(user.userId, changePasswordDto);
+  }
+
+  // ============================================================
+  // TEST ENDPOINTS - FOR PRESENTATION/DEMO ONLY
+  // Remove or protect these in production!
+  // ============================================================
+
+  @Public()
+  @Get('test/lockouts')
+  @ApiOperation({
+    summary: '[TEST] Get all lockout data',
+    description:
+      'Gets all failed login attempts and locked accounts for testing. DO NOT use in production!',
+  })
+  @ApiOkResponse({
+    description: 'All lockout data retrieved',
+  })
+  async testGetAllLockouts() {
+    return this.authService.testGetAllLockouts();
+  }
+
+  @Public()
+  @Delete('test/lockouts')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '[TEST] Clear all lockout data',
+    description:
+      'Clears all failed login attempts and lockouts for testing. DO NOT use in production!',
+  })
+  @ApiOkResponse({
+    description: 'All lockouts cleared successfully',
+  })
+  async testClearAllLockouts() {
+    return this.authService.testClearAllLockouts();
   }
 }

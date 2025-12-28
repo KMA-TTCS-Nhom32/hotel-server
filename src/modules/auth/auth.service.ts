@@ -488,4 +488,35 @@ export class AuthService {
   async verifyAccessToken(accessToken: string) {
     return this.tokenService.verifyAccessToken(accessToken);
   }
+
+  // ============================================================
+  // TEST METHODS - FOR PRESENTATION/DEMO ONLY
+  // Remove or protect these in production!
+  // ============================================================
+
+  /**
+   * [TEST] Gets all lockout data (failed attempts + locked accounts)
+   */
+  async testGetAllLockouts() {
+    const data = await this.accountLockoutService.getAllLockoutData();
+    return {
+      ...data,
+      summary: {
+        totalFailedAttemptRecords: data.failedAttempts.length,
+        totalLockedAccounts: data.lockedAccounts.length,
+      },
+      config: {
+        maxFailedAttempts: 3,
+        lockoutDurationMinutes: 15,
+        attemptWindowMinutes: 30,
+      },
+    };
+  }
+
+  /**
+   * [TEST] Clears all lockout data
+   */
+  async testClearAllLockouts() {
+    return this.accountLockoutService.clearAllLockouts();
+  }
 }
