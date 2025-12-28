@@ -238,7 +238,7 @@ export class AuthService {
       throw new HttpException(
         {
           status: HttpStatus.UNPROCESSABLE_ENTITY,
-          message: 'Invalid verification code',
+          message: AuthErrorMessageEnum.InvalidOTPCode,
         },
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
@@ -268,11 +268,41 @@ export class AuthService {
     };
   }
 
+  async verifyForgotPasswordOTP(email: string, code: string) {
+    const user = await this.loginService.findUserOrThrow(email, 'email');
+
+    const result = await this.verificationService.verifyCodeWithOutDelete(
+      user.id,
+      code,
+      AccountIdentifier.EMAIL,
+    );
+
+    return {
+      success: true,
+      userId: result.userId,
+    };
+  }
+
   async resetPasswordWithEmail(dto: ResetPasswordWithOTPEmailDto) {
     const user = await this.loginService.findUserOrThrow(dto.email, 'email');
 
     // Verify OTP
     await this.verificationService.verifyCode(user.id, dto.code, AccountIdentifier.EMAIL);
+
+    const isSameAsOldPassword = await this.loginService.comparePassword(
+      dto.newPassword,
+      user.password,
+    );
+
+    if (isSameAsOldPassword) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          message: AuthErrorMessageEnum.CannotUseOldPassword,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     // Update password
     const hashedPassword = await hashPassword(dto.newPassword);

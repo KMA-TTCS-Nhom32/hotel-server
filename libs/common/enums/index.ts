@@ -40,6 +40,11 @@ export enum AuthErrorMessageEnum {
   PhoneNotVerified = 'phoneNotVerified',
   UserAlreadyExists = 'userAlreadyExists',
   SentEmailFailed = 'sentEmailFailed',
+  InvalidOTPCode = 'invalidOTPCode',
+  OTPCodeExpired = 'otpCodeExpired',
+  PasswordResetFailed = 'passwordResetFailed',
+  OldPasswordMismatch = 'oldPasswordMismatch',
+  CannotUseOldPassword = 'cannotUseOldPassword',
 }
 
 export enum ImageErrorMessagesEnum {

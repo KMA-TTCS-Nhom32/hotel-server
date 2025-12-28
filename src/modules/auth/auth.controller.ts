@@ -43,6 +43,7 @@ import {
   RegisterDto,
   UpdateProfileDto,
   ChangePasswordDto,
+  VerifyForgotPasswordOTPDto,
 } from './dtos';
 import { JwtUser } from './types';
 import { Public, Roles } from './decorators';
@@ -52,9 +53,7 @@ import { User } from '../users/models';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
   @UseGuards(LoginThrottlerGuard)
@@ -116,9 +115,7 @@ export class AuthController {
     description: 'User created successfully',
     type: RegisterResponseDto,
   })
-  async register(
-    @Body() registerDto: RegisterDto,
-  ): Promise<RegisterResponseDto> {
+  async register(@Body() registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const { accountIdentifier, data } = registerDto;
     return this.authService.register(data, accountIdentifier);
   }
@@ -215,6 +212,15 @@ export class AuthController {
     return this.authService.initiateForgotPasswordForEmail(dto.email);
   }
 
+  @Post('forgot-password/email/verify')
+  @Public()
+  @ApiOperation({ summary: 'Verify OTP code for forgot password' })
+  @ApiOkResponse({ description: 'OTP verified successfully' })
+  @ApiUnprocessableEntityResponse({ description: 'Invalid or expired OTP' })
+  async verifyForgotPasswordOTP(@Body() dto: VerifyForgotPasswordOTPDto) {
+    return this.authService.verifyForgotPasswordOTP(dto.email, dto.code);
+  }
+
   @Post('forgot-password/email/reset')
   @Public()
   @ApiOperation({ summary: 'Reset password using OTP' })
@@ -241,10 +247,7 @@ export class AuthController {
     description: 'Profile updated successfully',
     type: User,
   })
-  async updateProfile(
-    @Req() req: Request,
-    @Body() updateProfileDto: UpdateProfileDto,
-  ) {
+  async updateProfile(@Req() req: Request, @Body() updateProfileDto: UpdateProfileDto) {
     const user = req.user as JwtUser;
     return this.authService.updateProfile(user.userId, updateProfileDto);
   }
@@ -255,10 +258,7 @@ export class AuthController {
   @ApiOkResponse({
     description: 'Password changed successfully',
   })
-  async changePassword(
-    @Req() req: Request,
-    @Body() changePasswordDto: ChangePasswordDto,
-  ) {
+  async changePassword(@Req() req: Request, @Body() changePasswordDto: ChangePasswordDto) {
     const user = req.user as JwtUser;
     return this.authService.changePassword(user.userId, changePasswordDto);
   }

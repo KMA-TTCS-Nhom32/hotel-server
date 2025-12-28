@@ -34,6 +34,9 @@ export class EmailService implements OnModuleInit {
         user: this.configService.get('SMTP_USER'),
         pass: this.configService.get('SMTP_PASSWORD'),
       },
+      tls: {
+        rejectUnauthorized: this.configService.get('NODE_ENV') === 'production',
+      },
     });
 
     // const templatePath = join(__dirname, 'templates', 'otp.template.hbs');

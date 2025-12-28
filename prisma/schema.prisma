@@ -1,504 +1,492 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-    provider        = "prisma-client-js"
-    previewFeatures = ["omitApi"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    id               String             @id @default(cuid())
-    email            String?            @unique
-    phone            String?            @unique
-    name             String
-    avatar           Json?
-    role             UserRole           @default(USER)
-    birth_date       DateTime?
-    gender           UserGender?
-    verified_email   Boolean            @default(false)
-    verified_phone   Boolean            @default(false)
-    identifier_type  AccountIdentifier  @default(EMAIL)
-    password         String
-    is_blocked       Boolean            @default(false)
-    blocked_at       DateTime?
-    blocked_reason   String?
-    deleted_at       DateTime?
-    deleted_reason   String?
-    deleted_identity String?
-    is_active        Boolean            @default(true)
-    working_at       HotelBranch?       @relation(fields: [branchId], references: [id])
-    branchId         String?
-    reviews          Review[]
-    bookings         Booking[]
-    refreshTokens    RefreshToken[]
-    createdAt        DateTime           @default(now())
-    updatedAt        DateTime           @updatedAt
-    preferences      UserPreference[]
-    loyalty_points   Int                @default(0)
-    verification     Verification[]
-    blockHistory     UserBlockHistory[] @relation("BlockedUser")
-    blockedByMe      UserBlockHistory[] @relation("BlockedBy")
+  id               String             @id @default(cuid())
+  email            String?            @unique
+  phone            String?            @unique
+  name             String
+  avatar           Json?
+  role             UserRole           @default(USER)
+  birth_date       DateTime?
+  gender           UserGender?
+  verified_email   Boolean            @default(false)
+  verified_phone   Boolean            @default(false)
+  identifier_type  AccountIdentifier  @default(EMAIL)
+  password         String
+  is_blocked       Boolean            @default(false)
+  blocked_at       DateTime?
+  blocked_reason   String?
+  deleted_at       DateTime?
+  deleted_reason   String?
+  deleted_identity String?
+  is_active        Boolean            @default(true)
+  branchId         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  loyalty_points   Int                @default(0)
+  email_hash       String?            @unique
+  phone_hash       String?            @unique
+  bookings         Booking[]
+  refreshTokens    RefreshToken[]
+  reviews          Review[]
+  working_at       HotelBranch?       @relation(fields: [branchId], references: [id])
+  blockedByMe      UserBlockHistory[] @relation("BlockedBy")
+  blockHistory     UserBlockHistory[] @relation("BlockedUser")
+  preferences      UserPreference[]
+  verification     Verification[]
 
-    @@unique([email, phone])
-}
-
-enum AccountIdentifier {
-    EMAIL
-    PHONE
-}
-
-enum UserRole {
-    USER
-    STAFF
-    ADMIN
-}
-
-enum UserGender {
-    MALE
-    FEMALE
-}
-
-enum Language {
-    EN
-    VI
+  @@unique([email_hash, phone_hash])
 }
 
 model Province {
-    id        String        @id @default(cuid())
-    name      String
-    zip_code  String
-    slug      String
-    branches  HotelBranch[]
-    isDeleted Boolean       @default(false)
-    deletedAt DateTime?
-    createdAt DateTime      @default(now())
-    updatedAt DateTime      @updatedAt
+  id           String                @id @default(cuid())
+  name         String
+  zip_code     String
+  slug         String
+  isDeleted    Boolean               @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  branches     HotelBranch[]
+  translations ProvinceTranslation[]
 
-    translations ProvinceTranslation[]
-
-    @@unique([name, zip_code, slug])
+  @@unique([name, zip_code, slug])
 }
 
 model ProvinceTranslation {
-    id         String   @id @default(cuid())
-    provinceId String
-    province   Province @relation(fields: [provinceId], references: [id])
-    language   Language
-    name       String
+  id         String   @id @default(cuid())
+  provinceId String
+  language   Language
+  name       String
+  province   Province @relation(fields: [provinceId], references: [id])
 
-    @@unique([provinceId, language])
+  @@unique([provinceId, language])
 }
 
 model HotelBranch {
-    id          String       @id @default(cuid())
-    thumbnail   Json
-    images      Json[]
-    name        String
-    slug        String
-    description String
-    phone       String
-    is_active   Boolean      @default(false)
-    address     String
-    location    Json?        @default("{ \"latitude\": \"0\", \"longitude\": \"0\" }")
-    provinceId  String
-    province    Province     @relation(fields: [provinceId], references: [id])
-    rating      Float?
-    nearBy      Json[]       @default([])
-    isDeleted   Boolean      @default(false)
-    deletedAt   DateTime?
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @updatedAt
-    amenities   Amenity[]
-    rooms       RoomDetail[]
-    User        User[]
-
-    AnalyticsSummary AnalyticsSummary[]
-
-    translations HotelBranchTranslation[]
+  id               String                   @id @default(cuid())
+  thumbnail        Json
+  images           Json[]
+  name             String
+  slug             String
+  description      String
+  phone            String
+  is_active        Boolean                  @default(false)
+  address          String
+  location         Json?                    @default("{\"latitude\": \"0\", \"longitude\": \"0\"}")
+  provinceId       String
+  rating           Float?
+  nearBy           Json[]                   @default([])
+  isDeleted        Boolean                  @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  AnalyticsSummary AnalyticsSummary[]
+  province         Province                 @relation(fields: [provinceId], references: [id])
+  translations     HotelBranchTranslation[]
+  rooms            RoomDetail[]
+  User             User[]
+  amenities        Amenity[]                @relation("AmenityToHotelBranch")
 }
 
 model HotelBranchTranslation {
-    id            String      @id @default(cuid())
-    hotelBranchId String
-    hotelBranch   HotelBranch @relation(fields: [hotelBranchId], references: [id])
-    language      Language
-    name          String
-    description   String
-    address       String
-    nearBy        Json[]      @default([])
+  id            String      @id @default(cuid())
+  hotelBranchId String
+  language      Language
+  name          String
+  description   String
+  address       String
+  nearBy        Json[]      @default([])
+  hotelBranch   HotelBranch @relation(fields: [hotelBranchId], references: [id])
 
-    @@unique([hotelBranchId, language])
+  @@unique([hotelBranchId, language])
 }
 
 model HotelRoom {
-    id           String           @id @default(cuid())
-    name         String
-    slug         String
-    status       HotelRoomStatus // Use this for maintenance/general availability
-    detailId     String
-    detail       RoomDetail       @relation(fields: [detailId], references: [id])
-    bookings     Booking[] // This will track time-based occupancy
-    reviews      Review[]
-    favorited_by UserPreference[] @relation("UserFavoriteRooms")
-    isDeleted    Boolean          @default(false)
-    deletedAt    DateTime?
-    createdAt    DateTime         @default(now())
-    updatedAt    DateTime         @updatedAt
-
-    translations HotelRoomTranslation[]
+  id           String                 @id @default(cuid())
+  name         String
+  slug         String
+  status       HotelRoomStatus
+  detailId     String
+  isDeleted    Boolean                @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  bookings     Booking[]
+  detail       RoomDetail             @relation(fields: [detailId], references: [id])
+  translations HotelRoomTranslation[]
+  reviews      Review[]
+  favorited_by UserPreference[]       @relation("UserFavoriteRooms")
 }
 
 model HotelRoomTranslation {
-    id       String    @id @default(cuid())
-    roomId   String
-    room     HotelRoom @relation(fields: [roomId], references: [id])
-    language Language
-    name     String
+  id       String    @id @default(cuid())
+  roomId   String
+  language Language
+  name     String
+  room     HotelRoom @relation(fields: [roomId], references: [id])
 
-    @@unique([roomId, language])
+  @@unique([roomId, language])
 }
 
 model RoomDetail {
-    id                      String             @id @default(cuid())
-    name                    String
-    slug                    String
-    description             String
-    branchId                String
-    branch                  HotelBranch        @relation(fields: [branchId], references: [id])
-    thumbnail               Json
-    images                  Json[]
-    room_type               HotelRoomType
-    bed_type                HotelRoomBedType
-    area                    Int
-    amenities               Amenity[]
-    base_price_per_hour     Decimal            @db.Decimal(9, 0)
-    special_price_per_hour  Decimal?           @db.Decimal(9, 0)
-    base_price_per_night    Decimal            @db.Decimal(9, 0)
-    special_price_per_night Decimal?           @db.Decimal(9, 0)
-    base_price_per_day      Decimal            @db.Decimal(9, 0)
-    special_price_per_day   Decimal?           @db.Decimal(9, 0)
-    roomPriceHistories      RoomPriceHistory[]
-    promotions              RoomPromotion[]    @relation("RoomToPromotion")
-    max_adults              Int                @default(2)
-    max_children            Int                @default(2)
-    quantity                Int                @default(1)
-    flat_rooms              HotelRoom[]
-    is_available            Boolean            @default(false)
-    rating                  Float?
-    isDeleted               Boolean            @default(false)
-    deletedAt               DateTime?
-    createdAt               DateTime           @default(now())
-    updatedAt               DateTime           @updatedAt
-
-    translations RoomDetailTranslation[]
+  id                      String                  @id @default(cuid())
+  name                    String
+  slug                    String
+  description             String
+  branchId                String
+  thumbnail               Json
+  images                  Json[]
+  room_type               HotelRoomType
+  bed_type                HotelRoomBedType
+  area                    Int
+  base_price_per_hour     Decimal                 @db.Decimal(9, 0)
+  special_price_per_hour  Decimal?                @db.Decimal(9, 0)
+  base_price_per_night    Decimal                 @db.Decimal(9, 0)
+  special_price_per_night Decimal?                @db.Decimal(9, 0)
+  base_price_per_day      Decimal                 @db.Decimal(9, 0)
+  special_price_per_day   Decimal?                @db.Decimal(9, 0)
+  max_adults              Int                     @default(2)
+  max_children            Int                     @default(2)
+  quantity                Int                     @default(1)
+  is_available            Boolean                 @default(false)
+  rating                  Float?
+  isDeleted               Boolean                 @default(false)
+  deletedAt               DateTime?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  flat_rooms              HotelRoom[]
+  branch                  HotelBranch             @relation(fields: [branchId], references: [id])
+  translations            RoomDetailTranslation[]
+  roomPriceHistories      RoomPriceHistory[]
+  amenities               Amenity[]               @relation("AmenityToRoomDetail")
+  promotions              RoomPromotion[]         @relation("RoomToPromotion")
 }
 
 model RoomDetailTranslation {
-    id           String     @id @default(cuid())
-    roomDetailId String
-    roomDetail   RoomDetail @relation(fields: [roomDetailId], references: [id])
-    language     Language
-    name         String
-    description  String
+  id           String     @id @default(cuid())
+  roomDetailId String
+  language     Language
+  name         String
+  description  String
+  roomDetail   RoomDetail @relation(fields: [roomDetailId], references: [id])
 
-    @@unique([roomDetailId, language])
+  @@unique([roomDetailId, language])
 }
 
 model Amenity {
-    id        String        @id @default(cuid())
-    name      String
-    slug      String
-    icon      Json // Icon URL or code
-    type      AmenityType
-    rooms     RoomDetail[]
-    branches  HotelBranch[]
-    createdAt DateTime      @default(now())
-    updatedAt DateTime      @updatedAt
-
-    translations AmenityTranslation[]
+  id           String               @id @default(cuid())
+  name         String
+  slug         String
+  icon         Json
+  type         AmenityType
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  translations AmenityTranslation[]
+  branches     HotelBranch[]        @relation("AmenityToHotelBranch")
+  rooms        RoomDetail[]         @relation("AmenityToRoomDetail")
 }
 
 model AmenityTranslation {
-    id        String   @id @default(cuid())
-    amenityId String
-    amenity   Amenity  @relation(fields: [amenityId], references: [id])
-    language  Language
-    name      String
+  id        String   @id @default(cuid())
+  amenityId String
+  language  Language
+  name      String
+  amenity   Amenity  @relation(fields: [amenityId], references: [id])
 
-    @@unique([amenityId, language])
-}
-
-enum AmenityType {
-    ROOM // e.g., TV, minibar, safe
-    PROPERTY // e.g., pool, gym, parking
-    SERVICE // e.g., room service, laundry
-}
-
-enum HotelRoomBedType {
-    SINGLE
-    DOUBLE
-    QUEEN
-    KING
-}
-
-enum HotelRoomType {
-    STANDARD
-    SUPERIOR
-    DELUXE
-}
-
-enum HotelRoomStatus {
-    AVAILABLE
-    // BOOKED
-    // OCCUPIED
-    MAINTENANCE
+  @@unique([amenityId, language])
 }
 
 model Booking {
-    id               String            @id @default(cuid())
-    code             String            @unique
-    type             BookingType
-    create_type      BookingCreateType
-    start_date       DateTime
-    end_date         DateTime
-    start_time       String
-    end_time         String
-    roomId           String
-    room             HotelRoom         @relation(fields: [roomId], references: [id])
-    promotion_code   String?
-    total_amount     Decimal           @db.Decimal(9, 0)
-    status           BookingStatus     @default(PENDING)
-    cancel_reason    String?
-    payment_method   PaymentMethod?
-    number_of_guests Int
-    adults           Int               @default(1)
-    children         Int               @default(0)
-    infants          Int               @default(0)
-    special_requests String?
-    check_in_time    DateTime?
-    check_out_time   DateTime?
-    payment_status   PaymentStatus     @default(UNPAID)
-    payment_details  Json?
-    refund_details   Json?
-    userId           String
-    user             User              @relation(fields: [userId], references: [id])
-    guest_details    Json? // Store additional guest information
-    is_business_trip Boolean           @default(false)
-    isDeleted        Boolean           @default(false)
-    deletedAt        DateTime?
-    createdAt        DateTime          @default(now())
-    updatedAt        DateTime          @updatedAt
-}
-
-enum BookingType {
-    HOURLY
-    NIGHTLY
-    DAILY
-}
-
-enum BookingCreateType {
-    ONLINE_BOOKING
-    AT_HOTEL
+  id               String            @id @default(cuid())
+  code             String            @unique
+  type             BookingType
+  create_type      BookingCreateType
+  start_date       DateTime
+  end_date         DateTime
+  start_time       String
+  end_time         String
+  roomId           String
+  promotion_code   String?
+  total_amount     Decimal           @db.Decimal(9, 0)
+  status           BookingStatus     @default(PENDING)
+  cancel_reason    String?
+  payment_method   PaymentMethod?
+  number_of_guests Int
+  adults           Int               @default(1)
+  children         Int               @default(0)
+  infants          Int               @default(0)
+  special_requests String?
+  check_in_time    DateTime?
+  check_out_time   DateTime?
+  payment_status   PaymentStatus     @default(UNPAID)
+  payment_details  Json?
+  refund_details   Json?
+  userId           String
+  guest_details    Json?
+  is_business_trip Boolean           @default(false)
+  isDeleted        Boolean           @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  room             HotelRoom         @relation(fields: [roomId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
 }
 
 model Review {
-    id                  String    @id @default(cuid())
-    rating_services     Int
-    rating_cleanliness  Int
-    rating_comfort      Int
-    is_anonymous_review Boolean   @default(false)
-    comment             String?
-    roomId              String
-    room                HotelRoom @relation(fields: [roomId], references: [id])
-    userId              String
-    user                User      @relation(fields: [userId], references: [id])
-    createdAt           DateTime  @default(now())
-}
-
-enum BookingStatus {
-    PENDING
-    WAITING_FOR_CHECK_IN
-    CHECKED_IN
-    CANCELLED
-    COMPLETED
-    REFUNDED
-    REJECTED
-}
-
-enum PaymentStatus {
-    UNPAID
-    PAID
-    FAILED
-    REFUNDED
-}
-
-enum PaymentMethod {
-    CASH
-    BANKING
-    ZALOPAY
-    MOMO
-    VN_PAY
-    VIET_QR
+  id                  String    @id @default(cuid())
+  rating_services     Int
+  rating_cleanliness  Int
+  rating_comfort      Int
+  is_anonymous_review Boolean   @default(false)
+  comment             String?
+  roomId              String
+  userId              String
+  createdAt           DateTime  @default(now())
+  room                HotelRoom @relation(fields: [roomId], references: [id])
+  user                User      @relation(fields: [userId], references: [id])
 }
 
 model RoomPriceHistory {
-    id              String     @id @default(cuid())
-    name            String
-    description     String     @default("")
-    roomDetailId    String
-    roomDetail      RoomDetail @relation(fields: [roomDetailId], references: [id])
-    price_per_hour  Decimal?   @db.Decimal(9, 0)
-    price_per_night Decimal?   @db.Decimal(9, 0)
-    price_per_day   Decimal?   @db.Decimal(9, 0)
-    effective_from  String
-    effective_to    String?
-    is_applied      Boolean    @default(false)
-    createdAt       DateTime   @default(now())
-    updatedAt       DateTime   @updatedAt
-
-    translations RoomPriceHistoryTranslation[]
+  id              String                        @id @default(cuid())
+  name            String
+  description     String                        @default("")
+  roomDetailId    String
+  price_per_hour  Decimal?                      @db.Decimal(9, 0)
+  price_per_night Decimal?                      @db.Decimal(9, 0)
+  price_per_day   Decimal?                      @db.Decimal(9, 0)
+  effective_from  String
+  effective_to    String?
+  is_applied      Boolean                       @default(false)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+  roomDetail      RoomDetail                    @relation(fields: [roomDetailId], references: [id])
+  translations    RoomPriceHistoryTranslation[]
 }
 
 model RoomPriceHistoryTranslation {
-    id                 String           @id @default(cuid())
-    roomPriceHistoryId String
-    roomPriceHistory   RoomPriceHistory @relation(fields: [roomPriceHistoryId], references: [id])
-    language           Language
-    name               String
-    description        String
+  id                 String           @id @default(cuid())
+  roomPriceHistoryId String
+  language           Language
+  name               String
+  description        String
+  roomPriceHistory   RoomPriceHistory @relation(fields: [roomPriceHistoryId], references: [id])
 
-    @@unique([roomPriceHistoryId, language])
-}
-
-enum RoomPriceType {
-    PER_HOUR
-    PER_NIGHT
+  @@unique([roomPriceHistoryId, language])
 }
 
 model RefreshToken {
-    id        String   @id @default(cuid())
-    token     String   @unique
-    userId    String
-    user      User     @relation(fields: [userId], references: [id])
-    device    String? // Store device info
-    ip        String? // Store IP address
-    isRevoked Boolean  @default(false)
-    expiresAt DateTime
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  device    String?
+  ip        String?
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 
-    @@index([userId])
-    @@index([expiresAt])
-    @@index([isRevoked])
-    @@index([createdAt])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@index([createdAt])
 }
 
 model RoomPromotion {
-    id             String       @id @default(cuid())
-    code           String       @unique
-    description    String
-    applied_type   BookingType
-    discount_type  DiscountType
-    discount_value Float
-    start_date     DateTime
-    end_date       DateTime
-    min_hours      Int?
-    min_nights     Int?
-    min_days       Int?
-    total_used     Int          @default(0)
-    total_code     Int?
-    rooms          RoomDetail[] @relation("RoomToPromotion")
-    isDeleted      Boolean      @default(false)
-    deletedAt      DateTime?
-    createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @updatedAt
-
-    translations PromotionTranslation[]
+  id             String                 @id @default(cuid())
+  code           String                 @unique
+  description    String
+  applied_type   BookingType
+  discount_type  DiscountType
+  discount_value Float
+  start_date     DateTime
+  end_date       DateTime
+  min_hours      Int?
+  min_nights     Int?
+  min_days       Int?
+  total_used     Int                    @default(0)
+  total_code     Int?
+  isDeleted      Boolean                @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  translations   PromotionTranslation[]
+  rooms          RoomDetail[]           @relation("RoomToPromotion")
 }
 
 model PromotionTranslation {
-    id              String        @id @default(cuid())
-    roomPromotionId String
-    roomPromotion   RoomPromotion @relation(fields: [roomPromotionId], references: [id])
-    language        Language
-    description     String
+  id              String        @id @default(cuid())
+  roomPromotionId String
+  language        Language
+  description     String
+  roomPromotion   RoomPromotion @relation(fields: [roomPromotionId], references: [id])
 
-    @@unique([roomPromotionId, language])
-}
-
-enum DiscountType {
-    PERCENTAGE
-    FIXED_AMOUNT
+  @@unique([roomPromotionId, language])
 }
 
 model UserPreference {
-    id                       String         @id @default(cuid())
-    userId                   String
-    user                     User           @relation(fields: [userId], references: [id])
-    favorite_rooms           HotelRoom[]    @relation("UserFavoriteRooms")
-    preferred_payment_method PaymentMethod?
-    special_requirements     String?
-    createdAt                DateTime       @default(now())
-    updatedAt                DateTime       @updatedAt
+  id                       String         @id @default(cuid())
+  userId                   String
+  preferred_payment_method PaymentMethod?
+  special_requirements     String?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  user                     User           @relation(fields: [userId], references: [id])
+  favorite_rooms           HotelRoom[]    @relation("UserFavoriteRooms")
 }
 
 model Verification {
-    id         String            @id @default(cuid())
-    code       String
-    type       AccountIdentifier
-    userId     String
-    user       User              @relation(fields: [userId], references: [id])
-    expires_at DateTime
-    createdAt  DateTime          @default(now())
-    updatedAt  DateTime          @updatedAt
+  id         String            @id @default(cuid())
+  code       String
+  type       AccountIdentifier
+  userId     String
+  expires_at DateTime
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  user       User              @relation(fields: [userId], references: [id])
 
-    @@index([userId])
-    @@index([code])
+  @@index([userId])
+  @@index([code])
 }
 
 model UserBlockHistory {
-    id            String      @id @default(cuid())
-    userId        String
-    user          User        @relation("BlockedUser", fields: [userId], references: [id])
-    blockedBy     String
-    blockedByUser User        @relation("BlockedBy", fields: [blockedBy], references: [id])
-    action        BlockAction
-    reason        String
-    createdAt     DateTime    @default(now())
-    updatedAt     DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  userId        String
+  blockedBy     String
+  action        BlockAction
+  reason        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  blockedByUser User        @relation("BlockedBy", fields: [blockedBy], references: [id])
+  user          User        @relation("BlockedUser", fields: [userId], references: [id])
 
-    @@index([userId])
-    @@index([blockedBy])
-}
-
-enum BlockAction {
-    BLOCK
-    UNBLOCK
+  @@index([userId])
+  @@index([blockedBy])
 }
 
 model AnalyticsSummary {
-    id          String              @id @default(cuid())
-    branchId    String
-    branch      HotelBranch         @relation(fields: [branchId], references: [id])
-    period      DateTime // First day of month/year
-    period_type AnalyticsPeriodType
-    metrics     Json // Store various metrics in JSON format
-    createdAt   DateTime            @default(now())
-    updatedAt   DateTime            @updatedAt
+  id          String              @id @default(cuid())
+  branchId    String
+  period      DateTime
+  period_type AnalyticsPeriodType
+  metrics     Json
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  branch      HotelBranch         @relation(fields: [branchId], references: [id])
 
-    @@unique([branchId, period, period_type])
+  @@unique([branchId, period, period_type])
+}
+
+enum AccountIdentifier {
+  EMAIL
+  PHONE
+}
+
+enum UserRole {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum UserGender {
+  MALE
+  FEMALE
+}
+
+enum Language {
+  EN
+  VI
+}
+
+enum AmenityType {
+  ROOM
+  PROPERTY
+  SERVICE
+}
+
+enum HotelRoomBedType {
+  SINGLE
+  DOUBLE
+  QUEEN
+  KING
+}
+
+enum HotelRoomType {
+  STANDARD
+  SUPERIOR
+  DELUXE
+}
+
+enum HotelRoomStatus {
+  AVAILABLE
+  BOOKED
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum BookingType {
+  HOURLY
+  NIGHTLY
+  DAILY
+}
+
+enum BookingCreateType {
+  ONLINE_BOOKING
+  AT_HOTEL
+}
+
+enum BookingStatus {
+  PENDING
+  WAITING_FOR_CHECK_IN
+  CHECKED_IN
+  CANCELLED
+  COMPLETED
+  REFUNDED
+  REJECTED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  BANKING
+  ZALOPAY
+  MOMO
+  VN_PAY
+  VIET_QR
+}
+
+enum RoomPriceType {
+  PER_HOUR
+  PER_NIGHT
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum BlockAction {
+  BLOCK
+  UNBLOCK
 }
 
 enum AnalyticsPeriodType {
-    DAILY
-    MONTHLY
-    YEARLY
+  DAILY
+  MONTHLY
+  YEARLY
 }

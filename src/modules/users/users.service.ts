@@ -4,6 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { AccountIdentifier, BookingStatus, UserRole } from '@prisma/client';
 
@@ -26,36 +27,85 @@ import {
   getPaginationParams,
   PaginationParams,
 } from 'libs/common/utils/pagination';
+import { EncryptionService } from '@/common/utils/encryption.utils';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
   private readonly logger = new Logger(UsersService.name);
-  constructor(private readonly databaseService: DatabaseService) {}
+  private encryptionService: EncryptionService;
+
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  onModuleInit() {
+    const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY');
+    const hmacKey = this.configService.get<string>('HMAC_SECRET_KEY');
+
+    if (!encryptionKey || !hmacKey) {
+      this.logger.warn(
+        'ENCRYPTION_KEY or HMAC_SECRET_KEY not configured. Email/phone encryption disabled.',
+      );
+      return;
+    }
+
+    try {
+      this.encryptionService = new EncryptionService(encryptionKey, hmacKey);
+      this.logger.log('Encryption service initialized successfully');
+    } catch (error) {
+      this.logger.error('Failed to initialize encryption service:', error.message);
+    }
+  }
+
+  private isEncryptionEnabled(): boolean {
+    return !!this.encryptionService;
+  }
 
   isUserExisted = async (email: string, phone: string) => {
     if (!email && !phone) {
       return false;
     }
 
+    // Use hash for lookup if encryption is enabled
+    const emailHash =
+      email && this.isEncryptionEnabled() ? this.encryptionService.createEmailHash(email) : null;
+    const phoneHash =
+      phone && this.isEncryptionEnabled() ? this.encryptionService.createPhoneHash(phone) : null;
+
     const existedUser = await this.databaseService.user.findFirst({
       where: {
         OR: [
-          {
-            email,
-          },
-          {
-            phone,
-          },
+          // Use hash columns if encryption enabled, otherwise use plain columns
+          ...(emailHash ? [{ email_hash: emailHash }] : email ? [{ email }] : []),
+          ...(phoneHash ? [{ phone_hash: phoneHash }] : phone ? [{ phone }] : []),
         ],
       },
     });
 
-    if (existedUser) {
-      return true;
+    return !!existedUser;
+  };
+
+  private decryptUserFields<T extends { email?: string; phone?: string }>(user: T): T {
+    if (!this.isEncryptionEnabled() || !user) {
+      return user;
     }
 
-    return false;
-  };
+    const decrypted = { ...user };
+    try {
+      if (user.email) {
+        decrypted.email = this.encryptionService.decryptEmail(user.email);
+      }
+      if (user.phone) {
+        decrypted.phone = this.encryptionService.decryptPhone(user.phone);
+      }
+    } catch (error) {
+      this.logger.error('Failed to decrypt user fields:', error.message);
+      // Return original if decryption fails (might be plain text from before encryption)
+    }
+    return decrypted;
+  }
 
   async create(createUserDto: CreateUserDto) {
     if (!createUserDto.phone && !createUserDto.email) {
@@ -82,11 +132,24 @@ export class UsersService {
       );
     }
 
-    const clonedPayload = {
+    const clonedPayload: CreateUserDto & { email_hash?: string; phone_hash?: string } = {
       ...createUserDto,
     };
 
     clonedPayload.password = await hashPassword(createUserDto.password);
+
+    if (this.isEncryptionEnabled()) {
+      if (createUserDto.email) {
+        const { encrypted, hash } = this.encryptionService.encryptEmail(createUserDto.email);
+        clonedPayload.email = encrypted;
+        clonedPayload.email_hash = hash;
+      }
+      if (createUserDto.phone) {
+        const { encrypted, hash } = this.encryptionService.encryptPhone(createUserDto.phone);
+        clonedPayload.phone = encrypted;
+        clonedPayload.phone_hash = hash;
+      }
+    }
 
     const createdUser = await this.databaseService.user.create({
       data: clonedPayload,
@@ -95,7 +158,7 @@ export class UsersService {
       },
     });
 
-    return createdUser;
+    return this.decryptUserFields(createdUser);
   }
 
   async findMany(
@@ -180,23 +243,30 @@ export class UsersService {
   }
 
   async findOne(uniqueField: string, type: 'email' | 'phone') {
-    if (type === 'email') {
-      return this.databaseService.user.findUnique({
-        where: {
-          email: uniqueField,
-        },
+    let user;
+
+    if (this.isEncryptionEnabled()) {
+      // Use hash for lookup when encryption is enabled
+      const hash =
+        type === 'email'
+          ? this.encryptionService.createEmailHash(uniqueField)
+          : this.encryptionService.createPhoneHash(uniqueField);
+
+      user = await this.databaseService.user.findFirst({
+        where: type === 'email' ? { email_hash: hash } : { phone_hash: hash },
+      });
+    } else {
+      // Fallback to plain text lookup
+      user = await this.databaseService.user.findUnique({
+        where: type === 'email' ? { email: uniqueField } : { phone: uniqueField },
       });
     }
 
-    return this.databaseService.user.findUnique({
-      where: {
-        phone: uniqueField,
-      },
-    });
+    return user ? this.decryptUserFields(user) : null;
   }
 
   async findById(id: string) {
-    return this.databaseService.user.findFirst({
+    const user = await this.databaseService.user.findFirst({
       where: {
         id,
       },
@@ -219,9 +289,10 @@ export class UsersService {
           },
         },
         working_at: true,
-        
       },
     });
+
+    return user ? this.decryptUserFields(user) : null;
   }
 
   async findByIdOrThrow(id: string) {
