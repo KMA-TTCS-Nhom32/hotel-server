@@ -96,6 +96,13 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string): Promise<TokenResponse> {
+    // Debug logging - remove in production
+    console.log('refreshTokens called with:', {
+      tokenProvided: !!refreshToken,
+      tokenLength: refreshToken?.length,
+      tokenPrefix: refreshToken?.substring(0, 20),
+    });
+
     try {
       const payload = this.tokenService.verifyRefreshToken(refreshToken);
 
@@ -159,7 +166,7 @@ export class AuthService {
       // Add logging for failed attempts
       console.error('Failed refresh token attempt:', {
         error: error.message,
-        token: refreshToken.substring(0, 10) + '...', // Log partial token for tracking
+        token: refreshToken ? refreshToken.substring(0, 10) + '...' : 'undefined', // Log partial token for tracking
         timestamp: new Date().toISOString(),
       });
 
