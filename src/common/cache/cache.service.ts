@@ -42,9 +42,44 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         this.logger.error('Redis client error:', err);
       });
 
+      // Clear all cache on server startup to ensure fresh state
+      await this.clearAllOnStartup();
+
       this.logger.log('CacheService initialized with direct Redis client for pattern operations');
     } catch (error) {
       this.logger.warn('Could not initialize Redis client for pattern operations:', error.message);
+    }
+  }
+
+  /**
+   * Clears all cache keys on server startup to ensure fresh state.
+   * This prevents stale data issues after deployments.
+   */
+  private async clearAllOnStartup(): Promise<void> {
+    if (!this.redisClient) {
+      return;
+    }
+
+    try {
+      // Find all keys related to our namespace
+      const patterns = [`${CACHE_NAMESPACE}:*`, `keyv:${CACHE_NAMESPACE}:*`];
+
+      let totalDeleted = 0;
+      for (const pattern of patterns) {
+        const keys = await this.redisClient.keys(pattern);
+        if (keys.length > 0) {
+          const deleted = await this.redisClient.del(...keys);
+          totalDeleted += deleted;
+          this.logger.debug(`Cleared ${deleted} keys matching pattern: ${pattern}`);
+        }
+      }
+
+      // Also clear in-memory cache
+      await this.clear();
+
+      this.logger.log(`Cache cleared on startup: ${totalDeleted} Redis keys deleted`);
+    } catch (error) {
+      this.logger.warn('Failed to clear cache on startup:', error.message);
     }
   }
 
@@ -115,29 +150,73 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      // Keys in Redis are prefixed with the namespace
-      const fullPattern = `${CACHE_NAMESPACE}:${pattern}`;
-      const keys = await this.redisClient.keys(fullPattern);
+      // Keyv stores keys with format: namespace:key
+      // Try multiple patterns to find the keys
+      const patterns = [
+        `${CACHE_NAMESPACE}:${pattern}`, // hotel-server:provinces:*
+        `keyv:${CACHE_NAMESPACE}:${pattern}`, // keyv:hotel-server:provinces:*
+        `*${pattern}`, // *provinces:*
+      ];
 
-      if (keys.length === 0) {
-        this.logger.debug(`No keys found matching pattern: ${fullPattern}`);
+      let allKeys: string[] = [];
+      for (const p of patterns) {
+        const keys = await this.redisClient.keys(p);
+        if (keys.length > 0) {
+          this.logger.debug(`Found ${keys.length} keys with pattern: ${p}`);
+          allKeys = [...allKeys, ...keys];
+        }
+      }
+
+      // Remove duplicates
+      allKeys = [...new Set(allKeys)];
+
+      if (allKeys.length === 0) {
+        this.logger.debug(`No keys found matching pattern: ${pattern}`);
         return 0;
       }
 
-      // Delete all matching keys
-      const deletedCount = await this.redisClient.del(...keys);
-      this.logger.log(`Cache DEL by pattern: ${fullPattern} (${deletedCount} keys deleted)`);
+      // Delete all matching keys from Redis
+      const deletedCount = await this.redisClient.del(...allKeys);
+      this.logger.log(`Cache DEL by pattern: ${pattern} (${deletedCount} keys deleted)`);
 
-      // Also clear in-memory cache by deleting each key without namespace prefix
-      for (const key of keys) {
-        const keyWithoutNamespace = key.replace(`${CACHE_NAMESPACE}:`, '');
-        await this.cache.del(keyWithoutNamespace);
+      // Also clear in-memory cache
+      for (const key of allKeys) {
+        // Try to extract the original key and delete from cache-manager
+        const keyVariants = [
+          key,
+          key.replace(`${CACHE_NAMESPACE}:`, ''),
+          key.replace(`keyv:${CACHE_NAMESPACE}:`, ''),
+          key.replace('keyv:', ''),
+        ];
+        for (const variant of keyVariants) {
+          try {
+            await this.cache.del(variant);
+          } catch {
+            // Ignore errors for individual deletions
+          }
+        }
       }
 
       return deletedCount;
     } catch (error) {
       this.logger.error(`Cache DEL by pattern error for ${pattern}:`, error);
       return 0;
+    }
+  }
+
+  /**
+   * Lists all keys in Redis matching a pattern (for debugging)
+   * @param pattern - Pattern to search for
+   */
+  async listKeys(pattern: string = '*'): Promise<string[]> {
+    if (!this.redisClient) {
+      return [];
+    }
+    try {
+      return await this.redisClient.keys(pattern);
+    } catch (error) {
+      this.logger.error('Error listing keys:', error);
+      return [];
     }
   }
 
