@@ -41,4 +41,28 @@ export class TokenService {
   verifyAccessToken(token: string): JwtPayload {
     return this.jwtService.verify<JwtPayload>(token);
   }
+
+  // ============================================================
+  // TEST METHODS - FOR PRESENTATION/DEMO ONLY
+  // Remove or protect these in production!
+  // ============================================================
+
+  /**
+   * [TEST] Generate an immediately expired access token for testing
+   * @param user - User data to include in the token
+   * @returns Expired JWT access token
+   */
+  generateExpiredAccessToken(user: Omit<User, 'password'>): string {
+    const payload: JwtPayload = {
+      sub: user.id,
+      role: user.role,
+      identifierType: user.identifier_type,
+      identifier: user[user.identifier_type.toLowerCase()],
+    };
+
+    // Generate token that expired 1 hour ago
+    return this.jwtService.sign(payload, {
+      expiresIn: '-1h',
+    });
+  }
 }

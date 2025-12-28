@@ -519,4 +519,33 @@ export class AuthService {
   async testClearAllLockouts() {
     return this.accountLockoutService.clearAllLockouts();
   }
+
+  /**
+   * [TEST] Generate an expired access token using the first user in the database
+   */
+  async testGenerateExpiredToken() {
+    const firstUser = await this.databaseService.user.findFirst({
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!firstUser) {
+      return {
+        error: 'No users found in database',
+        expiredToken: null,
+      };
+    }
+
+    const expiredToken = this.tokenService.generateExpiredAccessToken(firstUser);
+
+    return {
+      message: 'Expired access token generated successfully',
+      user: {
+        id: firstUser.id,
+        email: firstUser.email,
+        role: firstUser.role,
+      },
+      expiredToken,
+      note: 'This token expired 1 hour ago. Use it to test expired token handling.',
+    };
+  }
 }

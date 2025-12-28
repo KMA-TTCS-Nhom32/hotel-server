@@ -297,4 +297,18 @@ export class AuthController {
   async testClearAllLockouts() {
     return this.authService.testClearAllLockouts();
   }
+
+  @Public()
+  @Get('test/expired-token')
+  @ApiOperation({
+    summary: '[TEST] Generate an expired access token',
+    description:
+      'Generates an immediately expired access token for testing expired token scenarios. Uses the first user in the database. DO NOT use in production!',
+  })
+  @ApiOkResponse({
+    description: 'Expired token generated successfully',
+  })
+  async testGenerateExpiredToken() {
+    return this.authService.testGenerateExpiredToken();
+  }
 }
