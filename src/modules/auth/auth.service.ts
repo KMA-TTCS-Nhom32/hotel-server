@@ -45,7 +45,8 @@ export class AuthService {
       throw new HttpException(
         {
           status: HttpStatus.TOO_MANY_REQUESTS,
-          message: `Account is temporarily locked due to too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+          // message: `Account is temporarily locked due to too many failed login attempts. Please try again in ${remainingMinutes} minutes.`,
+          message: AuthErrorMessageEnum.AccountLocked,
           lockoutEndsAt: lockoutStatus.lockoutEndsAt,
         },
         HttpStatus.TOO_MANY_REQUESTS,

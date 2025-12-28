@@ -45,6 +45,7 @@ export enum AuthErrorMessageEnum {
   PasswordResetFailed = 'passwordResetFailed',
   OldPasswordMismatch = 'oldPasswordMismatch',
   CannotUseOldPassword = 'cannotUseOldPassword',
+  AccountLocked = 'accountLocked',
 }
 
 export enum ImageErrorMessagesEnum {
